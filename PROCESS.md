@@ -53,6 +53,50 @@ still redirect it.
   CI's container). Running the spec against the live URL never leaves test
   notes in the real house.
 
+### Session 2: the shared house
+
+I asked for the first design to be thrown away and replaced with the house I
+actually want: the five of us living together, each in our own room on our own
+clock. I gave the agent where everyone lives and what each room should have.
+The agent asked me three things before building: who lives in New Jersey
+(Neha), who lives in Tamil Nadu (Amirdhavarshini), and whether my opening line
+about the week 8 ADR examples meant I wanted ADRs (yes). The big decisions are
+recorded in `doc/adr/`:
+[0001](doc/adr/0001-a-zero-dependency-node-server-with-html-forms.md) to
+[0003](doc/adr/0003-a-person-is-one-of-five-fixed-ids.md) record the session 1
+choices after the fact, and
+[0004](doc/adr/0004-a-top-down-house-drawn-as-server-side-svg.md),
+[0005](doc/adr/0005-one-log-of-things-with-state-derived-from-time.md) and
+[0006](doc/adr/0006-each-bedroom-keeps-its-owners-clock.md) cover the drawn
+house, the log of things, and the clocks. Those three are marked *proposed*
+until I've reviewed them.
+
+These are the smaller product calls the agent made. I haven't reviewed them yet:
+
+- **The name stays Five Windows.** Each window now shows the sky where that
+  friend is.
+- **Ids:** Neha 2, Amirdhavarshini 3, Rithanya 4, Aswathy 5 (I'm still 1).
+- **Sleep hours:** Neha 11:30 pm to 10:30 am, Rithanya 11:30 pm to 9:30 am,
+  everyone else 11 pm to 7 am. Anyone in the house in the last ten minutes is
+  drawn awake, whatever the hour.
+- **Shared rooms follow the visitor's clock.** Only bedrooms keep their
+  owner's.
+- **Desk notes are private.** Only the owner and the author can read them;
+  everyone else sees "a folded note". Gifts are visible to anyone.
+- **What you can leave:** masala chai, filter coffee, dosa, biryani, Maggi,
+  cake, a mango, a flower or chocolate. Food left in the kitchen stays out for
+  three days.
+- **The dog is Laddoo.** He follows whoever last played with him to their room
+  for twelve hours.
+- **Nothing punishes absence.** Rooms get lived-in after two days and messy
+  after five. Plants get thirsty after two dry days but never die. Each of us
+  has one garden patch, and plants bloom after three days.
+- **The wall:** "big news" stays pinned at the top. After 24 notes, older ones
+  move to a memory box.
+- **Things I didn't specify:** my own room got fairy lights and a plant. The
+  avatars use warm brown skin tones and one colour each, as a placeholder until
+  I fix them.
+
 ## What went wrong, and what we found
 
 - The agent's shell didn't have node on its PATH, because mise wasn't active.
@@ -69,13 +113,25 @@ still redirect it.
 - The first deploy attempt had no Fly token. Once I'd added it to
   `mise.local.toml`, mise refused to load the file until it was trusted
   (`mise trust`). Both are now notes in `CLAUDE.md`.
+- In session 2, port 8080 was already taken by a `pnpm start` from 16:12
+  running the old code. The agent's new server failed to bind, but it had
+  already loaded `src/store.ts`, which migrated `./data/house.db`. That moved
+  the old notes onto the new wall and dropped the `notes` table, so the old
+  server's house page began returning 500. Only local data was involved, and
+  the agent had copied the database to `/tmp` beforehand. The agent left the
+  old server running and used port 8091 instead. Both facts are now in
+  `CLAUDE.md` and ADR 0002.
+- The phone-width check from session 1 (a 390px iframe) can't send the
+  login cookie, so it would only ever show the door. The agent wrote
+  `scripts/shot.ts`, which uses headless Chrome's device emulation instead. That
+  goes down to 390px and can set the cookie.
 
 ## Deliberately left out
 
-Photos, drawings, prompts, rooms, real-time presence, notifications, editing or
-deleting notes, and real authentication. None of them is needed to prove leave →
-persist → return → discover, and each has to show it makes five people feel
-closer before it goes in.
+Photos, drawings, prompts, real-time presence, notifications, editing or
+deleting what you left, and real authentication. Rooms came in during session
+2, because I asked for them. Each of the rest has to show it makes five people
+feel closer before it goes in.
 
 ## How the harness has evolved
 
@@ -91,6 +147,16 @@ closer before it goes in.
   everything through `mise exec --`, the exact deploy command, `mise trust`
   for an untrusted `mise.local.toml`, and no local Docker. Each one cost a
   failed command this session.
+- **Session 2:** `CLAUDE.md` now describes the house, and the core loop is now
+  "leave something somewhere in the house → while you were away". It also
+  gained:
+  - a Decisions section pointing at `doc/adr/`
+  - the rule that nothing in the house punishes absence
+  - the append-only `things` table and its never-rename rule
+  - SVG drawings in `src/art.ts`
+  - `esc()` moving to `src/html.ts`
+  - what to do when port 8080 is taken
+  - `scripts/shot.ts` replacing the iframe trick
 
 ## Project log
 
@@ -169,3 +235,42 @@ mine, and then the agent restarts the machine and checks the note is still
 there.
 
 **Commits:** this log update.
+
+### 5. "throw away the last design and do this" (2 Oct 2026)
+
+**Asked:** a long pasted brief. The five of us share a house with our own rooms,
+and a living room, kitchen and garden in common. Each room is in its owner's
+time zone. We can leave notes on a shared wall and in each other's rooms, look
+after a pet and plants together, clean each other's rooms, and cook or leave
+food. There's a memory board and big news. Coming back shows "while you were
+away", not notifications. The view is top-down like a game, at every screen
+size. Five avatars with particular hair, and particular things in each room.
+The brief opened with "In week8 slides there is a few examples for adrs".
+
+**Agent:** read the code, then asked three questions: who lives in New Jersey,
+who lives in Tamil Nadu, and whether I wanted ADRs. I answered Neha,
+Amirdhavarshini, and yes. It looked up the decision-records page on the course
+site for the format. Then it rebuilt the app as the house described in
+"Session 2: the shared house" above, and wrote six ADRs. It replaced the spec
+with 15 checks, one per promise. `pnpm check` passed 15/15 against the local
+house and against an empty data directory. After a restart, Neha still found
+the note, the tidy and the wall note the spec had left. It looked at the
+door, the house and every room at 390px, and at the house at 1280px. It fixed
+four things it saw:
+
+- "Amirdhavarshini" broke mid-word in the clock list and on the door
+- clock times wrapped
+- the garden was too small to read on a phone
+- the "came by" line ignored friends who had left something
+
+**What went wrong:** the port 8080 clash and the accidental local migration,
+and the iframe check not carrying the cookie. Both are written up under "What
+went wrong" above.
+
+**Correction:** none this prompt.
+
+**Not done:** not pushed and not deployed. Nothing about this version is
+verified on Fly yet.
+
+**Commits:** [`205b1d8`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/205b1d8)
+(the house), and this log update.
