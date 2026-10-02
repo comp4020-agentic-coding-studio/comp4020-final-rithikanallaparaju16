@@ -64,8 +64,8 @@ still redirect it.
   and knocking its window out of line. All three were fixed: the roof stays
   inside the gutter, phones get a 3+2 grid like two floors, and your own window
   says "you're here". The iframe trick is now a rule in `CLAUDE.md`.
-- There's no Docker on my machine, so Fly's remote builder was the first thing
-  to build the image.
+- There's no Docker on my machine, so the image hasn't been built anywhere yet.
+  Fly's remote builder will be the first to build it.
 
 ## Deliberately left out
 
@@ -127,3 +127,10 @@ six spec checks for the core loop. It replaced the placeholder Dockerfile.
 layout problems. It confirmed locally that notes survive a server restart: after
 the restart, a first-time visitor was greeted with "Rithika left 3 notes on the
 table for you." It wrote README.md, CLAUDE.md and this file.
+
+**Deploy:** blocked. `flyctl deploy` failed with "no access token available";
+no Fly token reached the agent's shell. Nothing is verified on the deployed app
+yet.
+
+**Commits:** [`0ed431d`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/0ed431d)
+(the slice), plus this log update.
