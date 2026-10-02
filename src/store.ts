@@ -8,10 +8,13 @@ mkdirSync(dir, { recursive: true });
 const db = new DatabaseSync(join(dir, "house.db"));
 
 db.exec(`
-  CREATE TABLE IF NOT EXISTS notes (
+  CREATE TABLE IF NOT EXISTS things (
     id INTEGER PRIMARY KEY,
     author TEXT NOT NULL,
-    body TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    place TEXT NOT NULL,
+    body TEXT NOT NULL DEFAULT '',
+    item TEXT NOT NULL DEFAULT '',
     created_at INTEGER NOT NULL
   );
   CREATE TABLE IF NOT EXISTS visits (
@@ -21,11 +24,35 @@ db.exec(`
   );
 `);
 
-export type Note = { id: number; author: string; body: string; createdAt: number };
+// The first house kept notes in their own table; they move onto the living
+// room wall, where they'd have been.
+if (db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'notes'").get()) {
+  db.exec(`
+    BEGIN;
+    INSERT INTO things (author, kind, place, body, created_at)
+      SELECT author, 'note', 'wall', body, created_at FROM notes ORDER BY id;
+    DROP TABLE notes;
+    COMMIT;
+  `);
+}
 
-const insertNote = db.prepare("INSERT INTO notes (author, body, created_at) VALUES (?, ?, ?)");
-const selectNotes = db.prepare(
-  "SELECT id, author, body, created_at FROM notes ORDER BY created_at DESC, id DESC",
+export type Kind = "note" | "desk" | "tidy" | "dish" | "water" | "plant" | "play";
+
+export type Thing = {
+  id: number;
+  author: string;
+  kind: Kind;
+  place: string;
+  body: string;
+  item: string;
+  createdAt: number;
+};
+
+const insertThing = db.prepare(
+  "INSERT INTO things (author, kind, place, body, item, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+);
+const selectThings = db.prepare(
+  "SELECT id, author, kind, place, body, item, created_at FROM things ORDER BY created_at DESC, id DESC",
 );
 const selectVisit = db.prepare("SELECT last_seen, seen_until FROM visits WHERE person = ?");
 const selectVisits = db.prepare("SELECT person, last_seen FROM visits");
@@ -34,15 +61,20 @@ const upsertVisit = db.prepare(`
   ON CONFLICT (person) DO UPDATE SET last_seen = excluded.last_seen, seen_until = excluded.seen_until
 `);
 
-export function leaveNote(author: string, body: string): void {
-  insertNote.run(author, body, Date.now());
+export function leave(t: { author: string; kind: Kind; place: string; body?: string; item?: string }): void {
+  insertThing.run(t.author, t.kind, t.place, t.body ?? "", t.item ?? "", Date.now());
 }
 
-export function notes(): Note[] {
-  return selectNotes.all().map((r) => ({
+// Newest first. Five people leave few enough things that the house can be
+// rebuilt from the whole log on every page.
+export function things(): Thing[] {
+  return selectThings.all().map((r) => ({
     id: Number(r.id),
     author: String(r.author),
+    kind: String(r.kind) as Kind,
+    place: String(r.place),
     body: String(r.body),
+    item: String(r.item),
     createdAt: Number(r.created_at),
   }));
 }
@@ -52,7 +84,7 @@ export function lastSeen(): Map<string, number> {
 }
 
 // A visit is a run of page loads with no 30-minute gap, so "new" marks survive
-// a refresh or leaving a note, and reset only when you come back another time.
+// a refresh or leaving something, and reset only when you come back another time.
 const VISIT_GAP = 30 * 60 * 1000;
 
 // Records that `person` is here now; returns the moment before which

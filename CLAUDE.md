@@ -1,13 +1,19 @@
 # Five Windows: the harness
 
-A shared little house for five friends (Rithika and four others) who live
-apart. The one principle: **connection must not require being online at the
-same time.** Someone comes by for 30 seconds, leaves something and goes; someone
-else finds it hours or days later. Real-time is a later bonus, never a
-prerequisite.
+A shared house for five friends who live apart: Rithika (Canberra), Neha (New
+Jersey), Amirdhavarshini (Tamil Nadu), Rithanya and Aswathy (Bangalore). The
+one principle: **connection must not require being online at the same time.**
+Someone comes by for 30 seconds, leaves something and goes; someone else finds
+it hours or days later. Real-time is a later bonus, never a prerequisite.
 
-The core loop every change protects: enter → pick your window → leave something
-→ it persists → come back → discover what friends left.
+The core loop every change protects: enter → pick who you are → leave something
+somewhere in the house → it persists → come back → "while you were away" shows
+what friends left.
+
+The house (since session 2): a top-down floor plan with a garden, five
+bedrooms on a hallway, a living room with the shared wall, a kitchen, and
+Laddoo the dog. Each bedroom keeps its owner's local time and personal details
+(listed in README.md). Shared rooms follow the visitor's clock.
 
 ## What good means
 
@@ -33,9 +39,20 @@ notifications.
 
 Ask: does it help five friends feel connected across distance, and does it
 strengthen the core loop enough to justify its complexity? If not, don't build
-it. Rooms, photos, drawings, prompts, presence and real-time are possibilities,
-not a backlog. A feature that changes the core interaction or the house
-metaphor goes back to Rithika first.
+it. Photos, drawings, prompts and real-time are possibilities, not a backlog. A
+feature that changes the core interaction or the house metaphor goes back to
+Rithika first.
+
+Rules in the house never punish absence: plants get thirsty but never die,
+rooms get lived-in but never gross, Laddoo naps but is never sad. Coming back
+should feel like being missed, not like being behind.
+
+## Decisions
+
+Architecture decisions live in `doc/adr/`, one numbered file each. Read them
+before proposing a change to the stack, storage, data model, drawing approach
+or clocks. To change one, write a new record that supersedes it. Don't edit an
+accepted record.
 
 ## Architecture rules
 
@@ -47,10 +64,18 @@ metaphor goes back to Rithika first.
 - All state lives in SQLite at `$DATA_DIR/house.db` (`/data` on Fly, the only
   storage that survives a redeploy; `./data` locally). Nothing friends must see
   lives in memory or the browser.
+- Everything people leave is a row in the append-only `things` table. Mess,
+  thirst, growth, Laddoo's spot and the counter are worked out from
+  timestamps in `src/house.ts`, with no timers (ADR 0005). Add new `kind` and
+  `item` values; never rename one, since stored rows use them.
 - Pages are server-rendered HTML forms that post and redirect. Every
-  user-written string goes through `esc()` in `src/pages.ts`.
-- The five are fixed in `src/people.ts`. Ids are window numbers; never change
-  an id, since notes and visits reference it. Rename by changing `name`.
+  user-written string goes through `esc()` in `src/html.ts`.
+- Drawings are SVG strings built in `src/art.ts`. Each room is drawn once in
+  its own coordinates and reused by the floor plan and its room page (ADR
+  0004). SVG ids (masks, patterns) must stay unique within a page.
+- The five are fixed in `src/people.ts`, with city, IANA zone and sleep hours.
+  Ids are window numbers; never change an id, since everything left
+  references it. Rename by changing `name`.
 - `/readme/` renders README.md with `src/markdown.ts`, which supports headings,
   paragraphs, flat lists, blockquotes, code, links, images and emphasis only.
   Keep README.md within that, and don't add relative links to repo files
@@ -67,6 +92,11 @@ metaphor goes back to Rithika first.
   mise.local.toml` is the fix; it's Rithika's own file.
 - There's no Docker locally, so Fly's remote builder is the only place the
   image gets built before CI.
+- If port 8080 is already taken (Rithika may have a server running), don't
+  kill it. Use `PORT=8091 pnpm start` and `APP_URL=http://localhost:8091 pnpm
+  check`. `src/store.ts` migrates the database when it loads, before the server
+  binds its port, so even a server that fails to start can migrate `./data`
+  under one that's already running.
 
 ## Testing rules
 
@@ -76,9 +106,11 @@ metaphor goes back to Rithika first.
 - Spec tests that write notes or record visits stay inside the `throwaway`
   gate in `spec/house.test.ts`. They must never write into the real house on
   Fly.
-- Look at UI changes in a browser at phone width (390px) before calling them
-  done. Headless Chrome's window won't go below ~500px, so frame the page in a
-  390px iframe.
+- Look at UI changes at phone width (390px) and desktop before calling them
+  done: `node scripts/shot.ts <url> <out.png> 390 <who>`, then read the PNG.
+  It uses headless Chrome's device emulation, which goes below the ~500px
+  window minimum and can set the `who` cookie. The old 390px-iframe trick can't
+  send the cookie, so it only ever shows the door.
 
 ## Deploying
 
