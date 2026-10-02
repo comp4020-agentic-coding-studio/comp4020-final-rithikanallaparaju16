@@ -14,7 +14,9 @@
     "noEmit": true,
     "skipLibCheck": true,
     "moduleDetection": "force",
-    "verbatimModuleSyntax": true
+    "verbatimModuleSyntax": true,
+    // node strips types rather than compiling, so only erasable syntax runs
+    "erasableSyntaxOnly": true
   },
-  "include": ["*.ts", "spec", "scripts"]
+  "include": ["*.ts", "spec", "scripts", "src"]
 }
