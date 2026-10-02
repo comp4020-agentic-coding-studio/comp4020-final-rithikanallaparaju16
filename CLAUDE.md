@@ -57,6 +57,17 @@ metaphor goes back to Rithika first.
   (they 404 at `/readme/`).
 - Don't change the settings `fly.toml` marks as fixed.
 
+## Tooling
+
+- mise isn't active in the agent's shell, so node isn't on PATH. Run
+  everything as `mise exec -- <command>` (`mise exec -- pnpm check`).
+- Deploy with `mise exec -- flyctl deploy --remote-only --ha=false -a
+  comp4020-final-rithikanallaparaju16`. mise supplies the token from
+  `mise.local.toml`. If mise says that file isn't trusted, `mise trust
+  mise.local.toml` is the fix; it's Rithika's own file.
+- There's no Docker locally, so Fly's remote builder is the only place the
+  image gets built before CI.
+
 ## Testing rules
 
 - `pnpm start` in one terminal, `pnpm check` in another. The spec runs against

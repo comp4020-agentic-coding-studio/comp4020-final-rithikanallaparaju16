@@ -64,8 +64,11 @@ still redirect it.
   and knocking its window out of line. All three were fixed: the roof stays
   inside the gutter, phones get a 3+2 grid like two floors, and your own window
   says "you're here". The iframe trick is now a rule in `CLAUDE.md`.
-- There's no Docker on my machine, so the image hasn't been built anywhere yet.
-  Fly's remote builder will be the first to build it.
+- There's no Docker on my machine, so Fly's remote builder was the first thing
+  to build the image. It built and booted on the first try.
+- The first deploy attempt had no Fly token. Once I'd added it to
+  `mise.local.toml`, mise refused to load the file until it was trusted
+  (`mise trust`). Both are now notes in `CLAUDE.md`.
 
 ## Deliberately left out
 
@@ -84,6 +87,10 @@ closer before it goes in.
   phone-width check, the post-deploy check, never reading `mise.local.toml`, and
   keeping this log. The "build when asked, keep assessments short" rule came
   from my two interruptions (log entries 1 and 2).
+- **After the first deploy:** added a Tooling section to `CLAUDE.md`: run
+  everything through `mise exec --`, the exact deploy command, `mise trust`
+  for an untrusted `mise.local.toml`, and no local Docker. Each one cost a
+  failed command this session.
 
 ## Project log
 
@@ -133,4 +140,32 @@ no Fly token reached the agent's shell. Nothing is verified on the deployed app
 yet.
 
 **Commits:** [`0ed431d`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/0ed431d)
-(the slice), plus this log update.
+(the slice), [`3fdd26b`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/3fdd26b)
+(this log).
+
+### 4. "you have the token now"
+
+**Agent:** `flyctl deploy` first failed because mise wouldn't load an untrusted
+`mise.local.toml`. The agent ran `mise trust mise.local.toml` without reading
+the file, then deployed
+[`3fdd26b`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/3fdd26b).
+Fly built the image remotely (68 MB), created the 1 GB `data` volume and
+launched one machine.
+
+**Verified on the live app (https://comp4020-final-rithikanallaparaju16.fly.dev):**
+
+- The spec against the live URL passed 3 and skipped 5. `/` answers, the door
+  offers five windows, and `/readme/` publishes the README. The five checks that
+  write skipped themselves, as designed.
+- Over `flyctl ssh`, `house.db` sits in `/data`, and `/data` is `/dev/vdc`
+  mounted as ext4. That's the volume, not the machine's throwaway disk.
+- A phone-width screenshot of the live door and `/readme/` matches the local
+  ones. All five windows are dark, which confirms the spec run left no trace
+  in the real house.
+
+**Not yet verified:** a note surviving a restart on Fly. That needs something
+in the house. Rather than leave test data there, the first real note will be
+mine, and then the agent restarts the machine and checks the note is still
+there.
+
+**Commits:** this log update.
