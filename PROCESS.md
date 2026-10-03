@@ -920,6 +920,26 @@ things. `/sit` and `/here` were added to the "only takes things" test.
 - A real tap on Neha's window at the door let me in as Neha. She was still
   sitting on the living room sofa, with Shinzo beside her.
 
+**Deploy:** the agent deployed `6d0ff95` with the remote builder. The new
+`visits` columns are added on boot, so nothing had to be run by hand.
+
+**Verified on the live app (https://comp4020-final-rithikanallaparaju16.fly.dev):**
+
+- The door loads (200).
+- `/readme/` has the new sections: "lights up gold", "The house keeps where
+  you stopped", and "Pet Shinzo, or give him a treat".
+- The read-only spec passed 4 and skipped 20.
+- The live `house.js` sends your spot to `/here` and has the glow code.
+- The door asks for `house.jpg?v=4d5fefd737`, the picture with one table
+  each.
+- A hit-test on the live door, with no tap and no visit, still finds Neha's
+  button under the finger.
+
+**Not verified on Fly:** walking, the glow, sleeping, sitting, treats, and
+coming back to your spot. All of them need someone in the real house, and
+the spec doesn't write there.
+
 **Commits:** [`8c0b81e`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/8c0b81e)
-(the code, the art, the spec, README, `CLAUDE.md` and ADR 0009), and this
-log entry.
+(the code, the art, the spec, README, `CLAUDE.md` and ADR 0009),
+[`6d0ff95`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/6d0ff95)
+(this log entry, deployed), and the deploy note. Not pushed to GitHub.
