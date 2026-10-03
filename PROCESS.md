@@ -639,5 +639,18 @@ wrong").
 
 **Correction:** none this prompt.
 
+**Deploy:** the agent deployed `5739e84` with the remote builder, and the
+machine passed its health checks. There was no schema change. flyctl's DNS
+check timed out locally again.
+
+**Verified on the live app (https://comp4020-final-rithikanallaparaju16.fly.dev):**
+the read-only spec passed 4 and skipped 17. The live `house.js` is the new
+walking script, and `/readme/` has the walking section. A hit-test on the
+live door (no tap, no visit) still finds Neha's sticker under the finger.
+
+**Not verified on Fly:** walking itself. Seeing the house needs someone to
+come in, which records a visit in the real house.
+
 **Commits:** [`3e04bde`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/3e04bde)
-(walking, the fixes and the docs), and this log entry.
+(walking, the fixes and the docs), [`5739e84`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/5739e84)
+(this log entry, deployed), and the deploy note. Not pushed to GitHub.
