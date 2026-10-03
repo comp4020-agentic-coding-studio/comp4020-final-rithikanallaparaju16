@@ -13,9 +13,11 @@ what friends left.
 The house (since session 3): Rithika's Google Stitch illustration of a
 cutaway house, seen from above, with five bedrooms, a living room with the
 shared wall, a kitchen, a garden, and Laddoo the dog. The five are her Stitch
-stickers, and they wander their rooms. Each bedroom keeps its owner's local
-time and personal details (listed in README.md). Shared rooms follow the
-visitor's clock. Laptop: the house with updates beside it. Phone: the house
+stickers. Since session 5 nobody moves on their own: you walk yourself
+(keys, or a thumb stick on touch screens), and friends stand where they last
+were (ADR 0008). Don't bring back automatic wandering. Each bedroom keeps
+its owner's local time and personal details (listed in README.md). Shared
+rooms follow the visitor's clock. Laptop: the house with updates beside it. Phone: the house
 fills the screen, with Home, Updates, Movies and Everyone tabs at the bottom.
 
 Since session 4, two rooms have an activity of their own: face masks in
@@ -91,10 +93,13 @@ accepted record.
   image). Change the script and rerun it rather than editing the images.
   After moving anything, look at it over the picture before trusting the
   coordinates.
-- Client JavaScript is enhancement only: `public/house.js` walks your avatar
-  and centres a phone's view. Every link and form must work without it, and
-  the spec never relies on it. Animations stop under
-  `prefers-reduced-motion`.
+- Client JavaScript is enhancement only: `public/house.js` builds the walking
+  controls (arrow keys/WASD, the thumb stick, the Go in button), walks you to
+  a tapped room, and keeps a phone's view on you. It reads the room outlines
+  from the page, so `ROOMS` stays the one source of coordinates. Every link
+  and form must work without it, and the spec never relies on it. Automatic
+  animations stop under `prefers-reduced-motion`; walking yourself doesn't.
+  Keys are ignored while someone's typing in a form.
 - `visits` keeps each friend's last page load, the start of their current
   visit, and the room they were last in (`place`). Friends seen in the last
   ten minutes are drawn there.
@@ -139,7 +144,11 @@ accepted record.
   done: `node scripts/shot.ts <url> <out.png> 390 <who>`, then read the PNG.
   It uses headless Chrome's device emulation, which goes below the ~500px
   window minimum and can set the `who` cookie. The old 390px-iframe trick can't
-  send the cookie, so it only ever shows the door.
+  send the cookie, so it only ever shows the door. Phone widths are emulated
+  as touch screens (so the thumb stick shows); `TOUCH=1` makes a wider one
+  touch too. Check an iPad as well (`TOUCH=1`, 820px): the 700–999px range
+  has its own bar and layout, and in session 4 it broke without anyone
+  looking.
 - The spec posts forms directly, so it can't tell if a button actually takes
   a tap. After touching CSS or the SVG layer, tap the door's windows and any
   changed button for real: `node scripts/shot.ts <url> <out.png> 390 none

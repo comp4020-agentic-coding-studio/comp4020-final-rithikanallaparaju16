@@ -58,6 +58,10 @@ await cdp("Network.enable");
 await cdp("Network.clearBrowserCookies");
 if (who !== "none") await cdp("Network.setCookie", { name: "who", value: who, url: `${new URL(url).origin}/` });
 await cdp("Emulation.setDeviceMetricsOverride", { width: Number(width), height: 844, deviceScaleFactor: 2, mobile: Number(width) < 600 });
+// Phone widths are touch screens, which get the thumb stick. TOUCH=1 makes a
+// wider screen one too (an iPad), and TOUCH=0 turns it off.
+const touch = process.env.TOUCH ? process.env.TOUCH === "1" : Number(width) < 600;
+await cdp("Emulation.setTouchEmulationEnabled", { enabled: touch, maxTouchPoints: touch ? 5 : 0 });
 await cdp("Page.enable");
 await cdp("Page.navigate", { url });
 await new Promise((r) => setTimeout(r, 2500)); // web fonts

@@ -214,6 +214,48 @@ button.soft:focus-visible {
   box-shadow: 0 0 0 2px var(--card);
 }
 
+/* The bar keeps to one line. A long name ("Not Amirdhavarshini?") leaves
+   little room, so the greeting trails off, and on a tablet it goes, with the
+   switch down to just your sticker. */
+@media (min-width: 700px) {
+  .bar .greeting {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+}
+
+@media (min-width: 700px) and (max-width: 999px) {
+  .bar {
+    gap: 4px 10px;
+  }
+
+  .bar .greeting {
+    display: none;
+  }
+
+  .tabs {
+    gap: 2px;
+  }
+
+  .tabs a {
+    padding: 7px 10px;
+  }
+
+  .switch button {
+    padding: 3px;
+  }
+
+  .switch span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
 /* "while you were away" in one line, for screens with no room beside the house */
 .news {
   display: flex;
@@ -323,6 +365,7 @@ button.soft:focus-visible {
 /* the house */
 
 .map {
+  position: relative;
   overflow: hidden;
   border-radius: 16px;
   background: #b9c98f;
@@ -484,7 +527,9 @@ g.nametags {
   animation: glow 1.8s ease-in-out infinite alternate;
 }
 
-.walker .bob {
+/* Only someone who's actually here so much as breathes; everyone else stands
+   still. You walk when you walk yourself (public/house.js). */
+.walker.here .bob {
   animation: bob 1.6s ease-in-out infinite alternate;
 }
 
@@ -1531,4 +1576,133 @@ main.plain {
 
 .times .name {
   font-weight: 600;
+}
+
+/* walking yourself around (public/house.js): a thumb stick on touch screens,
+   the arrow keys on a keyboard, and a button into the room you're in */
+
+.pad {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  left: 14px;
+  z-index: 5;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.pad > * {
+  pointer-events: auto;
+}
+
+.stick {
+  display: none;
+  position: relative;
+  flex: none;
+  width: 116px;
+  height: 116px;
+  border: 2px solid rgba(255, 248, 234, 0.85);
+  border-radius: 50%;
+  background: rgba(59, 42, 32, 0.22);
+  box-shadow: 0 4px 14px rgba(40, 20, 10, 0.25);
+  touch-action: none;
+}
+
+.knob {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 52px;
+  height: 52px;
+  margin: -26px 0 0 -26px;
+  border-radius: 50%;
+  background: var(--frame);
+  box-shadow: 0 3px 8px rgba(40, 20, 10, 0.35);
+}
+
+.pad.touch .stick {
+  display: block;
+}
+
+.keys-hint {
+  margin: 0;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(255, 250, 240, 0.94);
+  box-shadow: 0 2px 8px rgba(40, 20, 10, 0.2);
+  font-size: 0.85rem;
+}
+
+.pad.touch .keys-hint {
+  display: none;
+}
+
+.go {
+  margin-left: auto;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--frame);
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgba(40, 20, 10, 0.3);
+}
+
+.go[hidden] {
+  display: none;
+}
+
+.go:hover,
+.go:focus-visible {
+  filter: brightness(1.08);
+}
+
+.go kbd {
+  margin-left: 4px;
+  padding: 1px 6px;
+  border: 1px solid rgba(255, 246, 230, 0.6);
+  border-radius: 5px;
+  font: 0.75rem var(--serif);
+}
+
+.pad.touch .go {
+  min-height: 48px;
+  padding: 8px 18px;
+}
+
+.pad.touch .go kbd {
+  display: none;
+}
+
+/* on a phone the house scrolls sideways under the controls, so they stay put
+   just above the tabs */
+@media (max-width: 699px) {
+  .page-home .pad {
+    position: fixed;
+    bottom: calc(var(--tabs-h) + env(safe-area-inset-bottom) + 8px);
+  }
+
+  .page-home .stick {
+    width: 104px;
+    height: 104px;
+  }
+
+  .page-room .stick {
+    width: 92px;
+    height: 92px;
+  }
+
+  .page-room .knob {
+    width: 42px;
+    height: 42px;
+    margin: -21px 0 0 -21px;
+  }
+
+  .page-room .pad.touch .go {
+    min-height: 44px;
+    font-size: 0.9rem;
+  }
 }

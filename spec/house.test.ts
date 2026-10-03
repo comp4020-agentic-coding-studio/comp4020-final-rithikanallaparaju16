@@ -203,6 +203,17 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect(text(withText(await page("/everyone", b.id), ".clocks li", a.name))).toContain("home now, in the kitchen");
   });
 
+  it("never walks anyone around on their own", async () => {
+    const [a] = await people();
+    const house = await page("/", a.id);
+    const walkers = [...house.querySelectorAll(".walker")];
+    expect(walkers.length, "nobody's standing in the house").toBeGreaterThan(0);
+    for (const w of walkers) {
+      expect(w.getAttribute("style") ?? "", `person ${w.getAttribute("data-person")} is set to wander`).not.toMatch(/animation/);
+    }
+    expect(text(house.querySelector(".house-svg style")), "the house has walking keyframes").not.toMatch(/@keyframes/);
+  });
+
   it("puts a face mask on whoever does one with Rithanya's powder", async () => {
     const five = await people();
     const rithanya = five.find((p) => p.name === "Rithanya")!;

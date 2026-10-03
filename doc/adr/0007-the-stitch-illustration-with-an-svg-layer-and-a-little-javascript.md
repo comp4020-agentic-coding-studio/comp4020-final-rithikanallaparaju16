@@ -1,7 +1,7 @@
 # 0007. The Stitch illustration, with an SVG layer and a little JavaScript
 
 Status: proposed. Built in session 3; waiting on Rithika's review. Supersedes
-0004.
+0004. How avatars move is superseded by 0008.
 
 ## Context
 

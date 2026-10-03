@@ -18,9 +18,11 @@ A good version of this house:
 
 ## The house
 
-The house is a cutaway seen from above, like a game, illustrated in Google Stitch. Amirdhavarshini's room is the big one in the corner, with the biggest bed and a round mat and cushions on the floor, because that's where everyone hangs out. The kitchen and the living room are in the middle, the garden is out the back, and Rithika's, Rithanya's, Aswathy's and Neha's rooms run along the front. Tap any room to go in, and your avatar walks there.
+The house is a cutaway seen from above, like a game, illustrated in Google Stitch. Amirdhavarshini's room is the big one in the corner, with the biggest bed and a round mat and cushions on the floor, because that's where everyone hangs out. The kitchen and the living room are in the middle, the garden is out the back, and Rithika's, Rithanya's, Aswathy's and Neha's rooms run along the front.
 
-Each of us is a little sticker in the house. Whoever's awake wanders around her room, and anyone who's been here in the last ten minutes is wherever she last went, so you can find a friend in the kitchen. During their sleep hours, friends are tucked up in bed.
+Each of us is a little sticker in the house, and nobody moves unless they're the one moving. You walk yourself around: with the arrow keys or WASD on a laptop, or with a thumb stick on a phone or iPad, like a game. Walk into a room and a button offers to take you in (Enter does it on a keyboard). You can also just tap a room, and you walk there and go in.
+
+Friends stand still where they last were. Anyone who's been here in the last ten minutes is wherever she last went, so you can find a friend in the kitchen, and she breathes a little and glows underfoot because she's here. Everyone else is in her own room, and during her sleep hours she's tucked up in bed.
 
 Each bedroom is someone's own:
 
@@ -64,7 +66,7 @@ Anyone with the link can pick anyone at the door. That's fine for a prototype th
 
 ## How it's built
 
-It's kept as small as the problem: one Node process, no framework and no runtime dependencies. Every page is drawn on the server, and every action is a plain HTML form. One small script makes your avatar walk to the room you tap, but everything works without it.
+It's kept as small as the problem: one Node process, no framework and no runtime dependencies. Every page is drawn on the server, and every action is a plain HTML form. One small script lets you walk your avatar around, but everything works without it: rooms are links.
 
 - `src/server.ts` holds the routes.
 - `src/store.ts` keeps everything people leave in one SQLite table (Node's built-in `node:sqlite`), plus when each friend was last here and where, in a file on the Fly volume at `/data`, the only storage that survives a redeploy.
@@ -72,11 +74,11 @@ It's kept as small as the problem: one Node process, no framework and no runtime
 - `src/time.ts` turns each friend's time zone into a clock and a time of day.
 - `src/scene.ts` lays an SVG layer over the illustration: the rooms as links, each room's light, what's been left, Laddoo and the five of us.
 - `src/art.ts` draws the small things in SVG: food, notes, clutter and plants.
-- `src/pages.ts` puts the pages together, `public/style.css` styles them, and `public/house.js` does the walking.
+- `src/pages.ts` puts the pages together, `public/style.css` styles them, and `public/house.js` does the walking: the keys, the thumb stick and the Go in button.
 - `src/people.ts` lists the five, with their cities, time zones and sleep hours.
 - `scripts/cut-art.py` cuts the Stitch exports into the house picture, Laddoo and the five stickers in `public/art/`. It runs by hand, not on the server.
 
-The big decisions (the stack, the storage, who counts as a person, the illustrated house, the log of things, and the clocks) are written up as decision records in `doc/adr/` in the repository.
+The big decisions (the stack, the storage, who counts as a person, the illustrated house, the log of things, the clocks, and walking yourself around) are written up as decision records in `doc/adr/` in the repository.
 
 Run it locally with `pnpm start` (it keeps its data in `./data`), then run `pnpm check` in another terminal to check it against the spec.
 
@@ -97,6 +99,7 @@ Run it locally with `pnpm start` (it keeps its data in `./data`), then run `pnpm
 - the garden remembers who planted what and who watered it
 - Laddoo follows whoever played with him
 - a friend who's home right now shows up where she is in the house
+- nobody walks around on their own
 - a face mask shows on the friend wearing it, and Rithanya hears whose it was
 - kettle Maggi stays out in Amirdhavarshini's room
 - a suggested movie and who watched it are there for everyone
