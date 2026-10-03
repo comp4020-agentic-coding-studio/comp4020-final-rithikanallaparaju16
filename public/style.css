@@ -122,11 +122,50 @@ button.soft:focus-visible {
   white-space: nowrap;
 }
 
-.greeting {
+.hello {
+  display: flex;
   flex: 1;
+  align-items: center;
+  gap: 4px 20px;
+  min-width: 0;
+}
+
+.greeting {
   min-width: 0;
   margin: 0;
   font-size: 0.92rem;
+}
+
+/* your own sticker: back to the door, to come in as someone else */
+.switch {
+  margin: 0;
+}
+
+.switch button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 12px 3px 3px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 250, 240, 0.85);
+  color: var(--ink);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.switch button:hover,
+.switch button:focus-visible {
+  background: #fff;
+}
+
+.switch img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: 50% 8%;
+  background: #f6e3c4;
 }
 
 .tabs {
@@ -211,21 +250,32 @@ button.soft:focus-visible {
   }
 
   .bar {
-    flex-wrap: wrap;
-    align-content: center;
-    gap: 0;
+    gap: 10px;
     height: var(--bar-h);
-    padding: 6px 16px;
+    padding: 6px 12px 6px 16px;
+  }
+
+  .hello {
+    display: block;
   }
 
   .brand {
-    flex: 0 0 100%;
+    display: block;
     font-size: 1.05rem;
     line-height: 1.2;
   }
 
+  .switch button {
+    padding-right: 10px;
+    font-size: 0.75rem;
+  }
+
+  .switch img {
+    width: 30px;
+    height: 30px;
+  }
+
   .bar .greeting {
-    flex: 0 0 100%;
     overflow: hidden;
     font-size: 0.8rem;
     white-space: nowrap;
@@ -254,8 +304,8 @@ button.soft:focus-visible {
     flex-direction: column;
     justify-content: center;
     gap: 1px;
-    min-width: 84px;
-    padding: 4px 12px;
+    min-width: 72px;
+    padding: 4px 8px;
     border-radius: 14px;
     font-size: 0.72rem;
   }
@@ -383,11 +433,13 @@ button.soft:focus-visible {
   stroke-dasharray: 14 10;
 }
 
-.light,
-.things,
-.laddoo,
-.people,
-.nametags {
+/* Only the SVG groups: the door's list of windows is also .people, and its
+   buttons must take taps. */
+g.light,
+g.things,
+g.laddoo,
+g.people,
+g.nametags {
   pointer-events: none;
 }
 
@@ -1317,4 +1369,166 @@ main.plain {
 
 .readme img {
   max-width: 100%;
+}
+
+/* inside the drawing: the kettle's steam and the KitKat box */
+
+.steam path {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  opacity: 0.8;
+  animation: steam 2.4s ease-in-out infinite;
+}
+
+.steam path + path {
+  animation-delay: -1.2s;
+}
+
+.kitkat-word {
+  font: 700 10px "Helvetica Neue", Arial, sans-serif;
+  fill: #d62828;
+  text-anchor: middle;
+}
+
+@keyframes steam {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  40% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .steam path {
+    animation: none;
+  }
+}
+
+/* stepping in as a friend, from the Everyone tab */
+
+.clocks li {
+  display: grid;
+  gap: 4px;
+}
+
+.be {
+  margin: 0 0 6px 98px;
+}
+
+.be button {
+  padding: 5px 14px;
+  font-size: 0.82rem;
+}
+
+/* face masks and kettle Maggi */
+
+.mask-on,
+.kettle-out {
+  margin: 10px 0 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #e6f3dc;
+}
+
+.kettle-out {
+  background: #fff1d6;
+}
+
+.small-head {
+  margin: 14px 0 4px;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+.plain-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.9rem;
+}
+
+.sofa {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+/* movies */
+
+.movies input,
+.movies select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid rgba(59, 42, 32, 0.25);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+}
+
+.movie-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.movie {
+  position: relative;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #f6ecd9;
+}
+
+.movie p {
+  margin: 0;
+}
+
+.movie .title {
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+
+.movie .watched {
+  margin-top: 4px;
+  font-size: 0.88rem;
+}
+
+.movie form.inline {
+  margin-top: 8px;
+}
+
+.pick {
+  display: inline-block;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #e9e2fb;
+  color: #5b4a99;
+  font-size: 0.75rem;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.times {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.times li {
+  padding-left: 10px;
+  border-left: 4px solid var(--accent);
+}
+
+.times .name {
+  font-weight: 600;
 }

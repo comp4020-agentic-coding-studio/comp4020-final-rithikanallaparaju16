@@ -56,6 +56,44 @@ export function hello(c: Clock): string {
   return "Hello, night owl";
 }
 
+const walls = new Map<string, Intl.DateTimeFormat>();
+
+// The wall-clock time in `tz` at `at`, read back as if it were UTC.
+function wall(tz: string, at: number): number {
+  let f = walls.get(tz);
+  if (!f) {
+    f = new Intl.DateTimeFormat("en-AU", { timeZone: tz, year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", hourCycle: "h23" });
+    walls.set(tz, f);
+  }
+  const p = Object.fromEntries(f.formatToParts(at).map((x) => [x.type, x.value]));
+  return Date.UTC(Number(p.year), Number(p.month) - 1, Number(p.day), Number(p.hour) % 24, Number(p.minute));
+}
+
+// A date-and-time field ("2026-10-10T20:00") filled in by someone in `tz`, as
+// a moment. The second pass settles it across a daylight-saving change.
+export function fromLocal(local: string, tz: string): number | undefined {
+  const m = local.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+  if (!m) return undefined;
+  const [year, month, day, hour, minute] = m.slice(1).map(Number);
+  const target = Date.UTC(year, month - 1, day, hour, minute);
+  const check = new Date(target);
+  if (check.getUTCMonth() !== month - 1 || check.getUTCDate() !== day || hour > 23 || minute > 59) return undefined;
+  let at = target - (wall(tz, target) - target);
+  at += target - wall(tz, at);
+  return at;
+}
+
+// Now in `tz`, the way a date-and-time field writes it.
+export const localInput = (tz: string, at: number): string => new Date(wall(tz, at)).toISOString().slice(0, 16);
+
+// "Saturday 10 October", in `tz`.
+export function dayLabel(tz: string, at: number): string {
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat("en-AU", { timeZone: tz, weekday: "long", day: "numeric", month: "long" }).formatToParts(at).map((x) => [x.type, x.value]),
+  );
+  return `${p.weekday} ${p.day} ${p.month}`;
+}
+
 const DAY = 24 * 60 * 60 * 1000;
 
 export function ago(then: number, now: number): string {

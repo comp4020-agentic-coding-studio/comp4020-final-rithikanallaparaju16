@@ -3,14 +3,19 @@
 // Headless Chrome's device emulation goes below its ~500px window minimum, and
 // it can set the who= cookie, which a 390px iframe on a file:// page can't send.
 //
-//   node scripts/shot.ts <url> <out.png> [width=390] [who=1|none]
+//   node scripts/shot.ts <url> <out.png> [width=390] [who=1|none] [tap=<selector>]
+//
+// With a selector, it taps the middle of that element with a real mouse event
+// first, says what was actually under the finger, and screenshots wherever
+// the tap led. element.click() skips hit-testing, so it can't catch something
+// covering a button (it missed the door's windows not taking taps).
 import { spawn } from "node:child_process";
 import { writeFileSync } from "node:fs";
 
 const CHROME = process.env.CHROME ?? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-const [url, out, width = "390", who = "1"] = process.argv.slice(2);
+const [url, out, width = "390", who = "1", tap] = process.argv.slice(2);
 if (!url || !out) {
-  console.error("usage: node scripts/shot.ts <url> <out.png> [width=390] [who=1|none]");
+  console.error("usage: node scripts/shot.ts <url> <out.png> [width=390] [who=1|none] [tap=<selector>]");
   process.exit(1);
 }
 
@@ -56,6 +61,27 @@ await cdp("Emulation.setDeviceMetricsOverride", { width: Number(width), height: 
 await cdp("Page.enable");
 await cdp("Page.navigate", { url });
 await new Promise((r) => setTimeout(r, 2500)); // web fonts
+if (tap) {
+  const found = await cdp("Runtime.evaluate", {
+    returnByValue: true,
+    expression: `(() => {
+      const el = document.querySelector(${JSON.stringify(tap)});
+      if (!el) return null;
+      el.scrollIntoView({ block: "center" });
+      const r = el.getBoundingClientRect();
+      const x = r.x + r.width / 2, y = r.y + r.height / 2;
+      const hit = document.elementFromPoint(x, y);
+      return { x, y, hit: hit ? hit.tagName.toLowerCase() + (hit.className && typeof hit.className === "string" ? "." + hit.className.trim().replace(/\\s+/g, ".") : "") : "nothing", inside: el.contains(hit) };
+    })()`,
+  });
+  const at = found.result?.value as { x: number; y: number; hit: string; inside: boolean } | null;
+  if (!at) throw new Error(`nothing matches ${tap}`);
+  console.log(`tap ${tap}: under the finger is ${at.hit}${at.inside ? "" : " (not the element: something is covering it)"}`);
+  for (const type of ["mousePressed", "mouseReleased"]) await cdp("Input.dispatchMouseEvent", { type, x: at.x, y: at.y, button: "left", clickCount: 1 });
+  await new Promise((r) => setTimeout(r, 2500));
+  const where = await cdp("Runtime.evaluate", { expression: "location.pathname + location.search", returnByValue: true });
+  console.log(`after the tap: ${where.result?.value}`);
+}
 const { cssContentSize } = await cdp("Page.getLayoutMetrics");
 const shot = await cdp("Page.captureScreenshot", {
   format: "png",

@@ -7,8 +7,15 @@ import {
   find,
   FOOD,
   GIFTS,
+  kettle,
+  KETTLE_ROOM,
   latest,
+  MASK_ROOM,
+  masked,
   mess,
+  MOVIE_LOVER,
+  movieNight,
+  movies,
   PLANTS,
   plants,
   roomPlace,
@@ -16,12 +23,13 @@ import {
   thirsty,
   wall,
   type Item,
+  type Movie,
 } from "./house.ts";
 import { esc } from "./html.ts";
 import { PEOPLE, personById, type Person } from "./people.ts";
 import { houseSvg, isPlace, type Scene, type Spot } from "./scene.ts";
 import type { Thing } from "./store.ts";
-import { ago, asleep, clock, hello, phase, type Phase } from "./time.ts";
+import { ago, asleep, clock, dayLabel, hello, localInput, phase, type Phase } from "./time.ts";
 
 export { esc };
 
@@ -101,11 +109,12 @@ ${body}
 </html>`;
 }
 
-type Tab = "home" | "updates" | "everyone";
+type Tab = "home" | "updates" | "movies" | "everyone";
 
 const TAB_ICON: Record<Tab, string> = {
   home: `<path d="M3.5 11 12 4l8.5 7v8.5a1 1 0 0 1-1 1H15v-6H9v6H4.5a1 1 0 0 1-1-1z"/>`,
   updates: `<rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="m3.5 7 8.5 6 8.5-6"/>`,
+  movies: `<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7.5 5v14M16.5 5v14M3 9.7h4.5M3 14.3h4.5M16.5 9.7H21M16.5 14.3H21"/>`,
   everyone: `<circle cx="8" cy="9" r="3"/><circle cx="16.5" cy="9" r="3"/><path d="M2.5 19.5c.8-3 3-4.5 5.5-4.5s4.7 1.5 5.5 4.5m-1.9-2.6c.9-1.3 2.2-1.9 3.9-1.9 2.5 0 4.7 1.5 5.5 4.5"/>`,
 };
 
@@ -113,15 +122,23 @@ function tabs(current: Tab, v: Visit): string {
   const somethingNew = v.things.some((t) => isNew(t, v));
   const tab = (key: Tab, href: string, label: string): string =>
     `<a href="${href}"${key === current ? ` aria-current="page"` : ""}><svg viewBox="0 0 24 24" aria-hidden="true">${TAB_ICON[key]}</svg><span>${label}</span>${key === "updates" && somethingNew ? `<span class="dot" title="Something new since you were last here"></span>` : ""}</a>`;
-  return `<nav class="tabs" aria-label="Around the house">${tab("home", "/", "Home")}${tab("updates", "/updates", "Updates")}${tab("everyone", "/everyone", "Everyone")}</nav>`;
+  return `<nav class="tabs" aria-label="Around the house">${tab("home", "/", "Home")}${tab("updates", "/updates", "Updates")}${tab("movies", "/movies", "Movies")}${tab("everyone", "/everyone", "Everyone")}</nav>`;
 }
+
+// Your own sticker in the corner: tap it to go back to the door and come in
+// as someone else.
+const switcher = (me: Person): string =>
+  `<form method="post" action="/leave" class="switch"><button title="Go back to the door and pick someone else"><img src="/art/avatar-${esc(me.id)}.png" alt="" width="180" height="242"><span>Not ${esc(me.name)}?</span></button></form>`;
 
 function bar(v: Visit, current: Tab): string {
   const c = clock(v.me.tz, v.now);
   return `<header class="bar">
-  <a class="brand" href="/">Five Windows</a>
-  <p class="greeting">${esc(`${hello(c)}, ${v.me.name}.`)} <span class="when">It's ${esc(c.weekday)}, <span class="clock" data-tz="${esc(v.me.tz)}">${esc(c.label)}</span> in ${esc(v.me.city)}.</span></p>
+  <div class="hello">
+    <a class="brand" href="/">Five Windows</a>
+    <p class="greeting">${esc(`${hello(c)}, ${v.me.name}.`)} <span class="when">It's ${esc(c.weekday)}, <span class="clock" data-tz="${esc(v.me.tz)}">${esc(c.label)}</span> in ${esc(v.me.city)}.</span></p>
+  </div>
   ${tabs(current, v)}
+  ${switcher(v.me)}
 </header>`;
 }
 
@@ -159,6 +176,7 @@ function freshPlaces(v: Visit): Set<string> {
     if (t.kind === "note") out.add("living");
     else if (t.kind === "dish") out.add("kitchen");
     else if (t.kind === "water" || t.kind === "plant" || t.kind === "play") out.add("garden");
+    else if (t.kind === "kettle" || t.kind === "mask") out.add(t.place);
     else if (t.place === roomPlace(v.me.id)) out.add(t.place);
   }
   return out;
@@ -166,6 +184,7 @@ function freshPlaces(v: Visit): Set<string> {
 
 function scene(v: Visit, focus?: string): Scene {
   const d = dog(v.things, v.now);
+  const masks = masked(v.things, v.now);
   return {
     light: phase(clock(v.me.tz, v.now)),
     me: v.me,
@@ -188,8 +207,10 @@ function scene(v: Visit, focus?: string): Scene {
       asleep: sleeping(p, v),
       here: homeNow(p, v),
       me: p.id === v.me.id,
+      masked: masks.has(p.id),
     })),
     dishes: counter(v.things, v.now).map((t) => ({ key: t.item, fresh: isNew(t, v) })),
+    kettle: kettle(v.things, v.now) !== undefined,
     dog: { place: d.with ? roomPlace(d.with) : "garden", awake: d.awake },
     fresh: freshPlaces(v),
     focus,
@@ -234,11 +255,30 @@ ${people}
 
 type Happening = { text: string; href: string; forYou: boolean; at: number };
 
-function happening(t: Thing, me: Person): Happening | undefined {
+function happening(t: Thing, me: Person, all: Thing[]): Happening | undefined {
   const mine = t.author === me.id;
   const by = mine ? "You" : nameOf(t.author);
   const at = t.createdAt;
+  const title = (): string => movies(all).find((m) => `movie:${m.thing.id}` === t.place)?.title ?? "a movie";
   switch (t.kind) {
+    case "mask": {
+      const href = `/room/${MASK_ROOM}`;
+      if (t.author === MASK_ROOM) return { text: `${by} did a face mask`, href, forYou: false, at };
+      if (me.id === MASK_ROOM) return { text: `${by} used your face mask powder`, href, forYou: true, at };
+      return { text: `${by} did a face mask with ${nameOf(MASK_ROOM)}'s powder`, href, forYou: false, at };
+    }
+    case "kettle": {
+      const href = `/room/${KETTLE_ROOM}`;
+      if (t.author === KETTLE_ROOM) return { text: `${by} made kettle Maggi in ${mine ? "your" : "her"} room`, href, forYou: false, at };
+      if (me.id === KETTLE_ROOM) return { text: `${by} made kettle Maggi in your room`, href, forYou: true, at };
+      return { text: `${by} made kettle Maggi in ${nameOf(KETTLE_ROOM)}'s room`, href, forYou: false, at };
+    }
+    case "movie":
+      return { text: `${by} suggested “${t.body.split("\n")[0]}”`, href: "/movies", forYou: false, at };
+    case "watched":
+      return { text: `${by} watched “${title()}”`, href: "/movies", forYou: false, at };
+    case "movienight":
+      return { text: `${by} planned movie night: “${title()}”, ${dayLabel(me.tz, Number(t.body))}`, href: "/movies", forYou: false, at };
     case "note":
       return { text: t.item === "big" ? `${by} pinned big news on the wall` : `${by} wrote on the wall`, href: "/living", forYou: false, at };
     case "desk": {
@@ -270,11 +310,11 @@ function happening(t: Thing, me: Person): Happening | undefined {
 }
 
 // Each line once, newest first, what was left for you before the rest.
-function happenings(list: Thing[], me: Person): Happening[] {
+function happenings(list: Thing[], me: Person, all: Thing[]): Happening[] {
   const seenText = new Set<string>();
   const out: Happening[] = [];
   for (const t of list) {
-    const h = happening(t, me);
+    const h = happening(t, me, all);
     if (!h || seenText.has(h.text)) continue;
     seenText.add(h.text);
     out.push(h);
@@ -282,7 +322,7 @@ function happenings(list: Thing[], me: Person): Happening[] {
   return [...out.filter((h) => h.forYou), ...out.filter((h) => !h.forYou)];
 }
 
-const newSince = (v: Visit): Happening[] => happenings(v.things.filter((t) => isNew(t, v)), v.me);
+const newSince = (v: Visit): Happening[] => happenings(v.things.filter((t) => isNew(t, v)), v.me, v.things);
 
 const happeningItem = (h: Happening, v: Visit): string =>
   `<li class="${h.forYou ? "for-you" : "around"}"><a href="${esc(h.href)}">${esc(h.text)}</a> <span class="ago">${esc(ago(h.at, v.now))}</span></li>`;
@@ -308,7 +348,7 @@ function away(v: Visit, limit: number): string {
 
 // What happened before your last visit, so Updates is never empty.
 function earlier(v: Visit): string {
-  const list = happenings(v.things.filter((t) => !isNew(t, v)), v.me).sort((a, b) => b.at - a.at).slice(0, 10);
+  const list = happenings(v.things.filter((t) => !isNew(t, v)), v.me, v.things).sort((a, b) => b.at - a.at).slice(0, 10);
   if (!list.length) return "";
   return `<section class="card earlier" aria-labelledby="earlier-heading">
     <h2 id="earlier-heading">Lately in the house</h2>
@@ -330,20 +370,26 @@ function news(v: Visit): string {
 
 function status(p: Person, v: Visit): string {
   const at = placeOf(p, v);
-  if (p.id === v.me.id) return `you're here, ${placeName(at, v.me)}`;
-  if (homeNow(p, v)) return `home now, ${at === roomPlace(p.id) ? "in her room" : placeName(at, v.me)}`;
+  const mask = masked(v.things, v.now).has(p.id) ? ", in a face mask" : "";
+  if (p.id === v.me.id) return `you're here, ${placeName(at, v.me)}${mask}`;
+  if (homeNow(p, v)) return `home now, ${at === roomPlace(p.id) ? "in her room" : placeName(at, v.me)}${mask}`;
   if (sleeping(p, v)) return "asleep";
   const last = v.seen.get(p.id);
   return last === undefined ? "hasn't been home yet" : `home ${ago(last, v.now)}`;
 }
 
+// On the Everyone tab, each friend can be stepped into, the same as picking
+// her at the door.
 function everyone(v: Visit, full: boolean): string {
   const rows = PEOPLE.map((p) => {
     const c = clock(p.tz, v.now);
+    const be = full && p.id !== v.me.id
+      ? `<form method="post" action="/me" class="be"><button class="soft" name="who" value="${esc(p.id)}">Come in as ${esc(p.name)}</button></form>`
+      : "";
     return `<li style="--accent:${p.color}"><a href="/room/${esc(p.id)}">
       ${pane(p, phase(c), sleeping(p, v))}
       <span class="who"><span class="name">${nameHtml(p)}</span><span class="where">${esc(c.weekday)}, <span class="clock" data-tz="${esc(p.tz)}">${esc(c.label)}</span> in ${esc(p.city)}</span><span class="status">${esc(status(p, v))}</span>${full ? `<span class="about">${esc(p.about)}</span>` : ""}</span>
-    </a></li>`;
+    </a>${be}</li>`;
   }).join("\n");
   return `<section class="clocks${full ? " full" : ""}" aria-labelledby="clocks-heading">
     <h2 id="clocks-heading">Everyone, right now</h2>
@@ -439,13 +485,48 @@ function deskThing(t: Thing, owner: Person, v: Visit): string {
   return `<li class="${cls}" style="--paper:${paper}">${isNew(t, v) ? `<span class="tag">new</span>` : ""}<span class="icons">${icons}</span><div>${text}<p class="by">${esc(from)}</p></div></li>`;
 }
 
+// Rithanya always has face mask powder for everyone, by her mirror.
+function maskCard(owner: Person, v: Visit): string {
+  const mine = owner.id === v.me.id;
+  const on = masked(v.things, v.now);
+  const wearing = PEOPLE.filter((p) => on.has(p.id) && p.id !== v.me.id).map((p) => p.name);
+  const lately = v.things.filter((t) => t.kind === "mask").slice(0, 5)
+    .map((t) => `<li>${esc(cap(by(t, v)))}, ${esc(ago(t.createdAt, v.now))}</li>`).join("");
+  return `<section class="card" aria-labelledby="mask-heading">
+    <h2 id="mask-heading">Face masks</h2>
+    <p>${mine ? "Your face mask powder, by the mirror. There's always enough for everyone." : `${esc(owner.name)} always has face mask powder for everyone. It's by the mirror.`}</p>
+    ${wearing.length ? `<p class="small">${esc(names(wearing))} ${wearing.length === 1 ? "is" : "are"} in a face mask right now.</p>` : ""}
+    ${on.has(v.me.id)
+      ? `<p class="mask-on">Your mask is on. It comes off by itself in a couple of hours.</p>`
+      : `<form method="post" action="/room/${esc(owner.id)}/mask" class="inline"><button class="soft">Put on a face mask</button></form>`}
+    ${lately ? `<h3 class="small-head">Lately</h3><ul class="plain-list">${lately}</ul>` : ""}
+  </section>`;
+}
+
+// Hostel nights: Maggi made in the kettle and eaten on Amirdhavarshini's mat.
+function kettleCard(owner: Person, v: Visit): string {
+  const made = kettle(v.things, v.now);
+  const mine = owner.id === v.me.id;
+  const out = made
+    ? `<p class="kettle-out">${esc(`${cap(by(made, v))} made kettle Maggi ${ago(made.createdAt, v.now)}. There's some left on the mat.`)}</p>${made.body ? `<p class="body hand">${esc(made.body)}</p>` : ""}`
+    : `<p class="empty">The kettle's cold. Nobody's made Maggi tonight.</p>`;
+  return `<form method="post" action="/room/${esc(owner.id)}/kettle" class="card compose">
+    <h2>Kettle Maggi</h2>
+    <p class="small">Like in the hostel: Maggi made in the kettle and eaten on ${mine ? "your" : `${esc(owner.name)}'s`} mat.</p>
+    ${out}
+    <label for="kettle-note">A note for whoever finds it, if you like</label>
+    <textarea id="kettle-note" name="body" rows="2" maxlength="${MAX_DISH_NOTE}" placeholder="made extra, come sit"></textarea>
+    <button>Make Maggi in the kettle</button>
+  </form>`;
+}
+
 export function bedroomPage(owner: Person, v: Visit, did?: string): string {
   const mine = owner.id === v.me.id;
   const c = clock(owner.tz, v.now);
   const state = mine
     ? "You're home."
     : sleeping(owner, v) ? `${owner.name} is fast asleep.`
-    : homeNow(owner, v) ? `${owner.name} is home right now, ${placeName(placeOf(owner, v), v.me)}.`
+    : homeNow(owner, v) ? `${owner.name} is home right now, ${placeOf(owner, v) === roomPlace(owner.id) ? "in here" : placeName(placeOf(owner, v), v.me)}.`
     : `${owner.name} is awake somewhere in ${owner.city}.`;
   const line = `It's ${esc(c.weekday)}, <span class="clock" data-tz="${esc(owner.tz)}">${esc(c.label)}</span> in ${esc(owner.city)}. ${esc(state)}`;
 
@@ -478,6 +559,8 @@ export function bedroomPage(owner: Person, v: Visit, did?: string): string {
   ${done(did)}
   <p class="status">${esc(messLine)} ${esc(tidyLine)} ${esc(dogLine)}</p>
   <form method="post" action="/room/${esc(owner.id)}/tidy" class="inline"><button class="soft">${mine ? "Tidy your room" : `Tidy up ${esc(owner.name)}'s room`}</button></form>
+  ${owner.id === MASK_ROOM ? maskCard(owner, v) : ""}
+  ${owner.id === KETTLE_ROOM ? kettleCard(owner, v) : ""}
   <section class="card" aria-labelledby="desk-heading">
     <h2 id="desk-heading">${mine ? "On your desk" : `On ${esc(owner.name)}'s desk`}</h2>
     ${left.length ? `<ul class="desk-list">\n${shown}\n</ul>${drawer}` : `<p class="empty">${mine ? "Nothing yet. When a friend leaves you something, it'll be here." : "Nothing yet."}</p>`}
@@ -496,6 +579,7 @@ function wallNote(t: Thing, v: Visit): string {
 }
 
 export function livingPage(v: Visit, did?: string): string {
+  const night = movieNight(v.things, v.now);
   const notes = wall(v.things);
   const big = notes.filter((t) => t.item === "big");
   const everyday = notes.filter((t) => t.item !== "big");
@@ -503,6 +587,7 @@ export function livingPage(v: Visit, did?: string): string {
   return roomPage(v, "living", "The living room", `
   ${roomHead("The living room", "Everyone's room. The wall is for all five of you: something funny from today, a good-luck wish, big news.", undefined, "#8a5a3c")}
   ${done(did)}
+  <p class="sofa"><a href="/movies">${night ? esc(`Movie night on these sofas: “${night.movie.title}”, ${dayLabel(v.me.tz, night.at)}`) : "Movie night happens on these sofas"} ›</a></p>
   <form method="post" action="/wall" class="card compose">
     <label for="body">Write on the wall</label>
     <textarea id="body" name="body" rows="3" maxlength="${MAX_NOTE}" required placeholder="the funniest thing happened today…"></textarea>
@@ -594,6 +679,81 @@ export function gardenPage(v: Visit, did?: string): string {
     <p>Everyone's dog. ${esc(dogLine + playedLine)}</p>
     <form method="post" action="/garden/dog" class="inline"><button class="soft">Play with ${DOG}</button></form>
   </section>`);
+}
+
+/* ---------- movies ---------- */
+
+export const MAX_TITLE = 80;
+
+// Movie night in each friend's own time, and whether that's in her sleep.
+function nightCard(v: Visit): string {
+  const night = movieNight(v.things, v.now);
+  if (!night) return `<section class="card night" aria-labelledby="night-heading"><h2 id="night-heading">Movie night</h2><p class="empty">No movie night planned yet.</p></section>`;
+  const rows = PEOPLE.map((p) => {
+    const c = clock(p.tz, night.at);
+    const you = p.id === v.me.id;
+    const late = asleep(p, c) ? (you ? " You're usually asleep then." : " She's usually asleep then.") : "";
+    return `<li data-person="${esc(p.id)}" style="--accent:${p.color}"><span class="name">${you ? "You" : esc(p.name)}</span> <span>${esc(dayLabel(p.tz, night.at))}, <span class="clock">${esc(c.label)}</span> in ${esc(p.city)}.${esc(late)}</span></li>`;
+  }).join("\n");
+  const pick = night.movie.thing.author === MOVIE_LOVER ? ` <span class="pick">${esc(nameOf(MOVIE_LOVER))}'s pick</span>` : "";
+  return `<section class="card night" aria-labelledby="night-heading">
+    <h2 id="night-heading">Movie night: “${esc(night.movie.title)}”${pick}</h2>
+    <p class="small">Planned by ${esc(by(night.plan, v))}, ${esc(ago(night.plan.createdAt, v.now))}. Here's when it is for each of you:</p>
+    <ul class="times">\n${rows}\n</ul>
+  </section>`;
+}
+
+function movieItem(m: Movie, v: Visit): string {
+  const seen = m.watched.includes(v.me.id);
+  const who = m.watched.map((id) => (id === v.me.id ? "you" : nameOf(id)));
+  const pick = m.thing.author === MOVIE_LOVER ? `<span class="pick">${esc(nameOf(MOVIE_LOVER))}'s pick</span>` : "";
+  const cls = ["movie", isNew(m.thing, v) ? "new" : ""].filter(Boolean).join(" ");
+  return `<li class="${cls}" data-id="${m.thing.id}">${isNew(m.thing, v) ? `<span class="tag">new</span>` : ""}
+    <p class="title">${esc(m.title)} ${pick}</p>
+    ${m.why ? `<p class="body hand">${esc(m.why)}</p>` : ""}
+    <p class="by">Suggested by ${esc(by(m.thing, v))}, ${esc(ago(m.thing.createdAt, v.now))}</p>
+    <p class="watched">${who.length ? `Watched by ${esc(names(who))}.` : "Nobody's watched it yet."}</p>
+    ${seen ? "" : `<form method="post" action="/movies/watched" class="inline"><button class="soft" name="movie" value="${m.thing.id}">I've watched it</button></form>`}
+  </li>`;
+}
+
+export function moviesPage(v: Visit, did?: string): string {
+  const list = movies(v.things);
+  const choices = list.map((m) => `<option value="${m.thing.id}">${esc(m.title)}</option>`).join("");
+  const plan = list.length ? `
+  <form method="post" action="/movies/night" class="card compose">
+    <h2>Plan a movie night</h2>
+    <label for="night-movie">Which movie?</label>
+    <select id="night-movie" name="movie" required>${choices}</select>
+    <label for="night-when">When, in your own time (${esc(v.me.city)})</label>
+    <input id="night-when" type="datetime-local" name="when" required min="${localInput(v.me.tz, v.now)}">
+    <p class="small">Everyone sees it in her own time. A new plan replaces the old one.</p>
+    <button>Plan it</button>
+  </form>` : "";
+
+  return shell("Movies · Five Windows", `
+${bar(v, "movies")}
+<main class="list movies">
+  <header class="room-head" style="--accent:${personById(MOVIE_LOVER)?.color ?? "#8e7cc3"}">
+    <h1>Movie time</h1>
+    <p class="local">${esc(nameOf(MOVIE_LOVER))} loves movies. Suggest one for everyone, say when you've watched one, or plan a movie night on the living room sofas.</p>
+  </header>
+  ${done(did)}
+  ${nightCard(v)}
+  <form method="post" action="/movies" class="card compose">
+    <h2>Suggest a movie</h2>
+    <label for="movie-title">The movie</label>
+    <input id="movie-title" name="title" maxlength="${MAX_TITLE}" required placeholder="96, Kumbalangi Nights, Before Sunrise…">
+    <label for="movie-why">Why, if you like</label>
+    <textarea id="movie-why" name="why" rows="2" maxlength="${MAX_DISH_NOTE}" placeholder="for a crying-on-the-sofa kind of night"></textarea>
+    <button>Suggest it</button>
+  </form>
+  <section class="card" aria-labelledby="list-heading">
+    <h2 id="list-heading">Suggestions</h2>
+    ${list.length ? `<ul class="movie-list">\n${list.map((m) => movieItem(m, v)).join("\n")}\n</ul>` : `<p class="empty">Nothing yet. ${esc(nameOf(MOVIE_LOVER))} will have opinions.</p>`}
+  </section>
+  ${plan}
+</main>`, phase(clock(v.me.tz, v.now)), "page-list");
 }
 
 /* ---------- plain pages ---------- */

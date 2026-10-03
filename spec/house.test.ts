@@ -58,6 +58,15 @@ function localTime(tz: string, at: number): string {
   return `${hour % 12 === 0 ? 12 : hour % 12}:${parts.minute} ${hour < 12 ? "am" : "pm"}`;
 }
 
+// Where each of us lives.
+const ZONES: Record<string, string> = {
+  Rithika: "Australia/Sydney",
+  Neha: "America/New_York",
+  Amirdhavarshini: "Asia/Kolkata",
+  Rithanya: "Asia/Kolkata",
+  Aswathy: "Asia/Kolkata",
+};
+
 it("greets a newcomer at the door with the five of us", async () => {
   const five = await people();
   expect(five.map((p) => p.name).sort()).toEqual(["Amirdhavarshini", "Aswathy", "Neha", "Rithanya", "Rithika"]);
@@ -65,20 +74,13 @@ it("greets a newcomer at the door with the five of us", async () => {
 });
 
 it("shows each friend's own time, wherever they live", async () => {
-  const where: Record<string, string> = {
-    Rithika: "Australia/Sydney",
-    Neha: "America/New_York",
-    Amirdhavarshini: "Asia/Kolkata",
-    Rithanya: "Asia/Kolkata",
-    Aswathy: "Asia/Kolkata",
-  };
   const before = Date.now();
   const door = await page("/");
   const after = Date.now();
   for (const button of door.querySelectorAll("button[name=who]")) {
     const name = text(button.querySelector(".name"));
     const shown = text(button.querySelector(".clock"));
-    expect([localTime(where[name], before), localTime(where[name], after)], `${name}'s clock`).toContain(shown);
+    expect([localTime(ZONES[name], before), localTime(ZONES[name], after)], `${name}'s clock`).toContain(shown);
   }
 });
 
@@ -201,11 +203,73 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect(text(withText(await page("/everyone", b.id), ".clocks li", a.name))).toContain("home now, in the kitchen");
   });
 
+  it("puts a face mask on whoever does one with Rithanya's powder", async () => {
+    const five = await people();
+    const rithanya = five.find((p) => p.name === "Rithanya")!;
+    const friend = five.find((p) => p.name !== "Rithanya")!;
+    await page("/", friend.id);
+    expect((await post(`/room/${rithanya.id}/mask`, {}, friend.id)).status).toBe(303);
+
+    const house = await page("/", rithanya.id);
+    expect(house.querySelector(`.walker[data-person="${friend.id}"] .mask`), `${friend.name} isn't in a face mask`).not.toBeNull();
+    expect(text((await page("/updates", rithanya.id)).querySelector(".away"))).toContain(`${friend.name} used your face mask powder`);
+  });
+
+  it("leaves kettle Maggi out on Amirdhavarshini's mat", async () => {
+    const five = await people();
+    const amirdha = five.find((p) => p.name === "Amirdhavarshini")!;
+    const friend = five.find((p) => p.name !== "Amirdhavarshini")!;
+    const note = unique("hostel nights");
+    expect((await post(`/room/${amirdha.id}/kettle`, { body: note }, friend.id)).status).toBe(303);
+
+    const room = await page(`/room/${amirdha.id}`, amirdha.id);
+    expect(room.querySelector(".kettle"), "there's no kettle on the mat").not.toBeNull();
+    expect(text(room.body)).toContain(note);
+    expect(text((await page("/updates", amirdha.id)).querySelector(".away"))).toContain(`${friend.name} made kettle Maggi in your room`);
+  });
+
+  it("keeps movie suggestions and who's watched them", async () => {
+    const [a, b, c] = await people();
+    const title = unique("Kumbalangi Nights");
+    expect((await post("/movies", { title, why: "for a sofa night" }, a.id)).status).toBe(303);
+
+    const movie = withText(await page("/movies", b.id), ".movie", title);
+    expect(movie, `${b.name} can't find ${a.name}'s suggestion`).toBeDefined();
+    expect(text(movie)).toContain(`Suggested by ${a.name}`);
+    expect((await post("/movies/watched", { movie: movie!.getAttribute("data-id")! }, b.id)).status).toBe(303);
+    expect(text(withText(await page("/movies", c.id), ".movie", title))).toContain(`Watched by ${b.name}`);
+  });
+
+  it("shows movie night in each friend's own time", async () => {
+    const five = await people();
+    const rithika = five.find((p) => p.name === "Rithika")!;
+    const title = unique("96");
+    await post("/movies", { title }, rithika.id);
+    const id = withText(await page("/movies", rithika.id), ".movie", title)!.getAttribute("data-id")!;
+    // 8 pm on 5 January 2030 in Canberra, which is on daylight time (UTC+11).
+    expect((await post("/movies/night", { movie: id, when: "2030-01-05T20:00" }, rithika.id)).status).toBe(303);
+
+    const night = (await page("/movies", five.find((p) => p.name === "Neha")!.id)).querySelector(".night");
+    expect(text(night)).toContain(title);
+    const at = Date.UTC(2030, 0, 5, 9, 0);
+    for (const p of five) {
+      const shown = text(night?.querySelector(`li[data-person="${p.id}"] .clock`));
+      expect(shown, `${p.name}'s time for movie night`).toBe(localTime(ZONES[p.name], at));
+    }
+  });
+
   it("only takes things the house actually has", async () => {
     const [a, b] = await people();
     expect((await post("/kitchen", { item: "pizza" }, a.id)).status).toBe(400);
     expect((await post(`/room/${b.id}/leave`, { item: "diamond" }, a.id)).status).toBe(400);
     expect((await post("/garden/plant", { item: "cactus" }, a.id)).status).toBe(400);
     expect((await post(`/room/${a.id}/leave`, { body: "to me" }, a.id)).status).toBe(400);
+    const five = await people();
+    const notRithanya = five.find((p) => p.name !== "Rithanya")!;
+    const notAmirdha = five.find((p) => p.name !== "Amirdhavarshini")!;
+    expect((await post(`/room/${notRithanya.id}/mask`, {}, a.id)).status).toBe(404);
+    expect((await post(`/room/${notAmirdha.id}/kettle`, {}, a.id)).status).toBe(404);
+    expect((await post("/movies/watched", { movie: "999999" }, a.id)).status).toBe(400);
+    expect((await post("/movies/night", { movie: "999999", when: "2030-01-05T20:00" }, a.id)).status).toBe(400);
   });
 });

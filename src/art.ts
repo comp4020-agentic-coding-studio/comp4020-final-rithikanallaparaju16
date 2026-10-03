@@ -41,6 +41,8 @@ export function icon(key: string, color = "#e07a5f"): string {
       return [0, 72, 144, 216, 288].map((a) => `<circle cx="${(Math.cos((a * Math.PI) / 180) * 5).toFixed(1)}" cy="${(Math.sin((a * Math.PI) / 180) * 5).toFixed(1)}" r="4.5" fill="#f27aa3"/>`).join("") + `<circle r="3.4" fill="#ffd36b"/>`;
     case "chocolate":
       return `<rect x="-9" y="-6" width="18" height="12" rx="1.5" fill="#6b3d23"/><path d="M-3 -6v12M-9 0h10" stroke="#4e2a17"/><rect x="1" y="-7" width="9" height="14" rx="1" fill="#c9302c"/>`;
+    case "kitkat":
+      return `<g transform="rotate(-20)"><rect x="-11" y="-6" width="22" height="12" rx="2" fill="#d62828" stroke="#7f1212"/><ellipse rx="6" ry="3" fill="#fff"/></g>`;
     case "note":
       return `<path d="M-9 -7h14l4 4v10h-18z" fill="#fff8e6" stroke="#d8cbb0"/><path d="M5 -7v4h4" fill="#ecdfc3" stroke="#d8cbb0"/><path d="M-6 -2h8M-6 1h10M-6 4h7" stroke="#c9b48e" stroke-width="1"/><circle cx="5" cy="4" r="2.2" fill="${color}"/>`;
     default:

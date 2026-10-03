@@ -25,14 +25,16 @@ Each of us is a little sticker in the house. Whoever's awake wanders around her 
 Each bedroom is someone's own:
 
 - **Neha's** has a pink tablecloth, a blue checked blanket and the board games. Neha sleeps the longest in the house.
-- **Rithanya's** has UPSC books on the study table, and cats in boxes and baskets. She sleeps in too.
+- **Rithanya's** has UPSC books and a box of KitKats on the study table, a basket of more KitKats, a mirror, and face mask powder for everyone. She loves movies, and she sleeps in too.
 - **Aswathy's** has a yoga mat for meditating and bananas that should have been thrown out a while ago. Tidying doesn't touch the bananas.
 - **Rithika's** has shelves of little bottles and jars, a pink bed and a desk.
-- **Amirdhavarshini's** has the hangout mat, with a cushion for each of us around it.
+- **Amirdhavarshini's** has the hangout mat, with a cushion for each of us around it, and the kettle we made Maggi in back in the hostel.
 
 Everyone has a laptop.
 
-On a laptop, the house sits beside "while you were away" and everyone's clocks. On a phone, the house fills the screen and you pan around it, with tabs at the bottom for Home, Updates and Everyone.
+On a laptop, the house sits beside "while you were away" and everyone's clocks. On a phone, the house fills the screen and you pan around it, with tabs at the bottom for Home, Updates, Movies and Everyone.
+
+Your sticker sits in the corner of the top bar ("Not Rithanya?", or whoever you are), and tapping it takes you back to the door. On the Everyone page you can also come in as someone else directly.
 
 ## Every room keeps its owner's time
 
@@ -42,12 +44,15 @@ Characters sleep at night where they live: Neha from 11:30 pm to 10:30 am, Ritha
 
 ## What you can do
 
-- **Leave something on a friend's desk.** Write a note, add something with it (masala chai, filter coffee, dosa, biryani, Maggi, cake, a mango, a flower or chocolate), and it waits on their desk. Only they can read the note; anyone who walks in sees that something's been left.
+- **Leave something on a friend's desk.** Write a note, add something with it (masala chai, filter coffee, dosa, biryani, Maggi, cake, a mango, a flower, chocolate or a KitKat from Rithanya's box), and it waits on their desk. Only they can read the note; anyone who walks in sees that something's been left.
 - **Write on the living room wall.** Something funny from today, a good-luck wish, anything. Tick "big news" and it stays pinned at the top. Older notes go into a memory box rather than disappearing.
 - **Cook for everyone.** Leave a dish out on the kitchen counter. It stays out for three days.
 - **Tidy someone's room.** Rooms get a little lived-in after a couple of days, and messier after five. Anyone can tidy any room, and the owner finds out who did.
 - **Look after the garden.** Everyone has a patch to plant in. Plants sprout, grow and bloom over three days. They look thirsty after two days without water, but they never die, and anyone can water the lot.
 - **Play with Laddoo.** He naps on his blanket under the tree in the garden. Play with him and he follows you back to your room, blanket and all, for half a day.
+- **Do a face mask in Rithanya's room.** She always has the powder. Your sticker wears a green mask with cucumber slices for two hours, so a friend who comes by catches you in it, and Rithanya hears whose face used her powder.
+- **Make kettle Maggi in Amirdhavarshini's room.** Like in the hostel. The kettle and two bowls sit out on her mat, steaming, for the night (twelve hours), with a note if you leave one.
+- **Movie time.** Rithanya loves movies, so the Movies tab is hers. Suggest a movie and say why, tick off the ones you've watched, or plan a movie night on the living room sofas. You pick the time in your own clock, and everyone sees it in theirs, with a note if it falls while someone's usually asleep. A new plan replaces the old one. Rithanya's suggestions are marked as her picks.
 
 When you come home, **While you were away** lists what's new since your last visit, starting with what was left for you: who tidied your room, what's on your desk, who wrote on the wall, what's in the kitchen. Rooms with something new for you twinkle in the house too. A visit is a stretch of page loads with no 30-minute gap, so the *new* marks survive a refresh and reset the next time you come back. The Updates tab also keeps what happened lately, so there's always something to read.
 
@@ -63,7 +68,7 @@ It's kept as small as the problem: one Node process, no framework and no runtime
 
 - `src/server.ts` holds the routes.
 - `src/store.ts` keeps everything people leave in one SQLite table (Node's built-in `node:sqlite`), plus when each friend was last here and where, in a file on the Fly volume at `/data`, the only storage that survives a redeploy.
-- `src/house.ts` works out what the house looks like from that log: how messy a room is, how thirsty the plants are, where Laddoo is, and what's on the counter.
+- `src/house.ts` works out what the house looks like from that log: how messy a room is, how thirsty the plants are, where Laddoo is, what's on the counter, who's in a face mask, whether there's Maggi out, and the movie list.
 - `src/time.ts` turns each friend's time zone into a clock and a time of day.
 - `src/scene.ts` lays an SVG layer over the illustration: the rooms as links, each room's light, what's been left, Laddoo and the five of us.
 - `src/art.ts` draws the small things in SVG: food, notes, clutter and plants.
@@ -92,6 +97,10 @@ Run it locally with `pnpm start` (it keeps its data in `./data`), then run `pnpm
 - the garden remembers who planted what and who watered it
 - Laddoo follows whoever played with him
 - a friend who's home right now shows up where she is in the house
+- a face mask shows on the friend wearing it, and Rithanya hears whose it was
+- kettle Maggi stays out in Amirdhavarshini's room
+- a suggested movie and who watched it are there for everyone
+- a movie night shows at the right time in each friend's own clock
 - the house only takes things it has
 
 The checks that write only run against a throwaway house, never the deployed one. `PROCESS.md` in the repo records what was verified on the deployed app and how.

@@ -55,7 +55,7 @@ export const PEOPLE: Person[] = [
     sleep: [23.5, 9.5],
     color: "#8e7cc3",
     paper: "#e9e2fb",
-    about: "UPSC books on the study table, and cats in boxes and baskets wherever there's room. Rithanya likes a long sleep too.",
+    about: "UPSC books and a box of KitKats on the study table, a mirror, and face mask powder for everyone. Rithanya loves movies, and likes a long sleep too.",
   },
   {
     id: "5",

@@ -42,7 +42,11 @@ if (db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'not
   `);
 }
 
-export type Kind = "note" | "desk" | "tidy" | "dish" | "water" | "plant" | "play";
+export type Kind =
+  | "note" | "desk" | "tidy" | "dish" | "water" | "plant" | "play"
+  // Session 4: a face mask in Rithanya's room, kettle Maggi in Amirdhavarshini's,
+  // and movies (a suggestion, who's watched it, and a planned movie night).
+  | "mask" | "kettle" | "movie" | "watched" | "movienight";
 
 export type Thing = {
   id: number;

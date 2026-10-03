@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { find, FOOD, GIFTS, PLANTS, roomPlace } from "./house.ts";
+import { find, FOOD, GIFTS, KETTLE_ROOM, MASK_ROOM, movies, PLANTS, roomPlace } from "./house.ts";
 import { markdown } from "./markdown.ts";
 import {
   bedroomPage,
@@ -12,13 +12,16 @@ import {
   livingPage,
   MAX_DISH_NOTE,
   MAX_NOTE,
+  MAX_TITLE,
   messagePage,
+  moviesPage,
   readmePage,
   updatesPage,
   type Visit,
 } from "./pages.ts";
 import { personById, type Person } from "./people.ts";
 import * as store from "./store.ts";
+import { fromLocal } from "./time.ts";
 
 const MAX_FORM = 8 * 1024;
 const YEAR = 365 * 24 * 60 * 60;
@@ -96,6 +99,16 @@ function confirmation(did: string | null, owner?: Person): string | undefined {
       return "Planted. Come back in a few days to see it grow.";
     case "play":
       return "Laddoo had the best time, and followed you to your room.";
+    case "mask":
+      return "Mask on. It comes off by itself in a couple of hours.";
+    case "kettle":
+      return "Maggi's made. It's out on the mat for everyone, like old times.";
+    case "movie":
+      return "Suggested. It's on the list for everyone.";
+    case "watched":
+      return "Marked as watched.";
+    case "night":
+      return "Movie night's planned. Everyone sees it in her own time.";
     default:
       return undefined;
   }
@@ -105,7 +118,9 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   const url = new URL(req.url ?? "/", "http://house");
   const { pathname } = url;
   const did = url.searchParams.get("did");
-  const route = `${req.method} ${pathname}`;
+  // A HEAD is answered like a GET; node leaves the body off by itself.
+  const method = req.method === "HEAD" ? "GET" : req.method;
+  const route = `${method} ${pathname}`;
   const me = personById(cookie(req, "who"));
 
   if (route === "GET /") {
@@ -125,36 +140,41 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   if (route === "GET /readme/") return send(res, 200, readmePage(markdown(readFileSync(README, "utf8"))));
   if (route === "GET /style.css") return send(res, 200, readFileSync(STYLE), "text/css; charset=utf-8");
   if (route === "GET /house.js") return send(res, 200, readFileSync(SCRIPT), "text/javascript; charset=utf-8");
-  const art = req.method === "GET" && pathname.startsWith("/art/") ? pathname.slice("/art/".length) : undefined;
+  const art = method === "GET" && pathname.startsWith("/art/") ? pathname.slice("/art/".length) : undefined;
   if (art !== undefined) {
     if (!ART_FILES.has(art)) return send(res, 404, messagePage("Nothing here", "There's no picture by that name."));
     res.writeHead(200, { "content-type": ART_TYPES[art.slice(art.lastIndexOf("."))], "cache-control": "public, max-age=86400" });
     return void res.end(readFileSync(new URL(art, ART)));
   }
 
-  if (route === "GET /updates" || route === "GET /everyone") {
+  if (route === "GET /updates" || route === "GET /everyone" || route === "GET /movies") {
     if (!me) return redirect(res, "/");
-    return send(res, 200, pathname === "/updates" ? updatesPage(visit(me)) : everyonePage(visit(me)));
+    const v = visit(me);
+    return send(res, 200, pathname === "/updates" ? updatesPage(v) : pathname === "/everyone" ? everyonePage(v) : moviesPage(v, confirmation(did)));
   }
 
-  const roomMatch = pathname.match(/^\/room\/([^/]+)(\/leave|\/tidy)?$/);
+  const roomMatch = pathname.match(/^\/room\/([^/]+)(\/leave|\/tidy|\/mask|\/kettle)?$/);
   const owner = roomMatch ? personById(roomMatch[1]) : undefined;
   if (roomMatch && !owner) return send(res, 404, messagePage("No such room", "There are five rooms in this house, and that isn't one of them."));
+  // The face mask powder is in Rithanya's room, and the kettle in Amirdhavarshini's.
+  if ((roomMatch?.[2] === "/mask" && owner?.id !== MASK_ROOM) || (roomMatch?.[2] === "/kettle" && owner?.id !== KETTLE_ROOM)) {
+    return send(res, 404, messagePage("Not in this room", "That happens in another room."));
+  }
 
   const pages: Record<string, (v: Visit) => string> = {
     "/living": (v) => livingPage(v, confirmation(did)),
     "/kitchen": (v) => kitchenPage(v, confirmation(did)),
     "/garden": (v) => gardenPage(v, confirmation(did)),
   };
-  if (req.method === "GET" && (pages[pathname] || (owner && !roomMatch?.[2]))) {
+  if (method === "GET" && (pages[pathname] || (owner && !roomMatch?.[2]))) {
     if (!me) return redirect(res, "/");
     const v = visit(me, owner ? roomPlace(owner.id) : pathname.slice(1));
     return send(res, 200, owner ? bedroomPage(owner, v, confirmation(did, owner)) : pages[pathname](v));
   }
 
-  if (req.method !== "POST") return send(res, 404, messagePage("Nothing here", "There's no room by that name in this house."));
+  if (method !== "POST") return send(res, 404, messagePage("Nothing here", "There's no room by that name in this house."));
 
-  const writes = ["/wall", "/kitchen", "/garden/water", "/garden/plant", "/garden/dog"];
+  const writes = ["/wall", "/kitchen", "/garden/water", "/garden/plant", "/garden/dog", "/movies", "/movies/watched", "/movies/night"];
   if (!writes.includes(pathname) && !roomMatch?.[2]) {
     return send(res, 404, messagePage("Nothing here", "There's no room by that name in this house."));
   }
@@ -167,6 +187,18 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   if (owner && roomMatch?.[2] === "/tidy") {
     store.leave({ author: me.id, kind: "tidy", place: roomPlace(owner.id) });
     return redirect(res, `/room/${owner.id}?did=tidy`);
+  }
+
+  if (owner && roomMatch?.[2] === "/mask") {
+    store.leave({ author: me.id, kind: "mask", place: roomPlace(owner.id) });
+    return redirect(res, `/room/${owner.id}?did=mask`);
+  }
+
+  if (owner && roomMatch?.[2] === "/kettle") {
+    const back = `/room/${owner.id}`;
+    if (body.length > MAX_DISH_NOTE) return send(res, 400, messagePage("Too long", `Notes fit up to ${MAX_DISH_NOTE} characters.`, back));
+    store.leave({ author: me.id, kind: "kettle", place: roomPlace(owner.id), body });
+    return redirect(res, `${back}?did=kettle`);
   }
 
   if (owner && roomMatch?.[2] === "/leave") {
@@ -191,6 +223,29 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     if (body.length > MAX_DISH_NOTE) return send(res, 400, messagePage("Too long", `Kitchen notes fit up to ${MAX_DISH_NOTE} characters.`, "/kitchen"));
     store.leave({ author: me.id, kind: "dish", place: "kitchen", body, item });
     return redirect(res, "/kitchen?did=dish");
+  }
+
+  if (pathname === "/movies") {
+    const title = text(form, "title").replace(/\s+/g, " ");
+    const why = text(form, "why");
+    if (!title) return send(res, 400, messagePage("Which movie?", "Write the movie's name first.", "/movies"));
+    if (title.length > MAX_TITLE || why.length > MAX_DISH_NOTE) return send(res, 400, messagePage("Too long", "That's more than fits on the list.", "/movies"));
+    store.leave({ author: me.id, kind: "movie", place: "movies", body: why ? `${title}\n${why}` : title });
+    return redirect(res, "/movies?did=movie");
+  }
+
+  if (pathname === "/movies/watched" || pathname === "/movies/night") {
+    const movie = movies(store.things()).find((m) => String(m.thing.id) === form.get("movie"));
+    if (!movie) return send(res, 400, messagePage("Which movie?", "That isn't on the list.", "/movies"));
+    if (pathname === "/movies/watched") {
+      store.leave({ author: me.id, kind: "watched", place: `movie:${movie.thing.id}` });
+      return redirect(res, "/movies?did=watched");
+    }
+    const at = fromLocal(form.get("when") ?? "", me.tz);
+    if (at === undefined) return send(res, 400, messagePage("When?", "Pick a day and a time for movie night.", "/movies"));
+    if (at < Date.now() - 5 * 60 * 1000) return send(res, 400, messagePage("That's already gone", "Pick a time that hasn't happened yet.", "/movies"));
+    store.leave({ author: me.id, kind: "movienight", place: `movie:${movie.thing.id}`, body: String(at) });
+    return redirect(res, "/movies?did=night");
   }
 
   if (pathname === "/garden/plant") {

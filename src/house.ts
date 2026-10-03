@@ -16,6 +16,7 @@ export const GIFTS: Item[] = [
   ...FOOD,
   { key: "flower", label: "a flower from the garden", short: "a flower" },
   { key: "chocolate", label: "a bar of chocolate", short: "chocolate" },
+  { key: "kitkat", label: "a KitKat from Rithanya's box", short: "a KitKat" },
 ];
 
 export const PLANTS: Item[] = [
@@ -28,6 +29,13 @@ export const PLANTS: Item[] = [
 ];
 
 export const DOG = "Laddoo";
+
+// Rithanya keeps face mask powder for everyone, and the hostel kettle lives in
+// Amirdhavarshini's room. Their rooms, by id.
+export const MASK_ROOM = "4";
+export const KETTLE_ROOM = "3";
+// Rithanya loves movies; her suggestions are marked as her picks.
+export const MOVIE_LOVER = "4";
 
 export const find = (list: Item[], key: string): Item | undefined => list.find((i) => i.key === key);
 
@@ -79,6 +87,41 @@ export function thirsty(things: Thing[], now: number): boolean {
   if (growing.length === 0) return false;
   const watered = latest(things, "water")?.createdAt ?? Math.min(...growing.map((p) => p.createdAt));
   return now - watered > 2 * DAY;
+}
+
+// A face mask stays on for a couple of hours, long enough for a friend who
+// comes by to catch you in it.
+export function masked(things: Thing[], now: number): Set<string> {
+  return new Set(things.filter((t) => t.kind === "mask" && now - t.createdAt < 2 * HOUR).map((t) => t.author));
+}
+
+// Kettle Maggi stays out on the mat for the night: twelve hours.
+export const kettle = (things: Thing[], now: number): Thing | undefined => {
+  const made = latest(things, "kettle");
+  return made && now - made.createdAt < 12 * HOUR ? made : undefined;
+};
+
+// A suggestion's title is the first line of its body, and why is the rest.
+export type Movie = { thing: Thing; title: string; why: string; watched: string[] };
+
+export function movies(things: Thing[]): Movie[] {
+  return things.filter((t) => t.kind === "movie").map((thing) => {
+    const [title, ...why] = thing.body.split("\n");
+    const watched = things
+      .filter((t) => t.kind === "watched" && t.place === `movie:${thing.id}`)
+      .map((t) => t.author)
+      .filter((a, i, all) => all.indexOf(a) === i);
+    return { thing, title, why: why.join("\n"), watched };
+  });
+}
+
+// The latest plan wins, until three hours after it starts. Its body is the
+// moment, in milliseconds.
+export function movieNight(things: Thing[], now: number): { plan: Thing; at: number; movie: Movie } | undefined {
+  const plan = latest(things, "movienight");
+  const at = Number(plan?.body);
+  const movie = plan && movies(things).find((m) => `movie:${m.thing.id}` === plan.place);
+  return plan && movie && at > now - 3 * HOUR ? { plan, at, movie } : undefined;
 }
 
 // Laddoo follows whoever last played with him, and naps at the foot of their

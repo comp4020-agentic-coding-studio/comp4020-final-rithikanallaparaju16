@@ -16,7 +16,14 @@ shared wall, a kitchen, a garden, and Laddoo the dog. The five are her Stitch
 stickers, and they wander their rooms. Each bedroom keeps its owner's local
 time and personal details (listed in README.md). Shared rooms follow the
 visitor's clock. Laptop: the house with updates beside it. Phone: the house
-fills the screen, with Home, Updates and Everyone tabs at the bottom.
+fills the screen, with Home, Updates, Movies and Everyone tabs at the bottom.
+
+Since session 4, two rooms have an activity of their own: face masks in
+Rithanya's (`MASK_ROOM`) and kettle Maggi in Amirdhavarshini's (`KETTLE_ROOM`),
+both in `src/house.ts`. Movie time (`/movies`) is its own tab because Rithanya
+loves movies. These details come from Rithika; ask her before inventing new
+ones for the friends. (The agent once read the Stitch art's boxes as cats; they
+were KitKats.)
 
 ## What good means
 
@@ -133,6 +140,15 @@ accepted record.
   It uses headless Chrome's device emulation, which goes below the ~500px
   window minimum and can set the `who` cookie. The old 390px-iframe trick can't
   send the cookie, so it only ever shows the door.
+- The spec posts forms directly, so it can't tell if a button actually takes
+  a tap. After touching CSS or the SVG layer, tap the door's windows and any
+  changed button for real: `node scripts/shot.ts <url> <out.png> 390 none
+  'button[name=who][value="2"]'`. It says what's under the finger. Never use
+  `element.click()` for this; it skips hit-testing. In session 3 a
+  `pointer-events: none` meant for the SVG's `g.people` also matched the
+  door's `ul.people`, and the deployed door stopped letting anyone in.
+- Class names are shared between the SVG layer and the HTML around it. Scope
+  SVG-only rules to the element (`g.people`, not `.people`).
 
 ## Deploying
 

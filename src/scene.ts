@@ -78,9 +78,9 @@ export const ROOMS: Record<string, Room> = {
   "room:4": {
     name: "Rithanya's room",
     outline: [[360, 440], [652, 440], [700, 515], [726, 738], [360, 738]],
-    tag: [478, 446],
+    tag: [462, 392],
     walk: [[540, 565], [612, 605], [625, 705]],
-    view: [345, 425, 395, 335],
+    view: [345, 385, 395, 375],
     bed: [425, 515],
     desk: [[510, 680], [545, 690]],
     mess: [[600, 652], [400, 715]],
@@ -112,6 +112,8 @@ export const ROOMS: Record<string, Room> = {
 
 // Where things left in the kitchen sit, on the island.
 const COUNTER: Pt[] = [[560, 203], [602, 214], [646, 204]];
+// The low round table on Amirdhavarshini's mat, where the kettle goes.
+const MAT_TABLE: Pt = [292, 300];
 // Laddoo's blanket in the garden, where the illustration had him.
 const KENNEL: Pt = [1249, 122];
 const FIREPLACE: Pt = [835, 205];
@@ -129,7 +131,7 @@ export type Bedroom = {
   lamp: boolean;
 };
 
-export type Figure = { person: Person; place: string; asleep: boolean; here: boolean; me: boolean };
+export type Figure = { person: Person; place: string; asleep: boolean; here: boolean; me: boolean; masked: boolean };
 
 export type Scene = {
   // The visitor's own time of day: shared rooms, the hallway and outside.
@@ -138,6 +140,8 @@ export type Scene = {
   bedrooms: Bedroom[];
   figures: Figure[];
   dishes: Spot[];
+  // Kettle Maggi on Amirdhavarshini's mat.
+  kettle: boolean;
   dog: { place: string; awake: boolean };
   // Places with something new for the visitor since their last visit.
   fresh: Set<string>;
@@ -187,6 +191,37 @@ function things(s: Scene): string {
   return `<g class="things" aria-hidden="true">${rooms}${dishes}</g>`;
 }
 
+const kitkat = (x: number, y: number, r: number): string =>
+  `<g transform="translate(${x} ${y}) rotate(${r})"><rect x="-11" y="-4.5" width="22" height="9" rx="1.5" fill="#d62828" stroke="#7f1212"/><ellipse rx="5" ry="2.3" fill="#fff" opacity=".9"/></g>`;
+
+const towel = (x: number, y: number, color: string): string =>
+  `<circle cx="${x}" cy="${y}" r="10" fill="${color}" stroke="#a8998a"/><path d="M${x - 5} ${y}a5 5 0 1 1 5 5a3 3 0 1 1 -3 -3" fill="none" stroke="#a8998a"/>`;
+
+const tub = (x: number, y: number, body: string, lid: string): string =>
+  `<rect x="${x - 5}" y="${y - 3}" width="10" height="8" rx="2" fill="${body}" stroke="#7a5a48" stroke-width=".8"/><rect x="${x - 5.5}" y="${y - 5}" width="11" height="3" rx="1.2" fill="${lid}"/>`;
+
+// The illustration gave Rithanya cats. She has KitKats instead, and a mirror
+// and face mask powder for everyone, so those are drawn over the cats.
+const RITHANYA = `<g class="fixes" aria-hidden="true">
+<path d="M503 498V466A24 17 0 0 1 551 466V498Z" fill="#9a6233"/>
+<path d="M507 495V467A20 14 0 0 1 547 467V495Z" fill="url(#glass)"/>
+<path d="M515 489L535 461M524 491L540 469" stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity=".55"/>
+<rect x="509" y="496" width="36" height="5" rx="2" fill="#7c4a26"/>
+${tub(514, 504, "#b9d79d", "#5f8f4e")}${tub(527, 506, "#f6c7cf", "#d9768a")}${tub(540, 504, "#fbf3e4", "#c9a27a")}
+${kitkat(418, 704, -25)}${kitkat(436, 699, 12)}${kitkat(447, 709, -8)}${kitkat(424, 714, 18)}${kitkat(440, 717, -30)}${kitkat(430, 707, 5)}
+${towel(628, 701, "#cfe9df")}${towel(648, 698, "#f8d2bf")}${towel(638, 713, "#fbf6ee")}${towel(656, 712, "#cfe9df")}
+<g transform="translate(579 668) rotate(-5)"><rect x="-22" y="-15" width="44" height="30" rx="3" fill="#d62828" stroke="#7f1212" stroke-width="1.5"/><ellipse rx="16" ry="7.5" fill="#fff"/><text class="kitkat-word" y="3.2">KitKat</text></g>
+</g>`;
+
+function kettleMaggi(s: Scene): string {
+  if (!s.kettle) return "";
+  const [x, y] = MAT_TABLE;
+  return `<g class="kettle" data-place="room:3" aria-hidden="true">
+<g transform="translate(254 318) scale(1.1)">${icon("maggi")}</g><g transform="translate(305 330) scale(1.1)">${icon("maggi")}</g>
+<g transform="translate(${x} ${y})"><ellipse cy="12" rx="13" ry="4" fill="#3a2a22"/><path d="M-11 10Q-12 -10 -6 -14H6Q12 -10 11 10Z" fill="#f4f1ea" stroke="#6b5a4e" stroke-width="1.5"/><path d="M10 -7q9 2 6 13" fill="none" stroke="#2f2f2f" stroke-width="3" stroke-linecap="round"/><path d="M-10 -3l-7 -5" stroke="#6b5a4e" stroke-width="3" stroke-linecap="round"/><rect x="-6" y="-17" width="12" height="4" rx="2" fill="#2f2f2f"/><g class="steam"><path d="M-3 -21q-4 -6 0 -11t0 -11"/><path d="M4 -21q-4 -6 0 -10t0 -9"/></g></g>
+</g>`;
+}
+
 function laddoo(s: Scene): string {
   const room = ROOMS[s.dog.place];
   const [x, y] = room?.dog ?? KENNEL;
@@ -216,6 +251,9 @@ function keyframes(name: string, path: Pt[]): string {
   return `@keyframes ${name}{${stops.join("")}100%{transform:translate(${x0}px,${y0}px)}}`;
 }
 
+// A green face mask with cucumber slices, over a standing sticker's face.
+const MASK = `<g class="mask"><ellipse cx="1" cy="-57" rx="16" ry="16" fill="#9fcf8f" fill-opacity=".85"/><circle cx="-7" cy="-61" r="4.6" fill="#e2f4cf" stroke="#6fae5c" stroke-width="1.4"/><circle cx="9" cy="-61" r="4.6" fill="#e2f4cf" stroke="#6fae5c" stroke-width="1.4"/></g>`;
+
 // The stickers are 180 × 242; a standing friend is drawn 72 wide, feet on
 // the spot.
 function figures(s: Scene): { svg: string; css: string } {
@@ -242,7 +280,8 @@ function figures(s: Scene): { svg: string; css: string } {
     const delay = -3.1 * order.indexOf(f.place);
     const cls = ["walker", f.me ? "me" : "", f.here ? "here" : ""].filter(Boolean).join(" ");
     const who = f.me ? "you" : p.name;
-    svg.push(`<g class="${cls}" data-person="${p.id}" data-place="${f.place}" transform="translate(${x} ${y})" style="--accent:${p.color};animation:${name} ${path.length * 9}s ${delay.toFixed(1)}s infinite"><ellipse class="shadow" rx="22" ry="7"/><g class="bob"><image href="/art/avatar-${p.id}.png" x="-36" y="-95" width="72" height="97"/></g><text class="who" y="24">${esc(who)}</text></g>`);
+    const mask = f.masked ? MASK : "";
+    svg.push(`<g class="${cls}" data-person="${p.id}" data-place="${f.place}" transform="translate(${x} ${y})" style="--accent:${p.color};animation:${name} ${path.length * 9}s ${delay.toFixed(1)}s infinite"><ellipse class="shadow" rx="22" ry="7"/><g class="bob"><image href="/art/avatar-${p.id}.png" x="-36" y="-95" width="72" height="97"/>${mask}</g><text class="who" y="24">${esc(who)}</text></g>`);
   }
   return { svg: `<g class="people" aria-hidden="true">${svg.join("")}</g>`, css: css.join("") };
 }
@@ -271,11 +310,14 @@ export function houseSvg(s: Scene): string {
   return `<svg class="house-svg" viewBox="${x} ${y} ${w} ${h}" role="group" aria-label="${s.focus ? "The room, and the house around it" : "The house. Tap a room to go in."}">
 <defs>
 <clipPath id="head" clipPathUnits="objectBoundingBox"><ellipse cx=".5" cy=".32" rx=".36" ry=".27"/></clipPath>
+<linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e6f4f8"/><stop offset="1" stop-color="#b9d6e2"/></linearGradient>
 <radialGradient id="glow"><stop offset="0" stop-color="#ffcf7a" stop-opacity=".6"/><stop offset="1" stop-color="#ffcf7a" stop-opacity="0"/></radialGradient>
 <mask id="not-bedrooms" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}"><rect width="${W}" height="${H}" fill="#fff"/>${bedrooms}</mask>
 </defs>
 <style>${people.css}</style>
 <image href="/art/house.jpg" width="${W}" height="${H}" aria-hidden="true"/>
+${RITHANYA}
+${kettleMaggi(s)}
 ${light(s)}
 ${things(s)}
 ${laddoo(s)}
