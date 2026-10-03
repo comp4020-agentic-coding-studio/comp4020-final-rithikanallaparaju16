@@ -1,4 +1,4 @@
-import { icon, messItem } from "./art.ts";
+import { EMOJI, icon, messItem, pop } from "./art.ts";
 import { art } from "./assets.ts";
 import { DOG, KETTLE_ROOM, MASK_ROOM, YOGA_ROOM } from "./house.ts";
 import { esc } from "./html.ts";
@@ -162,8 +162,9 @@ const PATCHES: Pt[] = [[1075, 138], [1150, 138], [1188, 200], [1180, 228], [1100
 export type Spot = { key: string; color?: string; fresh: boolean };
 
 // Something you can do at a thing in the picture: post a form (with its
-// fields), or go to a page. public/house.js offers it when you walk up.
-export type Doing = { label: string; post?: string; fields?: Record<string, string>; href?: string };
+// fields), or go to a page. public/house.js offers it when you walk up, with
+// its emoji on the button, and pops the emoji over the thing as you do it.
+export type Doing = { label: string; emoji: string; post?: string; fields?: Record<string, string>; href?: string };
 
 // Asleep in a bed ("nap", in `place`'s bed), or sitting on a seat (house.ts
 // SEATS).
@@ -198,6 +199,9 @@ export type Scene = {
   fresh: Set<string>;
   // A room page's place; the whole house when absent.
   focus?: string;
+  // What you just did (a `did` from src/server.ts), which pops up where you
+  // did it.
+  did?: string;
 };
 
 export const isPlace = (place: string): boolean => Object.hasOwn(ROOMS, place);
@@ -306,17 +310,53 @@ function kettleMaggi(s: Scene): string {
 // her bed if she's asleep; or on his blanket in the garden. public/house.js
 // walks him after you, and offers to pet him or give him a treat when you
 // walk up to him.
-function laddoo(s: Scene, standing: Map<string, Pt>): string {
+function dogSpot(s: Scene, standing: Map<string, Pt>): { at: Pt; scale: number } {
   const beside = s.dog.with ? standing.get(s.dog.with) : undefined;
   const room = ROOMS[s.dog.place];
-  const [x, y] = beside ? [beside[0] + 50, beside[1] + 6] : room?.dog ?? KENNEL;
-  const scale = beside ? 0.55 : room?.dog ? 0.62 : 1;
+  return { at: beside ? [beside[0] + 50, beside[1] + 6] : room?.dog ?? KENNEL, scale: beside ? 0.55 : room?.dog ? 0.62 : 1 };
+}
+
+function laddoo(s: Scene, standing: Map<string, Pt>): string {
+  const { at: [x, y], scale } = dogSpot(s, standing);
   const zz = s.dog.awake ? "" : `<text class="zz" x="52" y="-30">z</text><text class="zz small" x="66" y="-46">z</text>`;
   const doings: Doing[] = [
-    { label: `Pet ${DOG}`, post: "/garden/dog", fields: { at: s.dog.place } },
-    { label: `Give ${DOG} a treat`, post: "/garden/treat", fields: { at: s.dog.place } },
+    { label: `Pet ${DOG}`, emoji: EMOJI.play, post: "/garden/dog", fields: { at: s.dog.place } },
+    { label: `Give ${DOG} a treat`, emoji: EMOJI.treat, post: "/garden/treat", fields: { at: s.dog.place } },
   ];
   return `<g class="laddoo${s.dog.awake ? " awake" : ""}" data-place="${esc(s.dog.place)}" data-with="${esc(s.dog.with ?? "")}" data-do="${esc(JSON.stringify(doings))}" transform="translate(${x} ${y}) scale(${scale})" aria-hidden="true"><ellipse class="halo" cy="16" rx="92" ry="48"/><image href="${art("laddoo.png")}" x="-80" y="-46" width="160" height="92"/>${zz}</g>`;
+}
+
+// What you just did pops up where you did it, once, on top of everything:
+// hearts over Shinzo, drops falling on the garden, a sprout, sparkles where
+// the clutter was, a letter on the desk, z's over you in bed.
+const GARDEN_BED: Pt = [1130, 160];
+const WALL_MIDDLE: Pt = [971, 180];
+
+function pops(s: Scene, standing: Map<string, Pt>): string {
+  if (!s.did) return "";
+  const room = s.focus ? ROOMS[s.focus] : undefined;
+  const above = (p: Pt | undefined, dy: number): Pt[] => (p ? [[p[0], p[1] - dy]] : []);
+  const you = standing.get(s.me.id);
+  // Over his back, clear of whoever he's beside.
+  const dog = dogSpot(s, standing);
+  const pup: Pt[] = [[dog.at[0] + 14, dog.at[1] - Math.round(46 * dog.scale + 4)]];
+  const where: Record<string, Pt[]> = {
+    play: pup,
+    treat: pup,
+    water: [GARDEN_BED],
+    plant: above(GARDEN_BED, -10),
+    tidy: room?.mess ?? [],
+    desk: above(room?.desk?.[0], 28),
+    kettle: above(MAT_TABLE, 44),
+    wall: [WALL_MIDDLE],
+    dish: above(COUNTER[1], 30),
+    nap: above(you, 42),
+    sit: above(you, 90),
+    mask: above(you, 108),
+  };
+  const size = s.did === "tidy" || s.did === "play" || s.did === "treat" ? 24 : 32;
+  const all = (where[s.did] ?? []).map((p, i) => pop(s.did!, p, size, i * 0.3)).join("");
+  return all ? `<g class="pops" aria-hidden="true">${all}</g>` : "";
 }
 
 // Everything in the picture you can do something with, each lit up when you
@@ -330,23 +370,25 @@ function hotspots(s: Scene): string {
     const room = ROOMS[place];
     const mine = id === s.me.id;
     // Anyone can sleep in anyone's bed.
-    if (room.bedArea) spots.push({ place, area: room.bedArea, doings: [{ label: `Sleep in ${mine ? "your" : `${name}'s`} bed`, post: `/room/${id}/nap` }] });
+    if (room.bedArea) spots.push({ place, area: room.bedArea, doings: [{ label: `Sleep in ${mine ? "your" : `${name}'s`} bed`, emoji: EMOJI.nap, post: `/room/${id}/nap` }] });
     if (room.deskArea) {
-      const desk: Doing = mine ? { label: "See what's on your desk", href: `/room/${id}#desk` } : { label: `Leave something on ${name}'s desk`, href: `/room/${id}#leave-something` };
+      const desk: Doing = mine
+        ? { label: "See what's on your desk", emoji: EMOJI.look, href: `/room/${id}#desk` }
+        : { label: `Leave something on ${name}'s desk`, emoji: EMOJI.desk, href: `/room/${id}#leave-something` };
       spots.push({ place, area: room.deskArea, doings: [desk] });
     }
     for (const [x, y] of (room.mess ?? []).slice(0, b.mess)) {
-      spots.push({ place, area: oval(x, y, 26, 18), doings: [{ label: mine ? "Tidy your room" : `Tidy up ${name}'s room`, post: `/room/${id}/tidy` }] });
+      spots.push({ place, area: oval(x, y, 26, 18), doings: [{ label: mine ? "Tidy your room" : `Tidy up ${name}'s room`, emoji: EMOJI.tidy, post: `/room/${id}/tidy` }] });
     }
   }
   spots.push(
-    { place: `room:${KETTLE_ROOM}`, area: MAT, doings: [{ label: "Sit on your cushion", post: "/sit", fields: { seat: "mat" } }, { label: "Make kettle Maggi", post: `/room/${KETTLE_ROOM}/kettle` }] },
-    { place: `room:${MASK_ROOM}`, area: MIRROR, doings: [{ label: "Do a face mask", post: `/room/${MASK_ROOM}/mask` }] },
-    { place: `room:${YOGA_ROOM}`, area: YOGA, doings: [{ label: "Meditate on the yoga mat", post: "/sit", fields: { seat: "yoga" } }] },
-    { place: "living", area: WALL_BOARD, doings: [{ label: "Write on the wall", href: "/living#write" }, { label: "Read the wall", href: "/living#wall" }] },
-    { place: "living", area: SOFAS, doings: [{ label: "Sit on the sofa", post: "/sit", fields: { seat: "sofa" } }, { label: "Plan a movie night", href: "/movies" }] },
-    { place: "kitchen", area: STOVE, doings: [{ label: "Cook something", href: "/kitchen#cook" }] },
-    { place: "garden", area: PATCHES, doings: [{ label: "Water the garden", post: "/garden/water" }, { label: "Plant something", href: "/garden#plant" }] },
+    { place: `room:${KETTLE_ROOM}`, area: MAT, doings: [{ label: "Sit on your cushion", emoji: EMOJI.sit, post: "/sit", fields: { seat: "mat" } }, { label: "Make kettle Maggi", emoji: EMOJI.kettle, post: `/room/${KETTLE_ROOM}/kettle` }] },
+    { place: `room:${MASK_ROOM}`, area: MIRROR, doings: [{ label: "Do a face mask", emoji: EMOJI.mask, post: `/room/${MASK_ROOM}/mask` }] },
+    { place: `room:${YOGA_ROOM}`, area: YOGA, doings: [{ label: "Meditate on the yoga mat", emoji: EMOJI.yoga, post: "/sit", fields: { seat: "yoga" } }] },
+    { place: "living", area: WALL_BOARD, doings: [{ label: "Write on the wall", emoji: EMOJI.write, href: "/living#write" }, { label: "Read the wall", emoji: EMOJI.read, href: "/living#wall" }] },
+    { place: "living", area: SOFAS, doings: [{ label: "Sit on the sofa", emoji: EMOJI.sit, post: "/sit", fields: { seat: "sofa" } }, { label: "Plan a movie night", emoji: EMOJI.night, href: "/movies" }] },
+    { place: "kitchen", area: STOVE, doings: [{ label: "Cook something", emoji: EMOJI.dish, href: "/kitchen#cook" }] },
+    { place: "garden", area: PATCHES, doings: [{ label: "Water the garden", emoji: EMOJI.water, post: "/garden/water" }, { label: "Plant something", emoji: EMOJI.plant, href: "/garden#plant" }] },
   );
   const svg = spots.map((h) => `<g class="act" data-place="${h.place}" data-do="${esc(JSON.stringify(h.doings))}"><polygon class="halo" points="${pts(h.area)}"/><polygon class="edge" points="${pts(h.area)}"/></g>`);
   return `<g class="acts" aria-hidden="true">${svg.join("")}</g>`;
@@ -479,5 +521,6 @@ ${laddoo(s, people.standing)}
 <g class="links">${links(s)}</g>
 ${people.svg}
 <g class="nametags" aria-hidden="true">${tags(s)}</g>
+${pops(s, people.standing)}
 </svg>`;
 }

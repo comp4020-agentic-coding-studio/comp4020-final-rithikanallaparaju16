@@ -18,6 +18,7 @@ import {
   moviesPage,
   readmePage,
   updatesPage,
+  type Done,
   type Visit,
 } from "./pages.ts";
 import { personById, type Person } from "./people.ts";
@@ -86,9 +87,15 @@ function visit(me: Person, place = ""): Visit {
   };
 }
 
-// Confirmations after leaving something. Only these fixed lines are ever shown,
+// Confirmations after leaving something, with what you did so the house can
+// pop its emoji up where you did it. Only these fixed lines are ever shown,
 // whatever ?did= says.
-function confirmation(did: string | null, owner?: Person): string | undefined {
+function confirmation(did: string | null, owner?: Person): Done | undefined {
+  const text = line(did, owner);
+  return did && text ? { key: did, text } : undefined;
+}
+
+function line(did: string | null, owner?: Person): string | undefined {
   switch (did) {
     case "desk":
       return owner && `Left on ${owner.name}'s desk. It'll be waiting whenever ${owner.name} is next home.`;

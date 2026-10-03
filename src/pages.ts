@@ -1,4 +1,4 @@
-import { iconSvg, patchesSvg, plantSvg } from "./art.ts";
+import { emoji, iconSvg, patchesSvg, plantSvg, POP } from "./art.ts";
 import { art } from "./assets.ts";
 import {
   counter,
@@ -200,7 +200,12 @@ const footer = (me: Person): string => `
   <a href="/readme/">About this place</a>
 </footer>`;
 
-const done = (text: string | undefined): string => (text ? `<p class="done" role="status">${esc(text)}</p>` : "");
+// What you just did (`key`, a `did` from src/server.ts) and the line that
+// says it's done. The line starts with what popped up in the house.
+export type Done = { key: string; text: string };
+
+const done = (d: Done | undefined): string =>
+  d ? `<p class="done" role="status"><span class="emoji" aria-hidden="true">${POP[d.key]?.[0] ?? "✨"}</span> ${esc(d.text)}</p>` : "";
 
 const pane = (p: Person, light: Phase, asleepNow: boolean): string =>
   `<span class="pane light-${light}${asleepNow ? " asleep" : ""}"><img src="${art(`avatar-${p.id}.png`)}" alt="" width="180" height="242"></span>`;
@@ -233,7 +238,7 @@ function freshPlaces(v: Visit): Set<string> {
   return out;
 }
 
-function scene(v: Visit, focus?: string): Scene {
+function scene(v: Visit, focus?: string, did?: string): Scene {
   const d = laddooAt(v);
   const masks = masked(v.things, v.now);
   const rests = resting(v.things, v.now, v.where, v.arrived);
@@ -271,6 +276,7 @@ function scene(v: Visit, focus?: string): Scene {
     dog: { place: d.place, awake: d.awake, with: d.with?.id },
     fresh: freshPlaces(v),
     focus,
+    did,
   };
 }
 
@@ -517,12 +523,12 @@ ${bar(v, "everyone")}
 
 /* ---------- rooms ---------- */
 
-function roomPage(v: Visit, place: string, title: string, side: string): string {
+function roomPage(v: Visit, place: string, title: string, side: string, d?: Done): string {
   return shell(`${title} · Five Windows`, `
 ${bar(v, "home")}
 <main class="room">
   <div class="room-grid">
-    <section class="map zoom" aria-label="${esc(title)}">${houseSvg(scene(v, place))}</section>
+    <section class="map zoom" aria-label="${esc(title)}">${houseSvg(scene(v, place, d?.key))}</section>
     <div class="room-side">
       <a class="back" href="/">‹ The whole house</a>
       ${side}
@@ -548,9 +554,9 @@ function laddooCard(place: string, v: Visit): string {
     : sleeping(f, v) ? `He's ${d.awake ? "curled up, keeping watch," : "napping"} at the foot of ${f.name}'s bed.`
     : `He's ${d.awake ? "waiting" : "napping"} right where ${f.name} left him.`;
   const petted = d.last ? ` ${d.last.kind === "treat" ? "Last treat from" : "Last petted by"} ${by(d.last, v)}, ${ago(d.last.createdAt, v.now)}.` : "";
-  const button = (action: string, label: string): string =>
-    `<form method="post" action="${action}" class="inline"><input type="hidden" name="at" value="${esc(place)}"><button class="soft">${label}</button></form>`;
-  const pet = here ? `<div class="doings">${button("/garden/dog", `Pet ${DOG}`)}${button("/garden/treat", `Give ${DOG} a treat`)}</div>` : "";
+  const button = (action: string, key: string, label: string): string =>
+    `<form method="post" action="${action}" class="inline"><input type="hidden" name="at" value="${esc(place)}"><button class="soft">${emoji(key)} ${label}</button></form>`;
+  const pet = here ? `<div class="doings">${button("/garden/dog", "play", `Pet ${DOG}`)}${button("/garden/treat", "treat", `Give ${DOG} a treat`)}</div>` : "";
   return `<section class="card laddoo-card" aria-labelledby="dog-heading">
     <h2 id="dog-heading">${DOG}</h2>
     <p>${place === "garden" ? "Everyone's dog. " : ""}${esc(line + petted)}</p>
@@ -576,7 +582,7 @@ function roomHead(title: string, line: string, about: string | undefined, accent
 const by = (t: Thing, v: Visit): string => (t.author === v.me.id ? "you" : nameOf(t.author));
 
 const sitButton = (seat: string, label: string): string =>
-  `<form method="post" action="/sit" class="inline"><input type="hidden" name="seat" value="${esc(seat)}"><button class="soft">${esc(label)}</button></form>`;
+  `<form method="post" action="/sit" class="inline"><input type="hidden" name="seat" value="${esc(seat)}"><button class="soft">${emoji(seat === "yoga" ? "yoga" : "sit")} ${esc(label)}</button></form>`;
 
 /* ---------- a bedroom ---------- */
 
@@ -609,7 +615,7 @@ function maskCard(owner: Person, v: Visit): string {
     ${wearing.length ? `<p class="small">${esc(names(wearing))} ${wearing.length === 1 ? "is" : "are"} in a face mask right now.</p>` : ""}
     ${on.has(v.me.id)
       ? `<p class="mask-on">Your mask is on. It comes off by itself in a couple of hours.</p>`
-      : `<form method="post" action="/room/${esc(owner.id)}/mask" class="inline"><button class="soft">Put on a face mask</button></form>`}
+      : `<form method="post" action="/room/${esc(owner.id)}/mask" class="inline"><button class="soft">${emoji("mask")} Put on a face mask</button></form>`}
     ${lately ? `<h3 class="small-head">Lately</h3><ul class="plain-list">${lately}</ul>` : ""}
   </section>`;
 }
@@ -627,11 +633,11 @@ function kettleCard(owner: Person, v: Visit): string {
     ${out}
     <label for="kettle-note">A note for whoever finds it, if you like</label>
     <textarea id="kettle-note" name="body" rows="2" maxlength="${MAX_DISH_NOTE}" placeholder="made extra, come sit"></textarea>
-    <button>Make Maggi in the kettle</button>
+    <button>${emoji("kettle")} Make Maggi in the kettle</button>
   </form>`;
 }
 
-export function bedroomPage(owner: Person, v: Visit, did?: string): string {
+export function bedroomPage(owner: Person, v: Visit, did?: Done): string {
   const mine = owner.id === v.me.id;
   const c = clock(owner.tz, v.now);
   const state = mine
@@ -659,7 +665,7 @@ export function bedroomPage(owner: Person, v: Visit, did?: string): string {
     <textarea id="body" name="body" rows="3" maxlength="${MAX_NOTE}" placeholder="good luck today, I saw this and thought of you…"></textarea>
     ${picker("item", "And something with it", GIFTS, iconSvg, "Just the note")}
     <p class="small">Only ${esc(owner.name)} can read the note. Anyone who walks in can see something's been left.</p>
-    <button>Leave it on ${esc(owner.name)}'s desk</button>
+    <button>${emoji("desk")} Leave it on ${esc(owner.name)}'s desk</button>
   </form>`;
 
   // Anyone can sleep in anyone's bed, and sit down on the seats.
@@ -674,8 +680,8 @@ export function bedroomPage(owner: Person, v: Visit, did?: string): string {
   <p class="status">${esc(messLine)} ${esc(tidyLine)}</p>
   ${restingIn(roomPlace(owner.id), v)}
   <div class="doings">
-    <form method="post" action="/room/${esc(owner.id)}/tidy" class="inline"><button class="soft">${mine ? "Tidy your room" : `Tidy up ${esc(owner.name)}'s room`}</button></form>
-    <form method="post" action="/room/${esc(owner.id)}/nap" class="inline"><button class="soft">Sleep in ${mine ? "your" : `${esc(owner.name)}'s`} bed</button></form>
+    <form method="post" action="/room/${esc(owner.id)}/tidy" class="inline"><button class="soft">${emoji("tidy")} ${mine ? "Tidy your room" : `Tidy up ${esc(owner.name)}'s room`}</button></form>
+    <form method="post" action="/room/${esc(owner.id)}/nap" class="inline"><button class="soft">${emoji("nap")} Sleep in ${mine ? "your" : `${esc(owner.name)}'s`} bed</button></form>
     ${seat}
   </div>
   ${laddooCard(roomPlace(owner.id), v)}
@@ -685,7 +691,7 @@ export function bedroomPage(owner: Person, v: Visit, did?: string): string {
     <h2 id="desk-heading">${mine ? "On your desk" : `On ${esc(owner.name)}'s desk`}</h2>
     ${left.length ? `<ul class="desk-list">\n${shown}\n</ul>${drawer}` : `<p class="empty">${mine ? "Nothing yet. When a friend leaves you something, it'll be here." : "Nothing yet."}</p>`}
   </section>
-  ${leaveForm}`);
+  ${leaveForm}`, did);
 }
 
 /* ---------- the living room ---------- */
@@ -698,7 +704,7 @@ function wallNote(t: Thing, v: Visit): string {
   return `<li class="${cls}" style="--paper:${paper}">${isNew(t, v) ? `<span class="tag">new</span>` : ""}<p class="body hand">${esc(t.body)}</p><p class="by">${esc(by(t, v))}, ${esc(ago(t.createdAt, v.now))}</p></li>`;
 }
 
-export function livingPage(v: Visit, did?: string): string {
+export function livingPage(v: Visit, did?: Done): string {
   const night = movieNight(v.things, v.now);
   const notes = wall(v.things);
   const big = notes.filter((t) => t.item === "big");
@@ -715,19 +721,19 @@ export function livingPage(v: Visit, did?: string): string {
     <label for="body">Write on the wall</label>
     <textarea id="body" name="body" rows="3" maxlength="${MAX_NOTE}" required placeholder="the funniest thing happened today…"></textarea>
     <label class="check"><input type="checkbox" name="big" value="1"> This is big news. Keep it pinned at the top.</label>
-    <button>Pin it to the wall</button>
+    <button>${emoji("wall")} Pin it to the wall</button>
   </form>
   <section class="wall" id="wall" aria-labelledby="wall-heading">
     <h2 id="wall-heading">The wall</h2>
     ${big.length ? `<h3 class="pinned">Big news</h3><ul class="notes">\n${big.map((t) => wallNote(t, v)).join("\n")}\n</ul>` : ""}
     ${everyday.length ? `<ul class="notes">\n${everyday.slice(0, WALL_SHOWN).map((t) => wallNote(t, v)).join("\n")}\n</ul>` : big.length ? "" : `<p class="empty">The wall is bare. Be the first to pin something up.</p>`}
     ${everyday.length > WALL_SHOWN ? `<details class="drawer"><summary>The memory box: older notes, taken down but kept</summary><ul class="notes">${everyday.slice(WALL_SHOWN).map((t) => wallNote(t, v)).join("\n")}</ul></details>` : ""}
-  </section>`);
+  </section>`, did);
 }
 
 /* ---------- the kitchen ---------- */
 
-export function kitchenPage(v: Visit, did?: string): string {
+export function kitchenPage(v: Visit, did?: Done): string {
   const dishes = counter(v.things, v.now);
   const list = dishes.map((t) => {
     const dish = find(FOOD, t.item);
@@ -748,15 +754,15 @@ export function kitchenPage(v: Visit, did?: string): string {
     ${picker("item", "What are you making?", FOOD, iconSvg)}
     <label for="body">A note to go with it, if you like</label>
     <textarea id="body" name="body" rows="2" maxlength="${MAX_DISH_NOTE}" placeholder="made too much, help yourselves"></textarea>
-    <button>Leave it out for everyone</button>
-  </form>`);
+    <button>${emoji("dish")} Leave it out for everyone</button>
+  </form>`, did);
 }
 
 /* ---------- the garden ---------- */
 
 const STAGES = ["", "just sprouted", "growing", "in bloom"];
 
-export function gardenPage(v: Visit, did?: string): string {
+export function gardenPage(v: Visit, did?: Done): string {
   const dry = thirsty(v.things, v.now);
   const watered = latest(v.things, "water");
   const planted = plants(v.things);
@@ -780,19 +786,19 @@ export function gardenPage(v: Visit, did?: string): string {
   ${roomHead("The garden", "Everyone has a patch. Anyone can water the lot, and the plants grow whether or not you're here.", undefined, "#4f8f3e")}
   ${done(did)}
   <p class="status">${esc(waterLine)}</p>
-  <form method="post" action="/garden/water" class="inline"><button class="soft">Water the garden</button></form>
+  <form method="post" action="/garden/water" class="inline"><button class="soft">${emoji("water")} Water the garden</button></form>
   <section class="card" aria-labelledby="patches-heading">
     <h2 id="patches-heading">The patches</h2>
-    <figure class="close">${patchesSvg(plots, dry)}</figure>
+    <figure class="close">${patchesSvg(plots, dry, did?.key, v.me.id)}</figure>
     <ul class="patches">\n${patches}\n</ul>
   </section>
   <form method="post" action="/garden/plant" class="card compose" id="plant">
     <h2>Plant something in your patch</h2>
     ${picker("item", "What would you like to grow?", PLANTS, plantSvg)}
     ${replaces ? `<p class="small">This replaces your ${esc(replaces.label)}.</p>` : ""}
-    <button>Plant it</button>
+    <button>${emoji("plant")} Plant it</button>
   </form>
-  ${laddooCard("garden", v)}`);
+  ${laddooCard("garden", v)}`, did);
 }
 
 /* ---------- movies ---------- */
@@ -827,11 +833,11 @@ function movieItem(m: Movie, v: Visit): string {
     ${m.why ? `<p class="body hand">${esc(m.why)}</p>` : ""}
     <p class="by">Suggested by ${esc(by(m.thing, v))}, ${esc(ago(m.thing.createdAt, v.now))}</p>
     <p class="watched">${who.length ? `Watched by ${esc(names(who))}.` : "Nobody's watched it yet."}</p>
-    ${seen ? "" : `<form method="post" action="/movies/watched" class="inline"><button class="soft" name="movie" value="${m.thing.id}">I've watched it</button></form>`}
+    ${seen ? "" : `<form method="post" action="/movies/watched" class="inline"><button class="soft" name="movie" value="${m.thing.id}">${emoji("watched")} I've watched it</button></form>`}
   </li>`;
 }
 
-export function moviesPage(v: Visit, did?: string): string {
+export function moviesPage(v: Visit, did?: Done): string {
   const list = movies(v.things);
   const choices = list.map((m) => `<option value="${m.thing.id}">${esc(m.title)}</option>`).join("");
   const plan = list.length ? `
@@ -842,7 +848,7 @@ export function moviesPage(v: Visit, did?: string): string {
     <label for="night-when">When, in your own time (${esc(v.me.city)})</label>
     <input id="night-when" type="datetime-local" name="when" required min="${localInput(v.me.tz, v.now)}">
     <p class="small">Everyone sees it in her own time. A new plan replaces the old one.</p>
-    <button>Plan it</button>
+    <button>${emoji("night")} Plan it</button>
   </form>` : "";
 
   return shell("Movies · Five Windows", `
@@ -860,7 +866,7 @@ ${bar(v, "movies")}
     <input id="movie-title" name="title" maxlength="${MAX_TITLE}" required placeholder="96, Kumbalangi Nights, Before Sunrise…">
     <label for="movie-why">Why, if you like</label>
     <textarea id="movie-why" name="why" rows="2" maxlength="${MAX_DISH_NOTE}" placeholder="for a crying-on-the-sofa kind of night"></textarea>
-    <button>Suggest it</button>
+    <button>${emoji("movie")} Suggest it</button>
   </form>
   <section class="card" aria-labelledby="list-heading">
     <h2 id="list-heading">Suggestions</h2>

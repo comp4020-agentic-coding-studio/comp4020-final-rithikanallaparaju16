@@ -11,7 +11,8 @@
 // the screen, so the view follows you.
 //
 // Walk up to something you can do something with (a bed, a desk, the wall,
-// Shinzo) and it lights up, with a button for each thing you can do there.
+// Shinzo) and it lights up, with a button for each thing you can do there,
+// each with its little emoji. Doing it pops the emoji up over the thing.
 // Wherever you stop walking, the house keeps: you're still there next time,
 // and friends find you there.
 (() => {
@@ -270,18 +271,55 @@
       const b = document.createElement("button");
       b.type = "button";
       b.className = "do";
-      b.innerHTML = `<span></span> <kbd>${i ? i + 1 : "Enter"}</kbd>`;
-      b.querySelector("span").textContent = d.label;
+      b.innerHTML = `<span class="emoji" aria-hidden="true"></span> <span class="label"></span> <kbd>${i ? i + 1 : "Enter"}</kbd>`;
+      b.querySelector(".emoji").textContent = d.emoji;
+      b.querySelector(".label").textContent = d.label;
       b.addEventListener("click", () => act(t, d));
       moves.insertBefore(b, goButton);
     });
     goKey.hidden = Boolean(t);
   }
 
+  // The thing's emoji pops up over it as you do it (the page you land on pops
+  // up what came of it).
+  function popUp(t, emoji) {
+    const NS = "http://www.w3.org/2000/svg";
+    let layer = svg.querySelector("g.pops");
+    if (!layer) {
+      layer = document.createElementNS(NS, "g");
+      layer.setAttribute("class", "pops");
+      layer.setAttribute("aria-hidden", "true");
+      svg.append(layer);
+    }
+    let at;
+    if (t.dog) {
+      // Over his back, as on the page you land on (src/scene.ts).
+      const m = spot(t.g);
+      at = [m.e + 14, m.f - 46 * m.a - 4];
+    } else {
+      const box = t.g.querySelector("polygon").getBBox();
+      at = [box.x + box.width / 2, box.y + box.height / 2];
+    }
+    const text = document.createElementNS(NS, "text");
+    text.setAttribute("class", "pop");
+    text.setAttribute("x", at[0].toFixed(0));
+    text.setAttribute("y", at[1].toFixed(0));
+    text.setAttribute("font-size", "34");
+    text.textContent = emoji;
+    layer.append(text);
+  }
+
   // Do it: a form posts, a link goes there. Something in another room zooms
-  // in on that room on the way, like going in.
+  // in on that room on the way, like going in; otherwise there's a moment to
+  // see the emoji first. Petting Shinzo, or giving him a treat, wakes him up
+  // there and then.
   function act(t, d) {
     if (busy) return;
+    popUp(t, d.emoji);
+    if (t.dog) {
+      t.g.classList.add("awake");
+      for (const z of t.g.querySelectorAll(".zz")) z.remove();
+    }
     const fields = { ...d.fields };
     // Shinzo is wherever he is now, which may not be where the page drew him.
     if (t.dog) fields.at = roomAt([spot(t.g).e, spot(t.g).f])?.place ?? fields.at;
@@ -314,7 +352,7 @@
     hold();
     keep();
     if (there && there !== current) zoom(there.view, go);
-    else go();
+    else setTimeout(go, still ? 0 : 500);
   }
 
   /* ---------- moving ---------- */

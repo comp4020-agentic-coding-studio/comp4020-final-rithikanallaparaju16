@@ -85,13 +85,74 @@ export function plantSvg(key: string): string {
 export type Plot = { owner: Person; plant?: string; stage: number };
 
 // The five patches side by side, big enough to see what's growing on a phone.
-export function patchesSvg(plots: Plot[], thirsty: boolean): string {
+// Just after watering, drops fall on every patch; just after planting, a
+// sprout pops up in yours (`did` and `me`).
+export function patchesSvg(plots: Plot[], thirsty: boolean, did?: string, me?: string): string {
   const soil = thirsty ? "#a3805a" : "#6b4a30";
   const beds = plots.map((p, i) => {
     const x = 10 + i * 112;
     const name = p.owner.name;
     const fit = name.length > 9 ? ` textLength="104" lengthAdjust="spacingAndGlyphs"` : "";
-    return `<rect x="${x}" y="14" width="96" height="88" rx="6" fill="#8a5a3c"/><rect x="${x + 6}" y="20" width="84" height="76" rx="4" fill="${soil}"/><g transform="translate(${x + 48} ${p.plant ? 84 : 80})">${plantArt(p.plant, p.stage, thirsty)}</g><text class="plot-name" x="${x + 48}" y="128" text-anchor="middle"${fit}>${esc(name)}</text>`;
+    const done = did === "water" || (did === "plant" && p.owner.id === me) ? pop(did, [x + 48, 46], 26, i * 0.15) : "";
+    return `<rect x="${x}" y="14" width="96" height="88" rx="6" fill="#8a5a3c"/><rect x="${x + 6}" y="20" width="84" height="76" rx="4" fill="${soil}"/><g transform="translate(${x + 48} ${p.plant ? 84 : 80})">${plantArt(p.plant, p.stage, thirsty)}</g><text class="plot-name" x="${x + 48}" y="128" text-anchor="middle"${fit}>${esc(name)}</text>${done}`;
   }).join("");
   return `<svg class="patches-svg" viewBox="0 0 570 140" role="img" aria-label="The five patches up close"><rect width="570" height="140" rx="10" fill="#9cc77a"/>${beds}</svg>`;
+}
+
+/* ---------- a little emoji for everything you do ---------- */
+
+// On the button for each thing you can do, in the house and on the pages.
+// Most keys are the `did` a form sends you back with (src/server.ts).
+export const EMOJI: Record<string, string> = {
+  nap: "😴",
+  sit: "🛋️",
+  yoga: "🧘",
+  tidy: "🧹",
+  desk: "💌",
+  look: "📬",
+  mask: "🥒",
+  kettle: "🍜",
+  write: "✏️",
+  wall: "📌",
+  read: "👀",
+  dish: "🍳",
+  water: "💧",
+  plant: "🌱",
+  play: "🐾",
+  treat: "🦴",
+  movie: "🎬",
+  watched: "✅",
+  night: "🍿",
+};
+
+// What pops up where you did it, once it's done.
+export const POP: Record<string, string[]> = {
+  nap: ["💤"],
+  sit: ["😌"],
+  tidy: ["✨", "✨", "✨"],
+  desk: ["💌"],
+  mask: ["🥒", "✨"],
+  kettle: ["🍜"],
+  wall: ["📌"],
+  dish: ["🍳"],
+  water: ["💧", "💧", "💧"],
+  plant: ["🌱"],
+  play: ["💕", "💗", "💕"],
+  treat: ["🦴", "😋"],
+  movie: ["🎬"],
+  watched: ["✅"],
+  night: ["🍿"],
+};
+
+export const emoji = (key: string): string => (EMOJI[key] ? `<span class="emoji" aria-hidden="true">${EMOJI[key]}</span>` : "");
+
+// The pop itself: a few emoji side by side at (x, y), rising and fading
+// (water falls instead). Under reduced motion they just sit there.
+export function pop(key: string, [x, y]: [number, number], size = 34, delay = 0): string {
+  const all = POP[key] ?? [];
+  return all.map((e, i) => {
+    const dx = (i - (all.length - 1) / 2) * size * 0.9;
+    const cls = key === "water" ? "pop fall" : "pop";
+    return `<text class="${cls}" x="${(x + dx).toFixed(0)}" y="${y}" font-size="${size}" style="animation-delay:${(delay + i * 0.25).toFixed(2)}s">${e}</text>`;
+  }).join("");
 }

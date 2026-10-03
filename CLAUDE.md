@@ -25,7 +25,10 @@ mat, mirror, yoga mat, sofas, wall, stove, garden patches, Shinzo) lights up,
 and buttons for it appear above Go in. Each is a `<g class="act">` hotspot in
 `hotspots()` in `src/scene.ts`, and each button is a link or a form the
 page already has. Anyone can sleep in any bed (`nap`) or sit on a seat in
-`SEATS` (`sit`). Each bedroom keeps
+`SEATS` (`sit`). Every action has an emoji (`EMOJI` in `src/art.ts`) on its
+button. After a form posts, the `?did=` it redirects with pops `POP`'s emoji
+up where it happened (`pops()` in `src/scene.ts`, `g.pops`); the script
+pops the button's emoji as you press it. A new action gets both. Each bedroom keeps
 its owner's local time and personal details (listed in README.md). Shared
 rooms follow the visitor's clock. Laptop: the house with updates beside it. Phone: the house
 fills the screen, with Home, Updates, Movies and Everyone tabs at the bottom.

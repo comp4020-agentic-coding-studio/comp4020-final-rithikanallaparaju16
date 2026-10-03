@@ -264,6 +264,41 @@ for him not to be asleep all the time. The agent's calls:
 - **The house's pictures carry a fingerprint in their address,** so a
   changed picture shows straight away instead of after a day.
 
+Later in the session I asked for a small emoji on every action, for Shinzo
+to be awake once someone pets him, and for simple, cute signs that
+something is being done or is done, like when planting or watering. The
+agent's calls:
+
+- **Every action has one emoji,** on its button in the house and on the
+  pages:
+  - 😴 sleep, 🛋️ sit, 🧘 meditate, 🧹 tidy
+  - 💌 leave something on a desk, 📬 see your own desk
+  - 🥒 face mask (for the cucumber slices), 🍜 kettle Maggi
+  - ✏️ write on the wall, 📌 pin it, 👀 read the wall, 🍳 cook
+  - 💧 water, 🌱 plant
+  - 🐾 pet, 🦴 treat
+  - 🎬 suggest a movie, ✅ watched it, 🍿 movie night
+
+  The cushion on Amirdha's mat shares 🛋️ with the sofa, since there's no
+  cushion emoji. Going into a room has none, because it isn't something you
+  do there.
+- **Doing:** the moment you press a button in the house, its emoji pops up
+  over the thing. If nothing needs zooming to, there's half a second to see
+  it before the form posts.
+- **Done:** the page you land on pops something up where it happened, once,
+  for three seconds, and the line that says it's done starts with it:
+  - 💧 drops fall on the sunflower bed and on every patch in the close-up
+  - 🌱 a sprout comes up, in your own patch in the close-up
+  - 💕💗💕 hearts over Shinzo when petted, 🦴😋 for a treat
+  - ✨ sparkles where the clutter was after tidying
+  - 💤 over you in bed, 😌 when you sit down, 🥒✨ with a face mask
+  - 💌 on the desk, 📌 on the wall, 🍳 on the counter, 🍜 by the kettle
+
+  Under reduced motion the emoji just sit there until the next page.
+- **Shinzo wakes up when petted.** He already counted as awake for three
+  hours after a pet or a treat. Now he also wakes on the spot when you press
+  the button: the z's go and he starts hopping before the page changes.
+
 ## What went wrong, and what we found
 
 - The agent's shell didn't have node on its PATH, because mise wasn't active.
@@ -363,6 +398,12 @@ for him not to be asleep all the time. The agent's calls:
   made it stronger. Later, screenshots showed Shinzo looking asleep even when
   he was awake. His only picture lies down, and "awake" was a 2° wag. It's
   now a hop.
+- The emoji pops fade within three seconds, and `scripts/shot.ts` waits 2.5
+  seconds before capturing, so a plain screenshot catches them half gone.
+  The agent took them with reduced motion emulated, where they hold still,
+  using a scratch copy of the script. The first one showed Shinzo's hearts
+  over the sticker of the person he was beside, so they moved onto his
+  back and got a little smaller.
 
 ## Deliberately left out
 
@@ -429,7 +470,8 @@ feel closer before it goes in.
   `sit` kinds. It explains `POST /here` as the one write that needs the
   script, and lists the new `visits` columns (ADR 0009). It also says pages
   ask for art through `art()` in `src/assets.ts`, because a cached picture
-  hid the painted-out table.
+  hid the painted-out table. Later it gained where action emoji live
+  (`EMOJI` and `POP` in `src/art.ts`), and that a new action needs both.
 
 ## Project log
 

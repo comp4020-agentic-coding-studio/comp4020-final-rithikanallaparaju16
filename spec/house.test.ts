@@ -233,11 +233,31 @@ describe.skipIf(!throwaway)("living in the house", () => {
   it("offers what you can do at each thing in the house, where it is", async () => {
     const [a] = await people();
     const house = await page("/", a.id);
-    const doings = [...house.querySelectorAll(".act, .laddoo")].flatMap((g) => JSON.parse(g.getAttribute("data-do") ?? "[]") as { label: string }[]).map((d) => d.label);
+    const all = [...house.querySelectorAll(".act, .laddoo")].flatMap((g) => JSON.parse(g.getAttribute("data-do") ?? "[]") as { label: string; emoji?: string }[]);
+    const doings = all.map((d) => d.label);
     expect(doings.filter((l) => l.startsWith("Sleep in")).length, "not every bed can be slept in").toBe(5);
     for (const label of ["Write on the wall", "Sit on the sofa", "Sit on your cushion", "Water the garden", "Pet Shinzo", "Give Shinzo a treat"]) {
       expect(doings, `nothing offers "${label}"`).toContain(label);
     }
+    expect(all.filter((d) => !d.emoji).map((d) => d.label), "these have no emoji").toEqual([]);
+  });
+
+  it("pops a little emoji up where you did something, once it's done", async () => {
+    const [a] = await people();
+    const did = async (path: string, fields: Record<string, string>): Promise<Document> =>
+      page((await post(path, fields, a.id)).headers.get("location")!, a.id);
+    const pops = (doc: Document): string => text(doc.querySelector(".house-svg .pops"));
+
+    const watered = await did("/garden/water", {});
+    expect(text(watered.querySelector(".done")), "the line that says it's done has no drop").toContain("💧");
+    expect(pops(watered), "no drops fall on the garden").toContain("💧");
+    expect(pops(await did("/garden/plant", { item: "jasmine" })), "nothing sprouts where you planted").toContain("🌱");
+
+    const petted = await did("/garden/dog", { at: "garden" });
+    expect(pops(petted), "no hearts over Shinzo").toContain("💕");
+    expect(petted.querySelector(".laddoo.awake"), "Shinzo's still asleep after being petted").not.toBeNull();
+
+    expect((await page("/garden", a.id)).querySelector(".house-svg .pops"), "it pops up again on an ordinary visit").toBeNull();
   });
 
   it("shows a friend who's home right now wherever they are in the house", async () => {

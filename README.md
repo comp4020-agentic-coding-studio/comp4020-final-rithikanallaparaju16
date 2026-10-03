@@ -24,6 +24,8 @@ Each of us is a little sticker in the house, and nobody moves unless they're the
 
 Whatever you walk up to that you can use lights up gold: a bed, a desk, the cushions on Amirdhavarshini's mat, Rithanya's mirror, Aswathy's yoga mat, the sofas, the wall of notes, the stove, the garden patches, Shinzo. Buttons for what you can do there appear above the Go in button. On a keyboard, Enter or E does the first one (ahead of going in), and the number keys do the rest.
 
+Everything you can do has a little emoji on its button: 😴 sleep, 💧 water, 🌱 plant, 🐾 pet Shinzo, 🦴 give him a treat, 🧹 tidy, 🍜 kettle Maggi, 🥒 face mask, and so on. The emoji pops up over the thing as you do it. Once it's done, something pops up where you did it: drops fall on the garden, a sprout comes up, hearts float over Shinzo, sparkles show where the clutter was, z's drift over you in bed.
+
 The house keeps where you stopped. Reload, or come back next week, and you're standing there, with Shinzo beside you if he's with you.
 
 Friends stand still where they last were, so you can find a friend in the kitchen, or on the sofa where she sat down. Anyone who's been here in the last ten minutes breathes a little and glows underfoot because she's here. During her sleep hours, a friend who isn't here is tucked up in her own bed.
@@ -56,7 +58,7 @@ Characters sleep at night where they live: Neha from 11:30 pm to 10:30 am, Ritha
 - **Tidy someone's room.** Rooms get a little lived-in after a couple of days, and messier after five. Anyone can tidy any room, and the owner finds out who did.
 - **Look after the garden.** Everyone has a patch to plant in. Plants sprout, grow and bloom over three days. They look thirsty after two days without water, but they never die, and anyone can water the lot.
 - **Sleep or sit down anywhere.** Anyone can sleep in anyone's bed, sit on her cushion on Amirdhavarshini's mat, sit on the sofa, or meditate on Aswathy's yoga mat. Friends who come by find you there, and the bed's owner hears who slept in it. You get up when you walk, or after two hours.
-- **Pet Shinzo, or give him a treat.** He starts on his blanket under the tree in the garden. Pet him or feed him and he comes with you, blanket and all, trotting a step behind as you walk. He stays wherever you leave him for half a day, then wanders back to the garden. He's up and about in the daytime (by your clock) and hops around when he's awake. At night he naps, unless someone's just made a fuss of him or he's with a friend who's here.
+- **Pet Shinzo, or give him a treat.** He starts on his blanket under the tree in the garden. Pet him or feed him and he comes with you, blanket and all, trotting a step behind as you walk. He stays wherever you leave him for half a day, then wanders back to the garden. Petting him or giving him a treat wakes him straight away, and he stays up for three hours after. Otherwise he's up and about in the daytime (by your clock), hopping around, and at night he naps, unless he's with a friend who's here.
 - **Do a face mask in Rithanya's room.** She always has the powder. Your sticker wears a green mask with cucumber slices for two hours, so a friend who comes by catches you in it, and Rithanya hears whose face used her powder.
 - **Make kettle Maggi in Amirdhavarshini's room.** Like in the hostel. The kettle and two bowls sit out on her mat, steaming, for the night (twelve hours), with a note if you leave one.
 - **Movie time.** Rithanya loves movies, so the Movies tab is hers. Suggest a movie and say why, tick off the ones you've watched, or plan a movie night on the living room sofas. You pick the time in your own clock, and everyone sees it in theirs, with a note if it falls while someone's usually asleep. A new plan replaces the old one. Rithanya's suggestions are marked as her picks.
@@ -105,7 +107,8 @@ Run it locally with `pnpm start` (it keeps its data in `./data`), then run `pnpm
 - Shinzo goes along with whoever pets him, wherever they go
 - you're still where you walked to when you come back, with Shinzo beside you if you fed him
 - anyone can sleep in anyone's bed or sit down, and friends find her there
-- each thing in the house offers what you can do with it, where it is
+- each thing in the house offers what you can do with it, where it is, each with an emoji
+- a little emoji pops up where you did something once it's done, and Shinzo's awake once he's petted
 - a friend who's home right now shows up where she is in the house
 - nobody walks around on their own
 - a face mask shows on the friend wearing it, and Rithanya hears whose it was
