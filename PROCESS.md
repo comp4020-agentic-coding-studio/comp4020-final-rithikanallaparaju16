@@ -97,6 +97,40 @@ These are the smaller product calls the agent made. I haven't reviewed them yet:
   avatars use warm brown skin tones and one colour each, as a placeholder until
   I fix them.
 
+### Session 3: the Stitch house
+
+I made the house and the five of us in Google Stitch and asked for them to be
+used, with avatars that move, the updates beside the house on a laptop, and
+the house filling a phone's screen with tabs. The drawing approach changed, so
+[ADR 0007](doc/adr/0007-the-stitch-illustration-with-an-svg-layer-and-a-little-javascript.md)
+supersedes 0004 and is *proposed* until I review it. These are the agent's
+product calls, not yet reviewed:
+
+- **Stitch's dog Milo is Laddoo.** He and his blanket were cut out of the
+  picture, so he can follow whoever played with him to her room.
+- **Which room is whose** follows the labelled Stitch export: Amirdhavarshini
+  in the big corner room, then Rithika, Rithanya, Aswathy and Neha along the
+  front.
+- **Who's where:** a friend who's been in the house in the last ten minutes is
+  drawn wherever she last went (her room, the kitchen, the garden). Everyone
+  else wanders her own room, and during her sleep hours she's a head on her
+  pillow with "z z" floating up.
+- **Tabs:** Home, Updates and Everyone. At 1000px and wider, the house has
+  "while you were away" and everyone's clocks beside it. Below 700px the house
+  fills the screen and pans sideways, with a one-line "while you were away"
+  strip above it and the tabs at the bottom. In between, the panels sit under
+  the house.
+- **No counts, but cues:** the Updates tab gets a dot when something's new.
+  Rooms with something new for you twinkle (your room, the wall, the kitchen,
+  the garden; friends' desks stay their business).
+- **Updates is never empty:** under "while you were away" it lists the last ten
+  things that happened before, your own included ("You watered the garden").
+- **Room descriptions now match the art:** my room has shelves of bottles and
+  jars instead of fairy lights, Aswathy's has a yoga mat for meditating instead
+  of a corner with cushions, and Rithanya's cats are in boxes and baskets.
+- **The door** shows the house, dimmed, behind the five windows, and each
+  window now has the sticker in it.
+
 ## What went wrong, and what we found
 
 - The agent's shell didn't have node on its PATH, because mise wasn't active.
@@ -125,6 +159,24 @@ These are the smaller product calls the agent made. I haven't reviewed them yet:
   login cookie, so it would only ever show the door. The agent wrote
   `scripts/shot.ts`, which uses headless Chrome's device emulation instead. That
   goes down to 390px and can set the cookie.
+- In session 3, cutting the stickers out of the Stitch lineup took three tries.
+  The first flood fill also ate each sticker's white border. The stickers touch
+  at the hands, so cutting by columns merged neighbours. And the first fill
+  where Milo had been left a blurred ghost of him on the lawn. The script now
+  keeps the borders, keeps only each sticker's own blob, and fills the lawn
+  from the shade around it.
+- The first laptop screenshot of the new house had every room's name tag
+  piled up, tilted, in the top-left corner. The tags used the class `tag`,
+  which the "new" badges already use, and that rule's CSS `transform` replaced
+  the SVG's own positioning. The fix was a rename to `nametag`. The first
+  attempt at the rename renamed the badge rule too; the agent saw it in the
+  output and put it back.
+- The next screenshot still showed the bug, because the server was still
+  running the old code (node doesn't reload). It now runs with `--watch`
+  while iterating, and that's in `CLAUDE.md`.
+- Screenshots also caught the phone greeting disappearing (a flex rule gave it
+  zero width), the door's intro being cut off by the same rule, and the form
+  buttons losing their style when the stylesheet was rewritten.
 
 ## Deliberately left out
 
@@ -157,6 +209,17 @@ feel closer before it goes in.
   - `esc()` moving to `src/html.ts`
   - what to do when port 8080 is taken
   - `scripts/shot.ts` replacing the iframe trick
+- **Session 3:** `CLAUDE.md` now describes the Stitch house and the laptop and
+  phone layouts. It also gained rules for:
+  - the SVG layer and its coordinates in `src/scene.ts`
+  - regenerating `public/art/` with `scripts/cut-art.py` instead of editing
+    the images
+  - client JavaScript as enhancement only, with reduced motion respected
+  - the `place` column on `visits`
+  - running the server with `--watch`, and copying `./data` to a scratch
+    folder to test against
+
+  `.dockerignore` now keeps the Stitch originals out of the deploy upload.
 
 ## Project log
 
@@ -273,4 +336,40 @@ went wrong" above.
 verified on Fly yet.
 
 **Commits:** [`205b1d8`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/205b1d8)
-(the house), and this log update.
+(the house), [`aebbd8c`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/aebbd8c)
+(this log entry).
+
+### 6. "use the google stitch i uploaded and do the modifications" (2–3 Oct 2026)
+
+**Asked:** "use the google stitch i uploaded and do the modifications, the
+avatars should be able to move around, if its a laptop screen, the right
+section can have the updates, for phones the whole screen should be this, or
+we can do tabs as well. this will be home, there can be more tabs for updates
+and other stuff". The Stitch folder had the house, a labelled copy of it, and
+the lineup of five stickers.
+
+**Agent:** wrote `scripts/cut-art.py` to turn the exports into
+`public/art/`, and drew every room's outline, walking spots, pillow, desk and
+dog spot over the picture to check them by eye. It then rebuilt the house
+as described in "Session 3: the Stitch house" above. The new pieces are
+`src/scene.ts` (the SVG layer), `public/house.js` (walking to a room you tap),
+the Updates and Everyone tabs, and room pages as the house zoomed in. It also
+added a `place` column on `visits`, and wrote ADR 0007. The spec gained one
+check (a friend who's home shows up where she is), and the Laddoo check now
+looks for him in the house. `pnpm check` passed 16/16 against a copy of the
+local house and against an empty one. It looked at the home page at 390px and
+1280px, Neha's room at 390px, the living room at 1280px, Updates at 390px,
+Everyone at 1280px and the door at 390px, and fixed what it saw (above).
+
+**Not checked:** the wandering and the walk-to-a-room are motion, and the
+screenshots are stills. The agent checked that the generated keyframes are
+valid CSS, but nobody has watched them move yet.
+
+**Interruption:** the agent ran out of context partway through this prompt
+and carried on from a summary. Before it finished, I sent the next prompt
+(entry 7).
+
+**Correction:** none this prompt.
+
+**Commits:** [`d6fc9d0`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/d6fc9d0)
+(the Stitch house), and this log entry.
