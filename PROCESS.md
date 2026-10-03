@@ -984,4 +984,50 @@ the spec doesn't write there.
 **Commits:** [`8c0b81e`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/8c0b81e)
 (the code, the art, the spec, README, `CLAUDE.md` and ADR 0009),
 [`6d0ff95`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/6d0ff95)
-(this log entry, deployed), and the deploy note. Not pushed to GitHub.
+(this log entry, deployed), and [`23d71e2`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/23d71e2)
+(the deploy note). Not pushed to GitHub.
+
+### 15. "make the actions have a small emoji" (3 Oct 2026)
+
+**Asked:** "make the actions have a small emoji, not example when pet
+shinzo, let him be awake once somebody pets him, when im plant sumn, show it
+with an emoji, when im watering it show an emoji, simple cute ways show that
+the action is done or doing"
+
+**Agent:** built what's under "Later in the session" in Session 7 above:
+
+- One list of emoji in `src/art.ts` (`EMOJI`), used by the lit-up buttons
+  in the house (`house.js`) and the buttons on every page.
+- `?did=` now carries through to the scene. `pops()` in `src/scene.ts`
+  draws what popped up, and `patchesSvg` does the garden close-up.
+- `house.js` pops the button's emoji over the thing as you press it, and
+  wakes Shinzo when you pet him or give him a treat.
+
+The spec gained one test: watering, planting and petting each pop up
+(💧, 🌱, 💕), the line that says it's done starts with the drop, Shinzo is
+awake after being petted, and nothing pops on an ordinary visit. The hotspot
+test also checks that every action has an emoji. `pnpm check` passed 25/25
+against the scratch house in `/tmp`.
+
+**How it was checked in a browser** (with reduced motion emulated, so the
+pops hold still for the screenshot):
+
+- `/garden?did=water` at 390px and on a laptop: three drops over the
+  sunflower bed, drops over all five patches in the close-up, and 💧 on
+  the done line and on the Water button.
+- `/garden?did=play` at 390px: hearts over Shinzo, first over the sticker
+  beside him and then, after the fix, on his back.
+- Walking Rithika up to the patches with the keys lit them with "💧 Water
+  the garden" and "🌱 Plant something". Pressing Enter popped a 💧 over the
+  patches before the zoom.
+- After a real nap in Amirdhavarshini's bed: 💤 over "you" in it, and on
+  the done line.
+- On an iPad (820px, touch), walking to her mat offered "🛋️ Sit on your
+  cushion" and "🍜 Make kettle Maggi" clear of the thumb stick.
+- A real tap on Neha's window at the door still let me in as Neha.
+
+**Correction:** none this prompt.
+
+**Commits:** [`d5599d6`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/d5599d6)
+(the emoji, the pops, the spec, README, `CLAUDE.md` and the session 7
+notes), and this log entry.
