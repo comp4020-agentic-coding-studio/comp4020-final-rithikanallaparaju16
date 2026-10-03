@@ -1028,6 +1028,23 @@ pops hold still for the screenshot):
 
 **Correction:** none this prompt.
 
+**Deploy:** the agent deployed `d287c91` with the remote builder. There was
+no schema change.
+
+**Verified on the live app (https://comp4020-final-rithikanallaparaju16.fly.dev):**
+
+- The door loads (200).
+- `/readme/` has the emoji paragraph and "wakes him straight away".
+- The live `house.js` has the emoji buttons and the pop, and the live
+  stylesheet has the `pop` and `fall` animations.
+- The read-only spec passed 4 and skipped 21.
+- A hit-test on the live door, with no tap and no visit, still finds Neha's
+  button under the finger.
+
+**Not verified on Fly:** the pops themselves, which need someone to do
+something in the real house.
+
 **Commits:** [`d5599d6`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/d5599d6)
 (the emoji, the pops, the spec, README, `CLAUDE.md` and the session 7
-notes), and this log entry.
+notes), [`d287c91`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/d287c91)
+(this log entry, deployed), and the deploy note. Not pushed to GitHub.
