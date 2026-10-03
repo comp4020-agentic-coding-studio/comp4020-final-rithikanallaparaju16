@@ -187,6 +187,28 @@ records it, and is *proposed* until I review it. The agent's calls:
 - **The owner gets her room's first spot**, so a visitor never stands on
   Aswathy's yoga mat while she's beside it.
 
+### Session 6: Laddoo comes with you, and rooms zoom
+
+I asked for Laddoo to come with whoever pets him, and for the view to zoom
+back out when I leave a room I'd zoomed into. The agent's calls:
+
+- **Laddoo goes wherever the last person to pet him goes,** while she's in
+  the house: beside her in the kitchen, the garden, a friend's room, and a
+  step behind as she walks. Once she's gone he naps at the foot of her bed,
+  and after half a day he wanders back to his blanket, as before.
+- **You pet him in whichever room he's in.** Every room page shows him when
+  he's there, with a "Pet Laddoo" button, and petting him keeps you in that
+  room. The garden always says where he's gone. "Play with" became "Pet",
+  which is the word I used. The stored kind is still `play`, since stored
+  rows can't be renamed.
+- **Leaving a room zooms out.** Walk more than a step past a room's walls,
+  or tap any link back to the whole house, and the view zooms out to the
+  whole house. You carry on from where you stepped out.
+- **Going in zooms in,** to match: the Go in button, Enter, or tapping a
+  room. This one I didn't ask for.
+- **Walking out of a room doesn't tell friends you've left it.** As before,
+  friends see you in the last room you went into.
+
 ## What went wrong, and what we found
 
 - The agent's shell didn't have node on its PATH, because mise wasn't active.
@@ -259,6 +281,13 @@ records it, and is *proposed* until I review it. The agent's calls:
   between phone and laptop widths. At tablet widths the greeting now goes and
   the switch is just your sticker. Wider than that, the greeting stays on one
   line and trails off.
+- In session 6, the phone screenshots showed "you" well right of centre after
+  walking out of a room. That looked like the view-following was broken.
+  Measuring in the page first showed "you" exactly in the middle (195 of
+  390px). A screenshot of just the screen matched that. The cause was
+  `scripts/shot.ts`: capturing past the screen made Chrome lay the page out
+  again, which moved the sideways-scrolled house. It now captures a page that
+  fits the screen as it is.
 
 ## Deliberately left out
 
@@ -316,6 +345,10 @@ feel closer before it goes in.
   touch at phone widths (`TOUCH=1` for wider screens). The testing rules now
   ask for an iPad check at 820px, because that range broke in session 4
   without anyone looking.
+- **Session 6:** `scripts/shot.ts` no longer captures past the screen when a
+  page fits on it. `CLAUDE.md` says why, and to measure positions in the page
+  before blaming the code. Its client JavaScript rule now covers the zooms,
+  Laddoo trotting after you, and the one-load `sessionStorage` handoff.
 
 ## Project log
 
@@ -653,4 +686,48 @@ come in, which records a visit in the real house.
 
 **Commits:** [`3e04bde`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/3e04bde)
 (walking, the fixes and the docs), [`5739e84`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/5739e84)
-(this log entry, deployed), and the deploy note. Not pushed to GitHub.
+(this log entry, deployed), and [`2051ccc`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/2051ccc)
+(the deploy note). Not pushed to GitHub.
+
+### 10. "whenever i pet laddoo he has to come w me" (3 Oct 2026)
+
+**Asked:** "okay whenever i pet laddoo he has to come w me, then if i zoomed
+into someones room to do sumn and now im leaving the room, then the screen
+has to zoom out again"
+
+**Agent:** built what's under "Session 6" above:
+
+- **Laddoo:** where he is now comes from where the friend who last petted
+  him is, so there's still no new table and no timer. `laddooCard` puts a
+  "Pet Laddoo" button on the page of whichever room he's in. `/garden/dog`
+  sends you back to that room.
+- **Zoom:** room links carry their zoom target (`data-view`).
+  `public/house.js` zooms in on the way into a room, and zooms out once you
+  walk more than 10px past the room's outline. It also catches the room
+  page's links back to the house. Laddoo trots after you while you walk.
+
+The Laddoo check in the spec now covers the new promise: someone pets him in
+the kitchen, stays in the kitchen, and he's there with her. When she goes to
+her room, he follows. `pnpm check` passed 21/21 against a scratch copy of
+the local house.
+
+**How it was checked in a browser:**
+
+- A real tap on "Pet Laddoo" in Neha's room stayed on `/room/2?did=play`,
+  and he was at "your" feet.
+- Holding the left arrow walked "you" out of Neha's room with Laddoo a step
+  behind. The view zoomed out to `0 0 1376 768`, and the whole house picked
+  up at the same spot (1009.7, 590) with Laddoo beside you.
+- The same with the thumb stick at 390px.
+- Pressing Enter caught the view mid-zoom (`569.82 224.72 961.89 536.86`) on
+  its way into Neha's room.
+- The garden's card said where Laddoo had gone ("He went off with Neha, and
+  he's in Neha's room") and had no button, because he wasn't there.
+
+**What went wrong:** the phone screenshots looked off-centre (see "What went
+wrong").
+
+**Correction:** none this prompt.
+
+**Commits:** [`ccf0229`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/ccf0229)
+(Laddoo, the zooms, the shot fix and the docs), and this log entry.
