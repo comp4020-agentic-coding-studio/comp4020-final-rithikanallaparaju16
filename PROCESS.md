@@ -523,5 +523,24 @@ switch work too. `scripts/shot.ts` now takes a selector to tap, and
 **Interruption:** the agent ran out of context partway through this prompt
 and carried on from a summary.
 
+**Deploy:** the agent deployed `babd141` with the remote builder (69 MB), and
+the machine reached a good state. There was no schema change this time: the
+new kinds are just new values in `things`, which has no constraint on `kind`.
+flyctl's DNS check timed out locally again, but the site was answering.
+
+**Verified on the live app (https://comp4020-final-rithikanallaparaju16.fly.dev):**
+
+- The read-only spec against the live URL passed 4 and skipped 16.
+- The live `style.css` has the rule scoped to `g.people`, and `/readme/`
+  has the KitKat, kettle Maggi and Movie time text.
+- Hit-testing the middle of Neha's window on the live door at 390px finds the
+  sticker inside her button, where before it found the `<form>`. The agent
+  only hit-tested and didn't tap, so no visit was recorded. The door still
+  shows all five as "hasn't been home yet".
+
+**Not verified on Fly:** actually getting in, the face masks, the Maggi and
+Movies. Each of those writes to the real house, so I'm the first one in.
+
 **Commits:** [`df979fe`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/df979fe)
-(the door fix and the features), and this log entry.
+(the door fix and the features), [`babd141`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/babd141)
+(this log entry, deployed), and this deploy note. Not pushed to GitHub.
