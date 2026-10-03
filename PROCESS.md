@@ -128,8 +128,38 @@ product calls, not yet reviewed:
 - **Room descriptions now match the art:** my room has shelves of bottles and
   jars instead of fairy lights, Aswathy's has a yoga mat for meditating instead
   of a corner with cushions, and Rithanya's cats are in boxes and baskets.
+  (Wrong: they're KitKats. I corrected it in session 4.)
 - **The door** shows the house, dimmed, behind the five windows, and each
   window now has the sticker in it.
+
+### Session 4: KitKats, face masks, kettle Maggi and movie time
+
+I told the agent the things in Rithanya's room are KitKats, not cats. I also
+asked for a mirror and face masks (she always has face mask powder for all of
+us), the kettle Maggi we used to make in Amirdha's room in the hostel, and a
+movie page, because Rithanya loves movies. These are the agent's calls, not
+yet reviewed:
+
+- **Rithanya's room is redrawn over the art,** not regenerated: KitKat bars in
+  the pink basket, a KitKat box on the study table, rolled towels in the
+  wicker basket where the other cat was, an arched mirror on the wall and
+  three tubs of mask powder.
+- **A face mask lasts two hours.** Your sticker wears a green mask with
+  cucumber slices wherever you go in the house, so a friend who comes by can
+  catch you in it. Rithanya hears "X used your face mask powder"; everyone
+  else hears "X did a face mask with Rithanya's powder".
+- **Kettle Maggi stays out for twelve hours:** a kettle and two steaming bowls
+  on Amirdha's mat, with a note if you leave one. Amirdha hears "X made kettle
+  Maggi in your room".
+- **Movies is a tab of its own.** You can suggest a movie and say why, or
+  say you've watched one. You can also plan a movie night: you pick the time
+  in your own clock, and each of us sees it in ours, marked if it falls while
+  she's usually asleep. The latest plan replaces the old one and drops off
+  three hours after it starts. Rithanya's suggestions are marked as her picks.
+  The living room's sofa links to it.
+- **A KitKat from Rithanya's box** joins the things you can leave on a desk.
+- **Switching who you are:** your sticker and "Not Rithika?" sit in the top
+  bar and take you back to the door. Everyone has "Come in as" buttons.
 
 ## What went wrong, and what we found
 
@@ -177,6 +207,16 @@ product calls, not yet reviewed:
 - Screenshots also caught the phone greeting disappearing (a flex rule gave it
   zero width), the door's intro being cut off by the same rule, and the form
   buttons losing their style when the stylesheet was rewritten.
+- After session 3 went live, tapping a friend at the door did nothing, and I
+  couldn't get into the house. In session 3 the agent had made the SVG's
+  stickers (`g.people`) ignore taps so the rooms under them could take them.
+  The rule was written as `.people`, which also matched the door's list of
+  windows (`ul.people`), and the buttons inside inherited it. The spec
+  didn't catch it, because it posts the form directly. The agent's first
+  local check didn't either, because it used `element.click()`, which skips
+  hit-testing. It only showed when the agent tapped the middle of a window
+  with a real mouse event and found the `<form>` under the finger. The rule
+  is now scoped to SVG groups, and `scripts/shot.ts` can tap for real.
 
 ## Deliberately left out
 
@@ -220,6 +260,13 @@ feel closer before it goes in.
     folder to test against
 
   `.dockerignore` now keeps the Stitch originals out of the deploy upload.
+- **Session 4:** `CLAUDE.md` names the face mask and kettle rooms and the
+  Movies tab. It says details about the friends come from me, because the
+  agent had read KitKats as cats. Two testing rules came from the door bug:
+  - check that buttons take a real tap with `scripts/shot.ts`'s new tap
+    argument, never `element.click()`
+  - scope SVG-only CSS to the element (`g.people`), because class names are
+    shared with the HTML
 
 ## Project log
 
@@ -415,4 +462,66 @@ unchecked from entry 4.
 
 **Commits:** [`d6fc9d0`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/d6fc9d0)
 and [`e79943b`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/e79943b)
-(deployed), and this log entry. Not pushed to GitHub.
+(deployed), and [`40b9cce`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/40b9cce)
+(this log entry). Not pushed to GitHub.
+
+### 8. "rithanya doesnt have cats, its kitkat chocolate" (3 Oct 2026)
+
+**Asked:** "okayokay, rithanya doesnt have cats, its kitkat chocolate. and she
+always has face mask powder for all of us, so try adding a mirror in her room
+and face mask as an activity. when we were in hostel we used to eat maggi that
+we cooked in kettle a lot in amirdhas room, so add that as well. then also add
+a small movie time or movie suggestions page. rithanya loves movies. also
+right now when i click on somebody i wanna enter the house as them. this is
+not happening"
+
+**Correction:** the cats. The agent had read the boxes and baskets in
+Rithanya's room in the Stitch art as cats, and the README, the room text and
+session 3's decisions all said so. They're KitKats.
+
+**Agent:** built what's under "Session 4" above. That's five new `kind`
+values (`mask`, `kettle`, `movie`, `watched`, `movienight`), all worked out
+from timestamps in `src/house.ts` like the rest. There's also a `kitkat` gift,
+the Movies tab and its routes, and `fromLocal` in `src/time.ts`, which turns
+a time picked in your own clock into an instant (two passes, so daylight
+saving is handled). The spec gained four checks, for 20 in all:
+
+- a face mask shows on the friend wearing it, and Rithanya hears whose it was
+- kettle Maggi stays out in Amirdha's room
+- a suggestion and who watched it are there for everyone
+- a movie night planned for 8 pm in Canberra shows at the right time in each
+  zone
+
+"Only takes things" now also refuses a mask outside Rithanya's room, a kettle
+outside Amirdha's, and a movie that doesn't exist. `pnpm check` passed 20/20
+against a scratch copy of the local house. The agent looked at Rithanya's
+room at 1280px and 390px, Amirdha's room at 1280px, Movies at 390px and
+1280px, Everyone at 390px and the house at 1280px. It moved Rithanya's name
+tag twice: first it covered the mirror, then it overlapped Amirdha's room
+when zoomed in.
+
+**The door, step by step:**
+
+1. The agent signed in at the local door with a script calling
+   `element.click()`, and it worked.
+2. It looked at the live door, where nobody had ever been home, and at the
+   Fly logs, which had no errors.
+3. It tried to sign in on the live app with a `curl` POST to `/me`. Claude
+   Code's auto-mode safety check denied that as changing a shared resource,
+   and the agent didn't try another way.
+4. Without a cause yet, it added two other ways in: the sticker and "Not
+   Rithika?" in the bar, and "Come in as" on Everyone.
+5. It then tapped the middle of a door window with a real mouse event,
+   instead of `element.click()`, and found the `<form>` under the finger, not
+   the button.
+
+The cause and the fix are under "What went wrong" above. After the fix, real
+taps at 390px and 1280px sign in from the door, and "Come in as" and the bar
+switch work too. `scripts/shot.ts` now takes a selector to tap, and
+`CLAUDE.md` has the rule.
+
+**Interruption:** the agent ran out of context partway through this prompt
+and carried on from a summary.
+
+**Commits:** [`df979fe`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/df979fe)
+(the door fix and the features), and this log entry.
