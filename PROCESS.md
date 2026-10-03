@@ -729,5 +729,17 @@ wrong").
 
 **Correction:** none this prompt.
 
+**Deploy:** the agent deployed `5ab3a80` with the remote builder. There was
+no schema change. flyctl's DNS check timed out locally again.
+
+**Verified on the live app (https://comp4020-final-rithikanallaparaju16.fly.dev):**
+the read-only spec passed 4 and skipped 17. The live `house.js` has the zoom
+and Laddoo code, and `/readme/` has "Pet Laddoo". A hit-test on the live door
+(no tap, no visit) still finds the sticker under the finger.
+
+**Not verified on Fly:** petting Laddoo and the zooms. Both need someone in
+the real house.
+
 **Commits:** [`ccf0229`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/ccf0229)
-(Laddoo, the zooms, the shot fix and the docs), and this log entry.
+(Laddoo, the zooms, the shot fix and the docs), [`5ab3a80`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/5ab3a80)
+(this log entry, deployed), and the deploy note. Not pushed to GitHub.
