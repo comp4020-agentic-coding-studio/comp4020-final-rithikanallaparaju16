@@ -1,4 +1,5 @@
 import { iconSvg, patchesSvg, plantSvg } from "./art.ts";
+import { art } from "./assets.ts";
 import {
   counter,
   desk,
@@ -18,16 +19,18 @@ import {
   movies,
   PLANTS,
   plants,
+  resting,
   roomPlace,
   stage,
   thirsty,
   wall,
+  YOGA_ROOM,
   type Item,
   type Movie,
 } from "./house.ts";
 import { esc } from "./html.ts";
 import { PEOPLE, personById, type Person } from "./people.ts";
-import { houseSvg, isPlace, type Scene, type Spot } from "./scene.ts";
+import { houseSvg, isPlace, type Figure, type Scene, type Spot } from "./scene.ts";
 import type { Thing } from "./store.ts";
 import { ago, asleep, clock, dayLabel, hello, localInput, phase, type Phase } from "./time.ts";
 
@@ -36,12 +39,15 @@ export { esc };
 export const MAX_NOTE = 500;
 export const MAX_DISH_NOTE = 200;
 
-// `where` is the place each friend was on their last page load.
+// `where` is the place each friend was last in, `arrived` when she came into
+// it or last walked in it, and `spots` the spot she walked to there, if any.
 export type Visit = {
   me: Person;
   things: Thing[];
   seen: Map<string, number>;
   where: Map<string, string>;
+  arrived: Map<string, number>;
+  spots: Map<string, [number, number]>;
   seenUntil: number;
   now: number;
 };
@@ -67,22 +73,37 @@ function homeNow(p: Person, v: Visit): boolean {
 // Whoever is in the house right now is up, whatever their usual hours.
 const sleeping = (p: Person, v: Visit): boolean => asleep(p, clock(p.tz, v.now)) && !homeNow(p, v);
 
-// Friends who are home now are wherever they last went; everyone else is in
-// their own room, living on their own clock.
+// Asleep in someone's bed, or sat down somewhere, if she still is.
+const restOf = (p: Person, v: Visit): Thing | undefined => resting(v.things, v.now, v.where, v.arrived).get(p.id);
+
+// Everyone is wherever she last was, whether or not she's here now: the room
+// she last went into, or the bed or seat she's still in. At night, where she
+// lives, a friend who isn't here is asleep in her own room. Anyone who's never
+// been home is in her own room too.
 function placeOf(p: Person, v: Visit): string {
   const own = roomPlace(p.id);
-  if (!homeNow(p, v)) return own;
+  const rest = restOf(p, v);
+  if (rest) return rest.place;
+  if (sleeping(p, v)) return own;
   const at = v.where.get(p.id);
   return at && isPlace(at) ? at : own;
 }
 
-// Laddoo goes wherever the friend who last petted him goes while she's here,
-// and naps at the foot of her bed once she's gone. Following someone around
-// keeps him awake.
+// The spot she walked to, while she's still standing in that place.
+function spotOf(p: Person, v: Visit): [number, number] | undefined {
+  if (restOf(p, v) || sleeping(p, v)) return undefined;
+  return v.where.get(p.id) === placeOf(p, v) ? v.spots.get(p.id) : undefined;
+}
+
+// Shinzo goes wherever the friend who last petted him or fed him goes, and
+// stays where she left him. He's up and about during the day, by the
+// visitor's own clock like the garden, and naps at night unless someone's
+// just made a fuss of him or he's with someone who's here.
 function laddooAt(v: Visit): { place: string; with?: Person; awake: boolean; last?: Thing } {
   const d = dog(v.things, v.now);
   const friend = d.with ? personById(d.with) : undefined;
-  const awake = d.awake || (friend !== undefined && homeNow(friend, v));
+  const night = phase(clock(v.me.tz, v.now)) === "night";
+  const awake = !night || d.awake || (friend !== undefined && homeNow(friend, v));
   return { place: friend ? placeOf(friend, v) : "garden", with: friend, awake, last: d.last };
 }
 
@@ -98,6 +119,25 @@ const ownerOf = (place: string): Person | undefined =>
 
 const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 
+// Where someone's sleeping or sitting, as the visitor would say it.
+function restText(r: Thing, p: Person, v: Visit): string {
+  const owner = ownerOf(r.place);
+  const whose = owner?.id === v.me.id ? "your" : owner?.id === p.id ? "her own" : `${owner?.name}'s`;
+  if (r.kind === "nap") return `asleep in ${whose} bed`;
+  if (r.item === "sofa") return "on the sofa in the living room";
+  if (r.item === "yoga") return `meditating on ${whose} yoga mat`;
+  return `on ${p.id === v.me.id ? "your" : "her"} cushion on ${whose} mat`;
+}
+
+// Who's asleep or sitting down in this place.
+function restingIn(place: string, v: Visit): string {
+  const lines = PEOPLE.flatMap((p) => {
+    const r = restOf(p, v);
+    return r?.place === place ? [`${p.id === v.me.id ? "You're" : `${p.name} is`} ${restText(r, p, v)}.`] : [];
+  });
+  return lines.length ? `<p class="status resting">${esc(lines.join(" "))}</p>` : "";
+}
+
 /* ---------- the frame every page shares ---------- */
 
 function shell(title: string, body: string, light: Phase, kind: string): string {
@@ -111,6 +151,7 @@ function shell(title: string, body: string, light: Phase, kind: string): string 
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&display=swap">
 <link rel="stylesheet" href="/style.css">
+<style>:root { --house: url("${art("house.jpg")}"); }</style>
 <script src="/house.js" defer></script>
 </head>
 <body class="light-${light} ${kind}">
@@ -138,7 +179,7 @@ function tabs(current: Tab, v: Visit): string {
 // Your own sticker in the corner: tap it to go back to the door and come in
 // as someone else.
 const switcher = (me: Person): string =>
-  `<form method="post" action="/leave" class="switch"><button title="Go back to the door and pick someone else"><img src="/art/avatar-${esc(me.id)}.png" alt="" width="180" height="242"><span>Not ${esc(me.name)}?</span></button></form>`;
+  `<form method="post" action="/leave" class="switch"><button title="Go back to the door and pick someone else"><img src="${art(`avatar-${me.id}.png`)}" alt="" width="180" height="242"><span>Not ${esc(me.name)}?</span></button></form>`;
 
 function bar(v: Visit, current: Tab): string {
   const c = clock(v.me.tz, v.now);
@@ -162,7 +203,7 @@ const footer = (me: Person): string => `
 const done = (text: string | undefined): string => (text ? `<p class="done" role="status">${esc(text)}</p>` : "");
 
 const pane = (p: Person, light: Phase, asleepNow: boolean): string =>
-  `<span class="pane light-${light}${asleepNow ? " asleep" : ""}"><img src="/art/avatar-${esc(p.id)}.png" alt="" width="180" height="242"></span>`;
+  `<span class="pane light-${light}${asleepNow ? " asleep" : ""}"><img src="${art(`avatar-${p.id}.png`)}" alt="" width="180" height="242"></span>`;
 
 /* ---------- the house, as the scene draws it ---------- */
 
@@ -185,7 +226,7 @@ function freshPlaces(v: Visit): Set<string> {
     if (!isNew(t, v)) continue;
     if (t.kind === "note") out.add("living");
     else if (t.kind === "dish") out.add("kitchen");
-    else if (t.kind === "water" || t.kind === "plant" || t.kind === "play") out.add("garden");
+    else if (t.kind === "water" || t.kind === "plant" || t.kind === "play" || t.kind === "treat") out.add("garden");
     else if (t.kind === "kettle" || t.kind === "mask") out.add(t.place);
     else if (t.place === roomPlace(v.me.id)) out.add(t.place);
   }
@@ -195,6 +236,7 @@ function freshPlaces(v: Visit): Set<string> {
 function scene(v: Visit, focus?: string): Scene {
   const d = laddooAt(v);
   const masks = masked(v.things, v.now);
+  const rests = resting(v.things, v.now, v.where, v.arrived);
   return {
     light: phase(clock(v.me.tz, v.now)),
     me: v.me,
@@ -211,14 +253,19 @@ function scene(v: Visit, focus?: string): Scene {
         lamp: !zz,
       };
     }),
-    figures: PEOPLE.map((p) => ({
-      person: p,
-      place: placeOf(p, v),
-      asleep: sleeping(p, v),
-      here: homeNow(p, v),
-      me: p.id === v.me.id,
-      masked: masks.has(p.id),
-    })),
+    figures: PEOPLE.map((p): Figure => {
+      const r = rests.get(p.id);
+      return {
+        person: p,
+        place: placeOf(p, v),
+        asleep: sleeping(p, v),
+        here: homeNow(p, v),
+        me: p.id === v.me.id,
+        masked: masks.has(p.id),
+        rest: r && { kind: r.kind === "nap" ? "nap" : "sit", place: r.place, seat: r.item },
+        spot: spotOf(p, v),
+      };
+    }),
     dishes: counter(v.things, v.now).map((t) => ({ key: t.item, fresh: isNew(t, v) })),
     kettle: kettle(v.things, v.now) !== undefined,
     dog: { place: d.place, awake: d.awake, with: d.with?.id },
@@ -316,6 +363,27 @@ function happening(t: Thing, me: Person, all: Thing[]): Happening | undefined {
       return { text: `${by} planted ${find(PLANTS, t.item)?.label ?? "something"} in the garden`, href: "/garden", forYou: false, at };
     case "play":
       return { text: `${by} petted ${DOG}`, href: "/garden", forYou: false, at };
+    case "treat":
+      return { text: `${by} gave ${DOG} a treat`, href: "/garden", forYou: false, at };
+    case "nap": {
+      const owner = ownerOf(t.place);
+      if (!owner) return undefined;
+      const href = `/room/${owner.id}`;
+      if (owner.id === t.author) return { text: `${by} had a nap in ${mine ? "your" : "her"} own bed`, href, forYou: false, at };
+      if (owner.id === me.id) return { text: `${by} slept in your bed`, href, forYou: true, at };
+      return { text: `${by} slept in ${owner.name}'s bed`, href, forYou: false, at };
+    }
+    case "sit": {
+      if (t.item === "sofa") return { text: `${by} sat on the sofa in the living room`, href: "/living", forYou: false, at };
+      const owner = ownerOf(t.place);
+      if (!owner) return undefined;
+      const href = `/room/${owner.id}`;
+      const what = t.item === "yoga" ? "meditated on" : "sat on";
+      const mat = t.item === "yoga" ? "yoga mat" : "mat";
+      if (owner.id === t.author) return { text: `${by} ${what} ${mine ? "your" : "her"} ${mat}`, href, forYou: false, at };
+      if (owner.id === me.id) return { text: `${by} ${what} your ${mat}`, href, forYou: true, at };
+      return { text: `${by} ${what} ${owner.name}'s ${mat}`, href, forYou: false, at };
+    }
   }
 }
 
@@ -381,8 +449,11 @@ function news(v: Visit): string {
 function status(p: Person, v: Visit): string {
   const at = placeOf(p, v);
   const mask = masked(v.things, v.now).has(p.id) ? ", in a face mask" : "";
-  if (p.id === v.me.id) return `you're here, ${placeName(at, v.me)}${mask}`;
-  if (homeNow(p, v)) return `home now, ${at === roomPlace(p.id) ? "in her room" : placeName(at, v.me)}${mask}`;
+  const rest = restOf(p, v);
+  const there = rest && restText(rest, p, v);
+  if (p.id === v.me.id) return `you're here, ${there ?? placeName(at, v.me)}${mask}`;
+  if (homeNow(p, v)) return `home now, ${there ?? (at === roomPlace(p.id) ? "in her room" : placeName(at, v.me))}${mask}`;
+  if (there) return `${there}${mask}`;
   if (sleeping(p, v)) return "asleep";
   const last = v.seen.get(p.id);
   return last === undefined ? "hasn't been home yet" : `home ${ago(last, v.now)}`;
@@ -460,8 +531,9 @@ ${bar(v, "home")}
 </main>`, phase(clock(v.me.tz, v.now)), "page-room");
 }
 
-// Laddoo on the page of whichever room he's in, so you can pet him there and
-// he comes with you. The garden always says where he's gone.
+// Shinzo on the page of whichever room he's in, so you can pet him or give
+// him a treat there and he comes with you. The garden always says where he's
+// gone.
 function laddooCard(place: string, v: Visit): string {
   const d = laddooAt(v);
   const here = d.place === place;
@@ -473,12 +545,12 @@ function laddooCard(place: string, v: Visit): string {
     : !here ? `He went off with ${mine ? "you" : f.name}, and he's ${placeName(d.place, v.me)}.`
     : mine ? "He's at your heels, and he goes wherever you go."
     : homeNow(f, v) ? `He's with ${f.name}, and goes wherever she goes.`
-    : d.awake ? `He's waiting in here for ${f.name} to come back.`
-    : `He's napping at the foot of ${f.name}'s bed.`;
-  const petted = d.last ? ` Last petted by ${by(d.last, v)}, ${ago(d.last.createdAt, v.now)}.` : "";
-  const pet = here
-    ? `<form method="post" action="/garden/dog" class="inline"><input type="hidden" name="at" value="${esc(place)}"><button class="soft">Pet ${DOG}</button></form>`
-    : "";
+    : sleeping(f, v) ? `He's ${d.awake ? "curled up, keeping watch," : "napping"} at the foot of ${f.name}'s bed.`
+    : `He's ${d.awake ? "waiting" : "napping"} right where ${f.name} left him.`;
+  const petted = d.last ? ` ${d.last.kind === "treat" ? "Last treat from" : "Last petted by"} ${by(d.last, v)}, ${ago(d.last.createdAt, v.now)}.` : "";
+  const button = (action: string, label: string): string =>
+    `<form method="post" action="${action}" class="inline"><input type="hidden" name="at" value="${esc(place)}"><button class="soft">${label}</button></form>`;
+  const pet = here ? `<div class="doings">${button("/garden/dog", `Pet ${DOG}`)}${button("/garden/treat", `Give ${DOG} a treat`)}</div>` : "";
   return `<section class="card laddoo-card" aria-labelledby="dog-heading">
     <h2 id="dog-heading">${DOG}</h2>
     <p>${place === "garden" ? "Everyone's dog. " : ""}${esc(line + petted)}</p>
@@ -502,6 +574,9 @@ function roomHead(title: string, line: string, about: string | undefined, accent
 }
 
 const by = (t: Thing, v: Visit): string => (t.author === v.me.id ? "you" : nameOf(t.author));
+
+const sitButton = (seat: string, label: string): string =>
+  `<form method="post" action="/sit" class="inline"><input type="hidden" name="seat" value="${esc(seat)}"><button class="soft">${esc(label)}</button></form>`;
 
 /* ---------- a bedroom ---------- */
 
@@ -578,7 +653,7 @@ export function bedroomPage(owner: Person, v: Visit, did?: string): string {
     : "";
 
   const leaveForm = mine ? "" : `
-  <form method="post" action="/room/${esc(owner.id)}/leave" class="card compose">
+  <form method="post" action="/room/${esc(owner.id)}/leave" class="card compose" id="leave-something">
     <h2>Leave something for ${esc(owner.name)}</h2>
     <label for="body">A note, if you like</label>
     <textarea id="body" name="body" rows="3" maxlength="${MAX_NOTE}" placeholder="good luck today, I saw this and thought of you…"></textarea>
@@ -587,16 +662,26 @@ export function bedroomPage(owner: Person, v: Visit, did?: string): string {
     <button>Leave it on ${esc(owner.name)}'s desk</button>
   </form>`;
 
+  // Anyone can sleep in anyone's bed, and sit down on the seats.
+  const seat = owner.id === KETTLE_ROOM ? sitButton("mat", "Sit on your cushion on the mat")
+    : owner.id === YOGA_ROOM ? sitButton("yoga", "Meditate on the yoga mat")
+    : "";
+
   const title = mine ? "Your room" : `${owner.name}'s room`;
   return roomPage(v, roomPlace(owner.id), title, `
   ${roomHead(title, line, owner.about, owner.color)}
   ${done(did)}
   <p class="status">${esc(messLine)} ${esc(tidyLine)}</p>
-  <form method="post" action="/room/${esc(owner.id)}/tidy" class="inline"><button class="soft">${mine ? "Tidy your room" : `Tidy up ${esc(owner.name)}'s room`}</button></form>
+  ${restingIn(roomPlace(owner.id), v)}
+  <div class="doings">
+    <form method="post" action="/room/${esc(owner.id)}/tidy" class="inline"><button class="soft">${mine ? "Tidy your room" : `Tidy up ${esc(owner.name)}'s room`}</button></form>
+    <form method="post" action="/room/${esc(owner.id)}/nap" class="inline"><button class="soft">Sleep in ${mine ? "your" : `${esc(owner.name)}'s`} bed</button></form>
+    ${seat}
+  </div>
   ${laddooCard(roomPlace(owner.id), v)}
   ${owner.id === MASK_ROOM ? maskCard(owner, v) : ""}
   ${owner.id === KETTLE_ROOM ? kettleCard(owner, v) : ""}
-  <section class="card" aria-labelledby="desk-heading">
+  <section class="card" id="desk" aria-labelledby="desk-heading">
     <h2 id="desk-heading">${mine ? "On your desk" : `On ${esc(owner.name)}'s desk`}</h2>
     ${left.length ? `<ul class="desk-list">\n${shown}\n</ul>${drawer}` : `<p class="empty">${mine ? "Nothing yet. When a friend leaves you something, it'll be here." : "Nothing yet."}</p>`}
   </section>
@@ -623,14 +708,16 @@ export function livingPage(v: Visit, did?: string): string {
   ${roomHead("The living room", "Everyone's room. The wall is for all five of you: something funny from today, a good-luck wish, big news.", undefined, "#8a5a3c")}
   ${done(did)}
   <p class="sofa"><a href="/movies">${night ? esc(`Movie night on these sofas: “${night.movie.title}”, ${dayLabel(v.me.tz, night.at)}`) : "Movie night happens on these sofas"} ›</a></p>
+  ${restingIn("living", v)}
+  <div class="doings">${sitButton("sofa", "Sit on the sofa")}</div>
   ${laddooCard("living", v)}
-  <form method="post" action="/wall" class="card compose">
+  <form method="post" action="/wall" class="card compose" id="write">
     <label for="body">Write on the wall</label>
     <textarea id="body" name="body" rows="3" maxlength="${MAX_NOTE}" required placeholder="the funniest thing happened today…"></textarea>
     <label class="check"><input type="checkbox" name="big" value="1"> This is big news. Keep it pinned at the top.</label>
     <button>Pin it to the wall</button>
   </form>
-  <section class="wall" aria-labelledby="wall-heading">
+  <section class="wall" id="wall" aria-labelledby="wall-heading">
     <h2 id="wall-heading">The wall</h2>
     ${big.length ? `<h3 class="pinned">Big news</h3><ul class="notes">\n${big.map((t) => wallNote(t, v)).join("\n")}\n</ul>` : ""}
     ${everyday.length ? `<ul class="notes">\n${everyday.slice(0, WALL_SHOWN).map((t) => wallNote(t, v)).join("\n")}\n</ul>` : big.length ? "" : `<p class="empty">The wall is bare. Be the first to pin something up.</p>`}
@@ -656,7 +743,7 @@ export function kitchenPage(v: Visit, did?: string): string {
     <h2 id="counter-heading">On the counter</h2>
     ${dishes.length ? `<ul class="desk-list">\n${list}\n</ul>` : `<p class="empty">The counter's clean. Nobody has cooked in the last few days.</p>`}
   </section>
-  <form method="post" action="/kitchen" class="card compose">
+  <form method="post" action="/kitchen" class="card compose" id="cook">
     <h2>Cook something</h2>
     ${picker("item", "What are you making?", FOOD, iconSvg)}
     <label for="body">A note to go with it, if you like</label>
@@ -699,7 +786,7 @@ export function gardenPage(v: Visit, did?: string): string {
     <figure class="close">${patchesSvg(plots, dry)}</figure>
     <ul class="patches">\n${patches}\n</ul>
   </section>
-  <form method="post" action="/garden/plant" class="card compose">
+  <form method="post" action="/garden/plant" class="card compose" id="plant">
     <h2>Plant something in your patch</h2>
     ${picker("item", "What would you like to grow?", PLANTS, plantSvg)}
     ${replaces ? `<p class="small">This replaces your ${esc(replaces.label)}.</p>` : ""}

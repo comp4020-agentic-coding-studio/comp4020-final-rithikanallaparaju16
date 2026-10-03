@@ -6,9 +6,14 @@
 // - on a phone or tablet with a thumb stick, and a Go in button;
 // - by tapping a room, which walks you there before the room opens.
 // Going into a room zooms in on it, and walking out of the room you're in
-// zooms back out to the whole house, with you where you stepped out. Laddoo
+// zooms back out to the whole house, with you where you stepped out. Shinzo
 // trots after whoever last petted him. On a phone the house is wider than
 // the screen, so the view follows you.
+//
+// Walk up to something you can do something with (a bed, a desk, the wall,
+// Shinzo) and it lights up, with a button for each thing you can do there.
+// Wherever you stop walking, the house keeps: you're still there next time,
+// and friends find you there.
 (() => {
   const svg = document.querySelector(".house-svg");
   const me = svg?.querySelector(".walker.me");
@@ -25,15 +30,18 @@
   const spot = (g) => g.transform.baseVal.consolidate()?.matrix ?? { a: 1, e: 0, f: 0 };
   const ease = (k) => (k < 0.5 ? 2 * k * k : 1 - (2 - 2 * k) ** 2 / 2);
 
+  const points = (g) => g.querySelector("polygon").getAttribute("points").trim().split(/\s+/).map((p) => p.split(",").map(Number));
   const rooms = [...svg.querySelectorAll("a.room-link")].map((link) => ({
     link,
     place: link.dataset.place,
     go: link.dataset.go,
     view: link.dataset.view.split(" ").map(Number),
-    outline: link.querySelector("polygon").getAttribute("points").trim().split(/\s+/).map((p) => p.split(",").map(Number)),
+    outline: points(link),
   }));
   // On a room's page, the room you're in.
   const current = rooms.find((r) => r.link.getAttribute("aria-current") === "page");
+  // The things you can do something with (src/scene.ts), and what you can do.
+  const things = [...svg.querySelectorAll("g.act")].map((g) => ({ g, place: g.dataset.place, doings: JSON.parse(g.dataset.do), outline: points(g) }));
   const others = [...people.children].filter((g) => g !== me).map((g) => ({ g, y: spot(g).f }));
 
   const start = spot(me);
@@ -54,14 +62,17 @@
     return hit;
   };
 
-  const near = ([px, py], outline, r) =>
-    outline.some(([ax, ay], i) => {
-      const [bx, by] = outline[(i + 1) % outline.length];
-      const dx = bx - ax;
-      const dy = by - ay;
-      const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)));
-      return Math.hypot(px - ax - t * dx, py - ay - t * dy) < r;
-    });
+  const fromEdge = ([px, py], outline) =>
+    Math.min(
+      ...outline.map(([ax, ay], i) => {
+        const [bx, by] = outline[(i + 1) % outline.length];
+        const dx = bx - ax;
+        const dy = by - ay;
+        const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)));
+        return Math.hypot(px - ax - t * dx, py - ay - t * dy);
+      }),
+    );
+  const near = (p, outline, r) => fromEdge(p, outline) < r;
 
   // The walls between rooms are gaps between their outlines, up to about 50
   // wide. You walk straight through them, so there's never a door to hunt
@@ -76,12 +87,14 @@
 
   const pad = document.createElement("div");
   pad.className = "pad";
-  pad.innerHTML = `<div class="stick" aria-hidden="true"><span class="knob"></span></div><p class="keys-hint">Walk with the arrow keys or WASD</p><button type="button" class="go" hidden><span class="go-label"></span> <kbd>Enter</kbd></button>`;
+  pad.innerHTML = `<div class="stick" aria-hidden="true"><span class="knob"></span></div><p class="keys-hint">Walk with the arrow keys or WASD</p><div class="moves"><button type="button" class="go" hidden><span class="go-label"></span> <kbd>Enter</kbd></button></div>`;
   map.append(pad);
   const stickEl = pad.querySelector(".stick");
   const knob = pad.querySelector(".knob");
+  const moves = pad.querySelector(".moves");
   const goButton = pad.querySelector(".go");
   const goLabel = pad.querySelector(".go-label");
+  const goKey = goButton.querySelector("kbd");
 
   const touchy = () => pad.classList.add("touch");
   if (matchMedia("(pointer: coarse)").matches) touchy();
@@ -164,6 +177,7 @@
   const CARRY = "five-windows-at";
   function leave() {
     hold();
+    keep();
     try {
       sessionStorage.setItem(CARRY, JSON.stringify({ person: me.dataset.person, x, y, at: Date.now() }));
     } catch {
@@ -172,10 +186,10 @@
     zoom([0, 0, W, H], () => location.assign("/"));
   }
 
-  /* ---------- Laddoo ---------- */
+  /* ---------- Shinzo ---------- */
 
-  // He trots after you if you were the last to pet him, a step behind,
-  // on whichever side you're walking away from.
+  // He trots after you if you were the last to pet him or feed him, a step
+  // behind, on whichever side you're walking away from.
   const laddoo = svg.querySelector(`g.laddoo[data-with="${me.dataset.person}"]`);
   const dogScale = laddoo ? spot(laddoo).a : 1;
   let dog = laddoo ? [spot(laddoo).e, spot(laddoo).f] : undefined;
@@ -202,6 +216,107 @@
     requestAnimationFrame(trot);
   }
 
+  /* ---------- where you are ---------- */
+
+  // Where you stop is where you are: the house keeps it, so you (and Shinzo,
+  // if he's with you) are still there next time, and friends find you there.
+  let kept = [x, y];
+  function keep() {
+    if (Math.abs(x - kept[0]) < 1 && Math.abs(y - kept[1]) < 1) return;
+    kept = [x, y];
+    try {
+      navigator.sendBeacon("/here", new URLSearchParams({ x: x.toFixed(0), y: y.toFixed(0) }));
+    } catch {
+      // kept the next time you stop instead
+    }
+  }
+  addEventListener("pagehide", keep);
+
+  // Sitting down or asleep in a bed, you get up as soon as you walk.
+  const getUp = () => me.classList.remove("resting", "napping", "sitting");
+
+  /* ---------- things you can do ---------- */
+
+  // Shinzo is one of them, wherever he is, unless he's already at your heels.
+  const pup = laddoo ? null : svg.querySelector("g.laddoo[data-do]");
+  if (pup) things.push({ g: pup, place: pup.dataset.place, doings: JSON.parse(pup.dataset.do), dog: true });
+
+  // Close enough to reach: on it, or about a step away.
+  const REACH = 30;
+  function nearest() {
+    if (me.classList.contains("resting")) return undefined;
+    let best;
+    let gap = REACH;
+    for (const t of things) {
+      const d = t.dog
+        ? Math.max(0, Math.hypot(x - spot(t.g).e, y - spot(t.g).f) - 70 * spot(t.g).a)
+        : inside([x, y], t.outline) ? 0 : fromEdge([x, y], t.outline);
+      if (d < gap) [best, gap] = [t, d];
+    }
+    return best;
+  }
+
+  // Light up the nearest thing, and put a button in the pad for each thing
+  // you can do with it. Enter does the first; the number keys the rest.
+  let lit;
+  function showDoings() {
+    const t = nearest();
+    if (t === lit) return;
+    lit?.g.classList.remove("near");
+    lit = t;
+    t?.g.classList.add("near");
+    for (const b of moves.querySelectorAll(".do")) b.remove();
+    t?.doings.forEach((d, i) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "do";
+      b.innerHTML = `<span></span> <kbd>${i ? i + 1 : "Enter"}</kbd>`;
+      b.querySelector("span").textContent = d.label;
+      b.addEventListener("click", () => act(t, d));
+      moves.insertBefore(b, goButton);
+    });
+    goKey.hidden = Boolean(t);
+  }
+
+  // Do it: a form posts, a link goes there. Something in another room zooms
+  // in on that room on the way, like going in.
+  function act(t, d) {
+    if (busy) return;
+    const fields = { ...d.fields };
+    // Shinzo is wherever he is now, which may not be where the page drew him.
+    if (t.dog) fields.at = roomAt([spot(t.g).e, spot(t.g).f])?.place ?? fields.at;
+    const there = rooms.find((r) => r.place === (fields.at ?? t.place));
+    const go = () => {
+      if (d.href) {
+        const to = new URL(d.href, location.href);
+        if (to.pathname !== location.pathname) return location.assign(to);
+        // Already here: just scroll to it.
+        busy = false;
+        const target = document.getElementById(to.hash.slice(1));
+        target?.scrollIntoView({ behavior: still ? "auto" : "smooth", block: "start" });
+        target?.querySelector("textarea")?.focus({ preventScroll: true });
+        return;
+      }
+      const form = document.createElement("form");
+      form.method = "post";
+      form.action = d.post;
+      form.hidden = true;
+      for (const [name, value] of Object.entries(fields)) {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = name;
+        input.value = value;
+        form.append(input);
+      }
+      document.body.append(form);
+      form.submit();
+    };
+    hold();
+    keep();
+    if (there && there !== current) zoom(there.view, go);
+    else go();
+  }
+
   /* ---------- moving ---------- */
 
   let lastX = x;
@@ -218,6 +333,7 @@
     heel();
     follow();
     showGo();
+    showDoings();
     if (current && !busy && !inside([x, y], current.outline) && !near([x, y], current.outline, 10)) leave();
   }
 
@@ -254,6 +370,7 @@
     if (busy || (!dx && !dy)) {
       walking = false;
       me.classList.remove("walking");
+      keep();
       return;
     }
     const seconds = Math.min(0.05, (now - last) / 1000);
@@ -273,6 +390,7 @@
     if (walking || busy) return;
     walking = true;
     last = performance.now();
+    getUp();
     me.classList.add("walking");
     pad.querySelector(".keys-hint")?.remove();
     remember("five-windows-walked");
@@ -309,12 +427,20 @@
     }
     // Enter on a focused link or button already does its own thing.
     const focused = document.activeElement;
-    if ((event.code === "Enter" || event.code === "KeyE") && (!focused || focused === document.body)) {
-      const r = target();
-      if (r && !busy) {
-        event.preventDefault();
-        enter(r);
-      }
+    if (focused && focused !== document.body) return;
+    // Enter (or E) does the first thing you can do with what's lit up, and
+    // the number keys the others; otherwise it goes into the room.
+    const n = event.code === "Enter" || event.code === "KeyE" ? 1 : /^Digit[1-9]$/.test(event.code) ? Number(event.code.slice(5)) : 0;
+    if (!n || busy) return;
+    if (lit?.doings[n - 1]) {
+      event.preventDefault();
+      act(lit, lit.doings[n - 1]);
+      return;
+    }
+    const r = n === 1 && target();
+    if (r) {
+      event.preventDefault();
+      enter(r);
     }
   });
   addEventListener("keyup", (event) => keys.delete(KEYS[event.code]));
@@ -361,6 +487,7 @@
     if (busy) return;
     if (roomAt([x, y]) === r) return enter(r);
     hold();
+    getUp();
     const [tx, ty] = link.dataset.walk.split(",").map(Number);
     const [fx, fy] = [x, y];
     const ms = Math.min(1100, Math.max(450, Math.hypot(tx - fx, ty - fy) * 1.4));
@@ -414,12 +541,18 @@
       [x, y] = [carried.x, carried.y];
       lastX = x;
       if (dog) [dog[0], dog[1]] = besideYou();
+      // In case the house hadn't heard where you stepped out yet.
+      keep();
     }
   } catch {
     // start at your spot
   }
   if (dog) putDog();
   draw();
+
+  // Arriving at something to write, like the wall from "Write on the wall",
+  // puts you straight in it.
+  if (location.hash) document.getElementById(location.hash.slice(1))?.querySelector("textarea")?.focus({ preventScroll: true });
 
   // Start with you in view.
   if (map.scrollWidth > map.clientWidth) {

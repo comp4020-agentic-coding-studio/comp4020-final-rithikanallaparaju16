@@ -183,7 +183,7 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect(text(withText(garden, ".patches li", `${a.name}'s patch`))).toContain("Marigolds");
   });
 
-  it("sends Laddoo along with whoever pets him, wherever they go", async () => {
+  it("sends Shinzo along with whoever pets him, wherever they go", async () => {
     const [a, b] = await people();
     await page("/kitchen", b.id);
     const res = await post("/garden/dog", { at: "kitchen" }, b.id);
@@ -191,11 +191,53 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect(res.headers.get("location"), `${b.name} didn't stay in the kitchen`).toBe("/kitchen?did=play");
 
     let house = await page("/", a.id);
-    expect(house.querySelector(`.laddoo[data-with="${b.id}"][data-place="kitchen"]`), `Laddoo isn't in the kitchen with ${b.name}`).not.toBeNull();
+    expect(house.querySelector(`.laddoo[data-with="${b.id}"][data-place="kitchen"]`), `Shinzo isn't in the kitchen with ${b.name}`).not.toBeNull();
 
     await page(`/room/${b.id}`, b.id);
     house = await page("/", a.id);
-    expect(house.querySelector(`.laddoo[data-with="${b.id}"][data-place="room:${b.id}"]`), `Laddoo didn't follow ${b.name} to her room`).not.toBeNull();
+    expect(house.querySelector(`.laddoo[data-with="${b.id}"][data-place="room:${b.id}"]`), `Shinzo didn't follow ${b.name} to her room`).not.toBeNull();
+  });
+
+  it("keeps you where you walked to, with Shinzo beside you if you fed him", async () => {
+    const [a, b] = await people();
+    await page("/garden", b.id);
+    expect((await post("/garden/treat", { at: "garden" }, b.id)).status).toBe(303);
+    // Where public/house.js says you stopped walking: out by the stepping
+    // stones, which isn't one of the garden's own spots.
+    expect((await post("/here", { x: "1290", y: "380" }, b.id)).status).toBe(204);
+
+    const house = await page("/", a.id);
+    const friend = house.querySelector(`.walker[data-person="${b.id}"]`);
+    expect(friend?.getAttribute("transform"), `${a.name} doesn't find ${b.name} where she walked to`).toBe("translate(1290 380)");
+    expect(friend!.getAttribute("data-place")).toBe("garden");
+    expect(house.querySelector(`.laddoo[data-with="${b.id}"][data-place="garden"]`)?.getAttribute("transform"), "Shinzo isn't beside her").toMatch(/^translate\(1340 386\)/);
+    expect(text((await page("/updates", a.id)).querySelector(".away"))).toContain(`${b.name} gave Shinzo a treat`);
+
+    const back = await page("/", b.id);
+    expect(back.querySelector(".walker.me")?.getAttribute("transform"), `${b.name} isn't where she left off`).toBe("translate(1290 380)");
+  });
+
+  it("lets anyone sleep in anyone's bed or sit down, and shows her there", async () => {
+    const [a, b] = await people();
+    const res = await post(`/room/${a.id}/nap`, {}, b.id);
+    expect(res.headers.get("location")).toBe(`/room/${a.id}?did=nap`);
+    expect((await page("/", a.id)).querySelector(`.sleeper[data-person="${b.id}"][data-place="room:${a.id}"]`), `${b.name} isn't asleep in ${a.name}'s bed`).not.toBeNull();
+    expect(text((await page("/updates", a.id)).querySelector(".away"))).toContain(`${b.name} slept in your bed`);
+
+    expect((await post("/sit", { seat: "sofa" }, b.id)).headers.get("location")).toBe("/living?did=sit");
+    const house = await page("/", a.id);
+    expect(house.querySelector(`.sitter[data-person="${b.id}"][data-place="living"]`), `${b.name} isn't on the sofa`).not.toBeNull();
+    expect(house.querySelector(`.sleeper[data-person="${b.id}"]`), "she's still in bed after getting up").toBeNull();
+  });
+
+  it("offers what you can do at each thing in the house, where it is", async () => {
+    const [a] = await people();
+    const house = await page("/", a.id);
+    const doings = [...house.querySelectorAll(".act, .laddoo")].flatMap((g) => JSON.parse(g.getAttribute("data-do") ?? "[]") as { label: string }[]).map((d) => d.label);
+    expect(doings.filter((l) => l.startsWith("Sleep in")).length, "not every bed can be slept in").toBe(5);
+    for (const label of ["Write on the wall", "Sit on the sofa", "Sit on your cushion", "Water the garden", "Pet Shinzo", "Give Shinzo a treat"]) {
+      expect(doings, `nothing offers "${label}"`).toContain(label);
+    }
   });
 
   it("shows a friend who's home right now wherever they are in the house", async () => {
@@ -288,5 +330,7 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect((await post(`/room/${notAmirdha.id}/kettle`, {}, a.id)).status).toBe(404);
     expect((await post("/movies/watched", { movie: "999999" }, a.id)).status).toBe(400);
     expect((await post("/movies/night", { movie: "999999", when: "2030-01-05T20:00" }, a.id)).status).toBe(400);
+    expect((await post("/sit", { seat: "throne" }, a.id)).status).toBe(400);
+    expect((await post("/here", { x: "5", y: "5" }, a.id)).status).toBe(400);
   });
 });

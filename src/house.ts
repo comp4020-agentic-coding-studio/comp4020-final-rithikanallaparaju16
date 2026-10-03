@@ -28,7 +28,10 @@ export const PLANTS: Item[] = [
   { key: "marigold", label: "marigolds", short: "marigolds" },
 ];
 
-export const DOG = "Laddoo";
+// Everyone's dog. He was Laddoo until session 7, when Rithika named him
+// Shinzo; his stored "play" and "treat" rows don't name him, and his code
+// and picture keep the old `laddoo` name.
+export const DOG = "Shinzo";
 
 // Rithanya keeps face mask powder for everyone, and the hostel kettle lives in
 // Amirdhavarshini's room. Their rooms, by id.
@@ -36,6 +39,17 @@ export const MASK_ROOM = "4";
 export const KETTLE_ROOM = "3";
 // Rithanya loves movies; her suggestions are marked as her picks.
 export const MOVIE_LOVER = "4";
+// Aswathy meditates on the yoga mat in her room.
+export const YOGA_ROOM = "5";
+
+// Somewhere to sit down, by the `item` a "sit" keeps: the cushions on
+// Amirdhavarshini's mat, the living room sofas and Aswathy's yoga mat.
+export type Seat = { key: string; place: string };
+export const SEATS: Seat[] = [
+  { key: "mat", place: `room:${KETTLE_ROOM}` },
+  { key: "sofa", place: "living" },
+  { key: "yoga", place: `room:${YOGA_ROOM}` },
+];
 
 export const find = (list: Item[], key: string): Item | undefined => list.find((i) => i.key === key);
 
@@ -124,12 +138,30 @@ export function movieNight(things: Thing[], now: number): { plan: Thing; at: num
   return plan && movie && at > now - 3 * HOUR ? { plan, at, movie } : undefined;
 }
 
-// Laddoo goes with whoever last petted him (a "play"): wherever she goes while
-// she's in the house, then the foot of her bed once she's gone, for half a
-// day before he wanders back to his blanket. Where she is comes from visits,
-// so src/pages.ts works out the room.
+// Sleeping in a bed (a "nap", in any bed) or sitting down (a "sit") lasts
+// until you've been somewhere else in the house, or for two hours. `where` and
+// `arrived` are each friend's place and when she came into it, from visits.
+export function resting(things: Thing[], now: number, where: Map<string, string>, arrived: Map<string, number>): Map<string, Thing> {
+  const out = new Map<string, Thing>();
+  const seen = new Set<string>();
+  for (const t of things) {
+    // Only each friend's latest counts.
+    if ((t.kind !== "nap" && t.kind !== "sit") || seen.has(t.author)) continue;
+    seen.add(t.author);
+    const stillThere = where.get(t.author) === t.place && t.createdAt >= (arrived.get(t.author) ?? 0);
+    if (stillThere && now - t.createdAt < 2 * HOUR) out.set(t.author, t);
+  }
+  return out;
+}
+
+// Shinzo goes with whoever last petted him (a "play") or gave him a treat,
+// for half a day before he wanders back to his blanket: wherever she goes,
+// and wherever she last stood once she's gone, or the foot of her bed while
+// she's asleep. Where she is comes from visits, so src/pages.ts works out the
+// room. `awake` is whether he's just been petted or fed; src/pages.ts also
+// keeps him up during the day.
 export function dog(things: Thing[], now: number): { with?: string; awake: boolean; last?: Thing } {
-  const played = latest(things, "play");
+  const played = things.find((t) => t.kind === "play" || t.kind === "treat");
   if (!played) return { awake: false };
   const since = now - played.createdAt;
   return { with: since < 12 * HOUR ? played.author : undefined, awake: since < 3 * HOUR, last: played };

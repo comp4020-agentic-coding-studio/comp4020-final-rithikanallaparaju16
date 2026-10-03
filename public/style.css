@@ -480,10 +480,57 @@ button.soft:focus-visible {
    buttons must take taps. */
 g.light,
 g.things,
+g.acts,
 g.laddoo,
 g.people,
 g.nametags {
   pointer-events: none;
+}
+
+/* things you can do something with light up when you walk up to them
+   (public/house.js) */
+g.act polygon,
+g.laddoo .halo {
+  fill: none;
+  stroke: none;
+}
+
+g.act.near .halo {
+  fill: rgba(255, 230, 150, 0.38);
+  stroke: rgba(255, 196, 70, 0.75);
+  stroke-width: 18px;
+  stroke-linejoin: round;
+}
+
+g.act.near .edge {
+  stroke: #fffbe6;
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+g.laddoo.near .halo {
+  fill: rgba(255, 226, 140, 0.4);
+  stroke: #fff4c8;
+  stroke-width: 4px;
+}
+
+g.act.near,
+g.laddoo.near .halo {
+  animation: beckon 0.9s ease-in-out infinite alternate;
+}
+
+/* you, sitting down or asleep in a bed, until you walk */
+.walker .pose {
+  display: none;
+}
+
+.walker.resting .pose {
+  display: inline;
+}
+
+.walker.resting > .shadow,
+.walker.resting > .bob {
+  display: none;
 }
 
 .nametag {
@@ -571,10 +618,12 @@ g.nametags {
   animation: pulse 1.2s ease-in-out infinite alternate;
 }
 
+/* His only picture lies on the blanket, so awake has to be in how he moves:
+   two happy hops and a wiggle, then a breather. */
 .laddoo.awake image {
   transform-box: fill-box;
   transform-origin: 50% 90%;
-  animation: wag 0.5s ease-in-out infinite alternate;
+  animation: hop 2.2s ease-in-out infinite;
 }
 
 @keyframes bob {
@@ -622,12 +671,35 @@ g.nametags {
   }
 }
 
-@keyframes wag {
+@keyframes hop {
+  0%,
+  45%,
+  100% {
+    transform: none;
+  }
+  8% {
+    transform: translateY(-12px) rotate(-4deg);
+  }
+  16% {
+    transform: none;
+  }
+  24% {
+    transform: translateY(-8px) rotate(4deg);
+  }
+  32% {
+    transform: rotate(-3deg);
+  }
+  38% {
+    transform: rotate(3deg);
+  }
+}
+
+@keyframes beckon {
   from {
-    transform: rotate(-2deg);
+    opacity: 0.6;
   }
   to {
-    transform: rotate(2deg);
+    opacity: 1;
   }
 }
 
@@ -692,11 +764,13 @@ g.nametags {
 
 /* the door */
 
+/* --house is the picture's fingerprinted address (src/assets.ts), set in each
+   page's head */
 .page-door {
   --sky-ink: var(--frame);
   background:
     linear-gradient(rgba(36, 28, 52, 0.62), rgba(36, 28, 52, 0.78)),
-    url("/art/house.jpg") center / cover;
+    var(--house) center / cover;
 }
 
 main.door {
@@ -1072,6 +1146,18 @@ main.list {
 
 .card form.inline {
   margin-top: 10px;
+}
+
+/* a row of things to do in a room: tidy, sleep, sit down, pet Shinzo */
+.doings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.doings form.inline {
+  margin: 0;
 }
 
 .compose {
@@ -1640,15 +1726,38 @@ main.plain {
   display: none;
 }
 
-.go {
+/* the Go in button, and above it a button for each thing you can do with
+   whatever's lit up */
+.moves {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
   margin-left: auto;
+  pointer-events: none;
+}
+
+.moves > * {
+  pointer-events: auto;
+}
+
+.go,
+.do {
   padding: 10px 18px;
   border: 0;
   border-radius: 999px;
   background: var(--accent);
   color: var(--frame);
   font-weight: 600;
+  text-align: right;
   box-shadow: 0 4px 14px rgba(40, 20, 10, 0.3);
+}
+
+.do {
+  background: #ffe7a0;
+  color: var(--ink);
+  outline: 2px solid #f2b233;
+  outline-offset: -2px;
 }
 
 .go[hidden] {
@@ -1656,11 +1765,14 @@ main.plain {
 }
 
 .go:hover,
-.go:focus-visible {
+.go:focus-visible,
+.do:hover,
+.do:focus-visible {
   filter: brightness(1.08);
 }
 
-.go kbd {
+.go kbd,
+.do kbd {
   margin-left: 4px;
   padding: 1px 6px;
   border: 1px solid rgba(255, 246, 230, 0.6);
@@ -1668,12 +1780,18 @@ main.plain {
   font: 0.75rem var(--serif);
 }
 
-.pad.touch .go {
+.do kbd {
+  border-color: rgba(59, 42, 32, 0.4);
+}
+
+.pad.touch .go,
+.pad.touch .do {
   min-height: 48px;
   padding: 8px 18px;
 }
 
-.pad.touch .go kbd {
+.pad.touch .go kbd,
+.pad.touch .do kbd {
   display: none;
 }
 
@@ -1701,7 +1819,8 @@ main.plain {
     margin: -21px 0 0 -21px;
   }
 
-  .page-room .pad.touch .go {
+  .page-room .pad.touch .go,
+  .page-room .pad.touch .do {
     min-height: 44px;
     font-size: 0.9rem;
   }

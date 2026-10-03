@@ -1,6 +1,7 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { find, FOOD, GIFTS, KETTLE_ROOM, MASK_ROOM, movies, PLANTS, roomPlace } from "./house.ts";
+import { ART, ART_TYPES, isArt } from "./assets.ts";
+import { DOG, find, FOOD, GIFTS, KETTLE_ROOM, MASK_ROOM, movies, PLANTS, roomPlace, SEATS } from "./house.ts";
 import { markdown } from "./markdown.ts";
 import {
   bedroomPage,
@@ -20,7 +21,7 @@ import {
   type Visit,
 } from "./pages.ts";
 import { personById, type Person } from "./people.ts";
-import { isPlace } from "./scene.ts";
+import { isPlace, placeAt } from "./scene.ts";
 import * as store from "./store.ts";
 import { fromLocal } from "./time.ts";
 
@@ -30,12 +31,6 @@ const YEAR = 365 * 24 * 60 * 60;
 const README = new URL("../README.md", import.meta.url);
 const STYLE = new URL("../public/style.css", import.meta.url);
 const SCRIPT = new URL("../public/house.js", import.meta.url);
-const ART = new URL("../public/art/", import.meta.url);
-
-// The house's pictures, made by scripts/cut-art.py. Only files that are there
-// at boot are served, so a path can never reach outside public/art.
-const ART_TYPES: Record<string, string> = { ".png": "image/png", ".jpg": "image/jpeg" };
-const ART_FILES = new Set(readdirSync(ART).filter((f) => ART_TYPES[f.slice(f.lastIndexOf("."))]));
 
 type Headers = Record<string, string>;
 
@@ -79,7 +74,16 @@ const text = (form: URLSearchParams, name: string): string =>
 // wherever you last were.
 function visit(me: Person, place = ""): Visit {
   const seenUntil = store.recordVisit(me.id, place);
-  return { me, things: store.things(), seen: store.lastSeen(), where: store.whereabouts(), seenUntil, now: Date.now() };
+  return {
+    me,
+    things: store.things(),
+    seen: store.lastSeen(),
+    where: store.whereabouts(),
+    arrived: store.arrivals(),
+    spots: store.spots(),
+    seenUntil,
+    now: Date.now(),
+  };
 }
 
 // Confirmations after leaving something. Only these fixed lines are ever shown,
@@ -99,7 +103,13 @@ function confirmation(did: string | null, owner?: Person): string | undefined {
     case "plant":
       return "Planted. Come back in a few days to see it grow.";
     case "play":
-      return "Laddoo loved that. He's coming with you wherever you go.";
+      return `${DOG} loved that. He's coming with you wherever you go.`;
+    case "treat":
+      return `Gone in one crunch. ${DOG}'s coming with you wherever you go.`;
+    case "nap":
+      return "Tucked in. Anyone who comes by finds you asleep here, until you get up and go somewhere else.";
+    case "sit":
+      return "Settled in. Anyone who comes by finds you here, until you get up and go somewhere else.";
     case "mask":
       return "Mask on. It comes off by itself in a couple of hours.";
     case "kettle":
@@ -143,7 +153,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   if (route === "GET /house.js") return send(res, 200, readFileSync(SCRIPT), "text/javascript; charset=utf-8");
   const art = method === "GET" && pathname.startsWith("/art/") ? pathname.slice("/art/".length) : undefined;
   if (art !== undefined) {
-    if (!ART_FILES.has(art)) return send(res, 404, messagePage("Nothing here", "There's no picture by that name."));
+    if (!isArt(art)) return send(res, 404, messagePage("Nothing here", "There's no picture by that name."));
     res.writeHead(200, { "content-type": ART_TYPES[art.slice(art.lastIndexOf("."))], "cache-control": "public, max-age=86400" });
     return void res.end(readFileSync(new URL(art, ART)));
   }
@@ -154,7 +164,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     return send(res, 200, pathname === "/updates" ? updatesPage(v) : pathname === "/everyone" ? everyonePage(v) : moviesPage(v, confirmation(did)));
   }
 
-  const roomMatch = pathname.match(/^\/room\/([^/]+)(\/leave|\/tidy|\/mask|\/kettle)?$/);
+  const roomMatch = pathname.match(/^\/room\/([^/]+)(\/leave|\/tidy|\/mask|\/kettle|\/nap)?$/);
   const owner = roomMatch ? personById(roomMatch[1]) : undefined;
   if (roomMatch && !owner) return send(res, 404, messagePage("No such room", "There are five rooms in this house, and that isn't one of them."));
   // The face mask powder is in Rithanya's room, and the kettle in Amirdhavarshini's.
@@ -175,7 +185,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
 
   if (method !== "POST") return send(res, 404, messagePage("Nothing here", "There's no room by that name in this house."));
 
-  const writes = ["/wall", "/kitchen", "/garden/water", "/garden/plant", "/garden/dog", "/movies", "/movies/watched", "/movies/night"];
+  const writes = ["/wall", "/kitchen", "/garden/water", "/garden/plant", "/garden/dog", "/garden/treat", "/sit", "/here", "/movies", "/movies/watched", "/movies/night"];
   if (!writes.includes(pathname) && !roomMatch?.[2]) {
     return send(res, 404, messagePage("Nothing here", "There's no room by that name in this house."));
   }
@@ -185,9 +195,29 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   const body = text(form, "body");
   const item = text(form, "item");
 
+  // Where you stopped walking (public/house.js sends it), in the picture's
+  // pixels, so you're still there when you come back and friends find you
+  // there. Nothing to show for it, so no page either.
+  if (pathname === "/here") {
+    const spot: [number, number] = [Number(form.get("x")), Number(form.get("y"))];
+    const place = spot.every(Number.isFinite) ? placeAt(spot) : undefined;
+    if (!place) return send(res, 400, messagePage("Not in the house", "That spot isn't anywhere in the house."));
+    store.walkTo(me.id, place, Math.round(spot[0]), Math.round(spot[1]));
+    res.writeHead(204);
+    return void res.end();
+  }
+
   if (owner && roomMatch?.[2] === "/tidy") {
     store.leave({ author: me.id, kind: "tidy", place: roomPlace(owner.id) });
     return redirect(res, `/room/${owner.id}?did=tidy`);
+  }
+
+  // Anyone can sleep in anyone's bed. Lying down puts you in that room first,
+  // so you stay asleep there until you've been somewhere else.
+  if (owner && roomMatch?.[2] === "/nap") {
+    store.recordVisit(me.id, roomPlace(owner.id));
+    store.leave({ author: me.id, kind: "nap", place: roomPlace(owner.id) });
+    return redirect(res, `/room/${owner.id}?did=nap`);
   }
 
   if (owner && roomMatch?.[2] === "/mask") {
@@ -260,12 +290,24 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     return redirect(res, "/garden?did=water");
   }
 
-  // Petting Laddoo happens wherever he is, and you stay in that room. The row
-  // keeps the garden as its place, as it always has.
+  const pageOf = (place: string): string => (place.startsWith("room:") ? `/room/${place.slice("room:".length)}` : `/${place}`);
+
+  // Sitting down, like lying down, puts you in that room first.
+  if (pathname === "/sit") {
+    const seat = SEATS.find((s) => s.key === text(form, "seat"));
+    if (!seat) return send(res, 400, messagePage("Sit where?", "There's no seat like that in this house."));
+    store.recordVisit(me.id, seat.place);
+    store.leave({ author: me.id, kind: "sit", place: seat.place, item: seat.key });
+    return redirect(res, `${pageOf(seat.place)}?did=sit`);
+  }
+
+  // Petting Shinzo or giving him a treat happens wherever he is, and you stay
+  // in that room. The row keeps the garden as its place, as petting always has.
   const at = text(form, "at");
-  const back = !isPlace(at) ? "/garden" : at.startsWith("room:") ? `/room/${at.slice("room:".length)}` : `/${at}`;
-  store.leave({ author: me.id, kind: "play", place: "garden" });
-  return redirect(res, `${back}?did=play`);
+  const back = isPlace(at) ? pageOf(at) : "/garden";
+  const kind = pathname === "/garden/treat" ? "treat" : "play";
+  store.leave({ author: me.id, kind, place: "garden" });
+  return redirect(res, `${back}?did=${kind}`);
 }
 
 const server = createServer((req, res) => {
