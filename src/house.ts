@@ -124,8 +124,10 @@ export function movieNight(things: Thing[], now: number): { plan: Thing; at: num
   return plan && movie && at > now - 3 * HOUR ? { plan, at, movie } : undefined;
 }
 
-// Laddoo follows whoever last played with him, and naps at the foot of their
-// bed for half a day before wandering back to his kennel.
+// Laddoo goes with whoever last petted him (a "play"): wherever she goes while
+// she's in the house, then the foot of her bed once she's gone, for half a
+// day before he wanders back to his blanket. Where she is comes from visits,
+// so src/pages.ts works out the room.
 export function dog(things: Thing[], now: number): { with?: string; awake: boolean; last?: Thing } {
   const played = latest(things, "play");
   if (!played) return { awake: false };

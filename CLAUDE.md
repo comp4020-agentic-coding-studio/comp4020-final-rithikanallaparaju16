@@ -95,7 +95,9 @@ accepted record.
   coordinates.
 - Client JavaScript is enhancement only: `public/house.js` builds the walking
   controls (arrow keys/WASD, the thumb stick, the Go in button), walks you to
-  a tapped room, and keeps a phone's view on you. It reads the room outlines
+  a tapped room, keeps a phone's view on you, zooms in going into a room and
+  out leaving one, and walks Laddoo after whoever petted him. Where you
+  stepped out of a room rides in `sessionStorage` for one page load only. It reads the room outlines
   from the page, so `ROOMS` stays the one source of coordinates. Every link
   and form must work without it, and the spec never relies on it. Automatic
   animations stop under `prefers-reduced-motion`; walking yourself doesn't.
@@ -148,7 +150,10 @@ accepted record.
   as touch screens (so the thumb stick shows); `TOUCH=1` makes a wider one
   touch too. Check an iPad as well (`TOUCH=1`, 820px): the 700–999px range
   has its own bar and layout, and in session 4 it broke without anyone
-  looking.
+  looking. A page that fits the screen is captured as it is; capturing past
+  the screen re-lays it out and shifted the phone house off-centre in
+  session 6's screenshots, so measure positions in the page before blaming
+  the code.
 - The spec posts forms directly, so it can't tell if a button actually takes
   a tap. After touching CSS or the SVG layer, tap the door's windows and any
   changed button for real: `node scripts/shot.ts <url> <out.png> 390 none

@@ -143,7 +143,8 @@ export type Scene = {
   dishes: Spot[];
   // Kettle Maggi on Amirdhavarshini's mat.
   kettle: boolean;
-  dog: { place: string; awake: boolean };
+  // `with` is whoever last petted him.
+  dog: { place: string; awake: boolean; with?: string };
   // Places with something new for the visitor since their last visit.
   fresh: Set<string>;
   // A room page's place; the whole house when absent.
@@ -223,16 +224,19 @@ function kettleMaggi(s: Scene): string {
 </g>`;
 }
 
-function laddoo(s: Scene): string {
+// Beside whoever he's with, while she's here; otherwise his spot in her room,
+// or his blanket in the garden. public/house.js walks him after you.
+function laddoo(s: Scene, here: Map<string, Pt>): string {
+  const beside = s.dog.with ? here.get(s.dog.with) : undefined;
   const room = ROOMS[s.dog.place];
-  const [x, y] = room?.dog ?? KENNEL;
-  const scale = room?.dog ? 0.62 : 1;
+  const [x, y] = beside ? [beside[0] + 50, beside[1] + 6] : room?.dog ?? KENNEL;
+  const scale = beside ? 0.55 : room?.dog ? 0.62 : 1;
   const zz = s.dog.awake ? "" : `<text class="zz" x="52" y="-30">z</text><text class="zz small" x="66" y="-46">z</text>`;
-  return `<g class="laddoo${s.dog.awake ? " awake" : ""}" data-place="${esc(s.dog.place)}" transform="translate(${x} ${y}) scale(${scale})" aria-hidden="true"><image href="/art/laddoo.png" x="-80" y="-46" width="160" height="92"/>${zz}</g>`;
+  return `<g class="laddoo${s.dog.awake ? " awake" : ""}" data-place="${esc(s.dog.place)}" data-with="${esc(s.dog.with ?? "")}" transform="translate(${x} ${y}) scale(${scale})" aria-hidden="true"><image href="/art/laddoo.png" x="-80" y="-46" width="160" height="92"/>${zz}</g>`;
 }
 
-// data-go is what the Go in button says when you walk yourself into the room
-// (public/house.js).
+// data-go is what the Go in button says when you walk yourself into the room,
+// and data-view is what to zoom to on the way in (public/house.js).
 function links(s: Scene): string {
   return Object.entries(ROOMS).map(([place, room]) => {
     const owner = s.bedrooms.find((b) => `room:${b.owner.id}` === place)?.owner;
@@ -240,7 +244,7 @@ function links(s: Scene): string {
     const label = owner?.id === s.me.id ? "Your room" : room.name;
     const go = place === "garden" ? "Go out to the garden" : `Go into ${owner ? (owner.id === s.me.id ? "your room" : room.name) : `the ${room.name.toLowerCase()}`}`;
     const current = place === s.focus ? ` aria-current="page"` : "";
-    return `<a class="room-link" href="${href}" data-place="${place}" data-walk="${room.walk[0].join(",")}" data-go="${esc(go)}" aria-label="${esc(label)}"${current}><polygon points="${pts(room.outline)}"/></a>`;
+    return `<a class="room-link" href="${href}" data-place="${place}" data-walk="${room.walk[0].join(",")}" data-view="${room.view.join(" ")}" data-go="${esc(go)}" aria-label="${esc(label)}"${current}><polygon points="${pts(room.outline)}"/></a>`;
   }).join("");
 }
 
@@ -250,9 +254,11 @@ const MASK = `<g class="mask"><ellipse cx="1" cy="-57" rx="16" ry="16" fill="#9f
 // The stickers are 180 × 242; a standing friend is drawn 72 wide, feet on
 // the spot. Nobody moves on their own: friends stand where they are, and only
 // you walk, when you walk yourself (public/house.js). Whoever's further down
-// the picture is drawn in front.
-function figures(s: Scene): string {
+// the picture is drawn in front. `here` is where everyone who's in the house
+// right now is standing.
+function figures(s: Scene): { svg: string; here: Map<string, Pt> } {
   const drawn: { y: number; svg: string }[] = [];
+  const here = new Map<string, Pt>();
   const count = new Map<string, number>();
   // Whoever's room it is gets its first spot.
   const own = (f: Figure): number => (f.place === `room:${f.person.id}` ? 0 : 1);
@@ -268,13 +274,14 @@ function figures(s: Scene): string {
     const i = count.get(f.place) ?? 0;
     count.set(f.place, i + 1);
     const [x, y] = room.walk[i % room.walk.length];
+    if (f.here) here.set(p.id, [x, y]);
     const cls = ["walker", f.me ? "me" : "", f.here ? "here" : ""].filter(Boolean).join(" ");
     const who = f.me ? "you" : p.name;
     const mask = f.masked ? MASK : "";
     drawn.push({ y, svg: `<g class="${cls}" data-person="${p.id}" data-place="${f.place}" transform="translate(${x} ${y})" style="--accent:${p.color}"><ellipse class="shadow" rx="22" ry="7"/><g class="bob"><image href="/art/avatar-${p.id}.png" x="-36" y="-95" width="72" height="97"/>${mask}</g><text class="who" y="24">${esc(who)}</text></g>` });
   }
   drawn.sort((a, b) => a.y - b.y);
-  return `<g class="people" aria-hidden="true">${drawn.map((d) => d.svg).join("")}</g>`;
+  return { svg: `<g class="people" aria-hidden="true">${drawn.map((d) => d.svg).join("")}</g>`, here };
 }
 
 const SPARKLE = "M0 -10L2.6 -2.6L10 0L2.6 2.6L0 10L-2.6 2.6L-10 0L-2.6 -2.6Z";
@@ -296,6 +303,7 @@ function tags(s: Scene): string {
 
 export function houseSvg(s: Scene): string {
   const [x, y, w, h] = s.focus ? ROOMS[s.focus].view : [0, 0, W, H];
+  const people = figures(s);
   const bedrooms = s.bedrooms.map((b) => `<polygon points="${pts(ROOMS[`room:${b.owner.id}`].outline)}" fill="#000"/>`).join("");
   return `<svg class="house-svg" viewBox="${x} ${y} ${w} ${h}" role="group" aria-label="${s.focus ? "The room, and the house around it" : "The house. Tap a room to go in."}">
 <defs>
@@ -309,9 +317,9 @@ ${RITHANYA}
 ${kettleMaggi(s)}
 ${light(s)}
 ${things(s)}
-${laddoo(s)}
+${laddoo(s, people.here)}
 <g class="links">${links(s)}</g>
-${figures(s)}
+${people.svg}
 <g class="nametags" aria-hidden="true">${tags(s)}</g>
 </svg>`;
 }

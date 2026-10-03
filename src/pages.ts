@@ -76,6 +76,16 @@ function placeOf(p: Person, v: Visit): string {
   return at && isPlace(at) ? at : own;
 }
 
+// Laddoo goes wherever the friend who last petted him goes while she's here,
+// and naps at the foot of her bed once she's gone. Following someone around
+// keeps him awake.
+function laddooAt(v: Visit): { place: string; with?: Person; awake: boolean; last?: Thing } {
+  const d = dog(v.things, v.now);
+  const friend = d.with ? personById(d.with) : undefined;
+  const awake = d.awake || (friend !== undefined && homeNow(friend, v));
+  return { place: friend ? placeOf(friend, v) : "garden", with: friend, awake, last: d.last };
+}
+
 function placeName(place: string, me: Person): string {
   if (place === roomPlace(me.id)) return "in your room";
   const owner = ownerOf(place);
@@ -183,7 +193,7 @@ function freshPlaces(v: Visit): Set<string> {
 }
 
 function scene(v: Visit, focus?: string): Scene {
-  const d = dog(v.things, v.now);
+  const d = laddooAt(v);
   const masks = masked(v.things, v.now);
   return {
     light: phase(clock(v.me.tz, v.now)),
@@ -211,7 +221,7 @@ function scene(v: Visit, focus?: string): Scene {
     })),
     dishes: counter(v.things, v.now).map((t) => ({ key: t.item, fresh: isNew(t, v) })),
     kettle: kettle(v.things, v.now) !== undefined,
-    dog: { place: d.with ? roomPlace(d.with) : "garden", awake: d.awake },
+    dog: { place: d.place, awake: d.awake, with: d.with?.id },
     fresh: freshPlaces(v),
     focus,
   };
@@ -305,7 +315,7 @@ function happening(t: Thing, me: Person, all: Thing[]): Happening | undefined {
     case "plant":
       return { text: `${by} planted ${find(PLANTS, t.item)?.label ?? "something"} in the garden`, href: "/garden", forYou: false, at };
     case "play":
-      return { text: `${by} played with ${DOG}`, href: "/garden", forYou: false, at };
+      return { text: `${by} petted ${DOG}`, href: "/garden", forYou: false, at };
   }
 }
 
@@ -450,6 +460,32 @@ ${bar(v, "home")}
 </main>`, phase(clock(v.me.tz, v.now)), "page-room");
 }
 
+// Laddoo on the page of whichever room he's in, so you can pet him there and
+// he comes with you. The garden always says where he's gone.
+function laddooCard(place: string, v: Visit): string {
+  const d = laddooAt(v);
+  const here = d.place === place;
+  if (!here && place !== "garden") return "";
+  const f = d.with;
+  const mine = f?.id === v.me.id;
+  const line = !f
+    ? d.awake ? "He's on his blanket under the tree, tail going." : "He's napping on his blanket under the tree."
+    : !here ? `He went off with ${mine ? "you" : f.name}, and he's ${placeName(d.place, v.me)}.`
+    : mine ? "He's at your heels, and he goes wherever you go."
+    : homeNow(f, v) ? `He's with ${f.name}, and goes wherever she goes.`
+    : d.awake ? `He's waiting in here for ${f.name} to come back.`
+    : `He's napping at the foot of ${f.name}'s bed.`;
+  const petted = d.last ? ` Last petted by ${by(d.last, v)}, ${ago(d.last.createdAt, v.now)}.` : "";
+  const pet = here
+    ? `<form method="post" action="/garden/dog" class="inline"><input type="hidden" name="at" value="${esc(place)}"><button class="soft">Pet ${DOG}</button></form>`
+    : "";
+  return `<section class="card laddoo-card" aria-labelledby="dog-heading">
+    <h2 id="dog-heading">${DOG}</h2>
+    <p>${place === "garden" ? "Everyone's dog. " : ""}${esc(line + petted)}</p>
+    ${pet}
+  </section>`;
+}
+
 function picker(name: string, legend: string, items: Item[], art: (key: string) => string, none?: string): string {
   const opts = items.map((i) =>
     `<label><input type="radio" name="${name}" value="${esc(i.key)}"${none ? "" : " required"}>${art(i.key)}<span>${esc(i.short)}</span></label>`);
@@ -534,8 +570,6 @@ export function bedroomPage(owner: Person, v: Visit, did?: string): string {
   const tidied = latest(v.things, "tidy", roomPlace(owner.id));
   const messLine = ["It's tidy in here.", "It's a little lived-in.", "It's getting messy in here."][level];
   const tidyLine = tidied ? `Last tidied by ${by(tidied, v)}, ${ago(tidied.createdAt, v.now)}.` : "Nobody has tidied up in here yet.";
-  const d = dog(v.things, v.now);
-  const dogLine = d.with === owner.id ? (d.awake ? `${DOG} is here, wide awake.` : `${DOG} is napping in here.`) : "";
 
   const left = desk(v.things, owner.id);
   const shown = left.slice(0, DESK_SHOWN).map((t) => deskThing(t, owner, v)).join("\n");
@@ -557,8 +591,9 @@ export function bedroomPage(owner: Person, v: Visit, did?: string): string {
   return roomPage(v, roomPlace(owner.id), title, `
   ${roomHead(title, line, owner.about, owner.color)}
   ${done(did)}
-  <p class="status">${esc(messLine)} ${esc(tidyLine)} ${esc(dogLine)}</p>
+  <p class="status">${esc(messLine)} ${esc(tidyLine)}</p>
   <form method="post" action="/room/${esc(owner.id)}/tidy" class="inline"><button class="soft">${mine ? "Tidy your room" : `Tidy up ${esc(owner.name)}'s room`}</button></form>
+  ${laddooCard(roomPlace(owner.id), v)}
   ${owner.id === MASK_ROOM ? maskCard(owner, v) : ""}
   ${owner.id === KETTLE_ROOM ? kettleCard(owner, v) : ""}
   <section class="card" aria-labelledby="desk-heading">
@@ -588,6 +623,7 @@ export function livingPage(v: Visit, did?: string): string {
   ${roomHead("The living room", "Everyone's room. The wall is for all five of you: something funny from today, a good-luck wish, big news.", undefined, "#8a5a3c")}
   ${done(did)}
   <p class="sofa"><a href="/movies">${night ? esc(`Movie night on these sofas: “${night.movie.title}”, ${dayLabel(v.me.tz, night.at)}`) : "Movie night happens on these sofas"} ›</a></p>
+  ${laddooCard("living", v)}
   <form method="post" action="/wall" class="card compose">
     <label for="body">Write on the wall</label>
     <textarea id="body" name="body" rows="3" maxlength="${MAX_NOTE}" required placeholder="the funniest thing happened today…"></textarea>
@@ -615,6 +651,7 @@ export function kitchenPage(v: Visit, did?: string): string {
   return roomPage(v, "kitchen", "The kitchen", `
   ${roomHead("The kitchen", "Cook something and leave it out for everyone. Food stays on the counter for three days.", undefined, "#c4553c")}
   ${done(did)}
+  ${laddooCard("kitchen", v)}
   <section class="card" aria-labelledby="counter-heading">
     <h2 id="counter-heading">On the counter</h2>
     ${dishes.length ? `<ul class="desk-list">\n${list}\n</ul>` : `<p class="empty">The counter's clean. Nobody has cooked in the last few days.</p>`}
@@ -636,7 +673,6 @@ export function gardenPage(v: Visit, did?: string): string {
   const dry = thirsty(v.things, v.now);
   const watered = latest(v.things, "water");
   const planted = plants(v.things);
-  const d = dog(v.things, v.now);
 
   const waterLine = `${dry ? "The plants look a bit thirsty." : "The plants look happy."} ${watered ? `Last watered by ${by(watered, v)}, ${ago(watered.createdAt, v.now)}.` : "Nobody has watered the garden yet."}`;
   const plots = PEOPLE.map((owner) => {
@@ -652,11 +688,6 @@ export function gardenPage(v: Visit, did?: string): string {
   const myPlant = planted.get(v.me.id);
   const replaces = myPlant ? find(PLANTS, myPlant.item) : undefined;
 
-  const dogWith = d.with ? personById(d.with) : undefined;
-  const dogLine = dogWith
-    ? `${DOG} followed ${dogWith.id === v.me.id ? "you" : dogWith.name} to ${dogWith.id === v.me.id ? "your" : `${dogWith.name}'s`} room.`
-    : d.awake ? `${DOG} is on his blanket under the tree, tail going.` : `${DOG} is napping on his blanket under the tree.`;
-  const playedLine = d.last ? ` Last played with by ${by(d.last, v)}, ${ago(d.last.createdAt, v.now)}.` : "";
 
   return roomPage(v, "garden", "The garden", `
   ${roomHead("The garden", "Everyone has a patch. Anyone can water the lot, and the plants grow whether or not you're here.", undefined, "#4f8f3e")}
@@ -674,11 +705,7 @@ export function gardenPage(v: Visit, did?: string): string {
     ${replaces ? `<p class="small">This replaces your ${esc(replaces.label)}.</p>` : ""}
     <button>Plant it</button>
   </form>
-  <section class="card" aria-labelledby="dog-heading">
-    <h2 id="dog-heading">${DOG}</h2>
-    <p>Everyone's dog. ${esc(dogLine + playedLine)}</p>
-    <form method="post" action="/garden/dog" class="inline"><button class="soft">Play with ${DOG}</button></form>
-  </section>`);
+  ${laddooCard("garden", v)}`);
 }
 
 /* ---------- movies ---------- */

@@ -40,6 +40,13 @@ appears on touch screens (`pointer: coarse`, or after the first touch), and
 the keyboard always works unless you're typing in a form. Walking follows a
 phone's view sideways. Everything still works without the script.
 
+Added in session 6, also at Rithika's asking: going into a room zooms the
+drawing in on it before the room's page opens. Walking out of the room
+you're in zooms back out, and the whole house picks up where you stepped
+out. Only that page load needs the spot, so it goes in `sessionStorage`
+(nothing a friend needs to see). Laddoo, once you've petted him, trots
+after you as you walk.
+
 ## Consequences
 
 A house you visit while your friends are away is now still, which is

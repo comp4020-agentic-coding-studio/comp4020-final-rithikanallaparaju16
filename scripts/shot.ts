@@ -86,11 +86,15 @@ if (tap) {
   const where = await cdp("Runtime.evaluate", { expression: "location.pathname + location.search", returnByValue: true });
   console.log(`after the tap: ${where.result?.value}`);
 }
-const { cssContentSize } = await cdp("Page.getLayoutMetrics");
+const { cssContentSize, cssLayoutViewport } = await cdp("Page.getLayoutMetrics");
+// Capturing past the screen lays the page out again, which shifts a phone's
+// sideways-scrolled house off you. A page that fits is captured as it is.
+const beyond = cssContentSize.height > cssLayoutViewport.clientHeight + 1;
 const shot = await cdp("Page.captureScreenshot", {
   format: "png",
-  captureBeyondViewport: true,
-  clip: { x: 0, y: 0, width: Math.ceil(cssContentSize.width), height: Math.ceil(cssContentSize.height), scale: 1 },
+  ...(beyond
+    ? { captureBeyondViewport: true, clip: { x: 0, y: 0, width: Math.ceil(cssContentSize.width), height: Math.ceil(cssContentSize.height), scale: 1 } }
+    : {}),
 });
 writeFileSync(out, Buffer.from(shot.data, "base64"));
 console.log(`${out}: ${Math.ceil(cssContentSize.width)}x${Math.ceil(cssContentSize.height)} css px`);

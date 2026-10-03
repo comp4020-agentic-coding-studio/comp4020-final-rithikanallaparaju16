@@ -20,7 +20,7 @@ A good version of this house:
 
 The house is a cutaway seen from above, like a game, illustrated in Google Stitch. Amirdhavarshini's room is the big one in the corner, with the biggest bed and a round mat and cushions on the floor, because that's where everyone hangs out. The kitchen and the living room are in the middle, the garden is out the back, and Rithika's, Rithanya's, Aswathy's and Neha's rooms run along the front.
 
-Each of us is a little sticker in the house, and nobody moves unless they're the one moving. You walk yourself around: with the arrow keys or WASD on a laptop, or with a thumb stick on a phone or iPad, like a game. Walk into a room and a button offers to take you in (Enter does it on a keyboard). You can also just tap a room, and you walk there and go in.
+Each of us is a little sticker in the house, and nobody moves unless they're the one moving. You walk yourself around: with the arrow keys or WASD on a laptop, or with a thumb stick on a phone or iPad, like a game. Walk into a room and a button offers to take you in (Enter does it on a keyboard), and the house zooms in on it. You can also just tap a room, and you walk there and go in. When you're done in a room, walk out of it and the house zooms back out, with you where you stepped out.
 
 Friends stand still where they last were. Anyone who's been here in the last ten minutes is wherever she last went, so you can find a friend in the kitchen, and she breathes a little and glows underfoot because she's here. Everyone else is in her own room, and during her sleep hours she's tucked up in bed.
 
@@ -51,7 +51,7 @@ Characters sleep at night where they live: Neha from 11:30 pm to 10:30 am, Ritha
 - **Cook for everyone.** Leave a dish out on the kitchen counter. It stays out for three days.
 - **Tidy someone's room.** Rooms get a little lived-in after a couple of days, and messier after five. Anyone can tidy any room, and the owner finds out who did.
 - **Look after the garden.** Everyone has a patch to plant in. Plants sprout, grow and bloom over three days. They look thirsty after two days without water, but they never die, and anyone can water the lot.
-- **Play with Laddoo.** He naps on his blanket under the tree in the garden. Play with him and he follows you back to your room, blanket and all, for half a day.
+- **Pet Laddoo.** He naps on his blanket under the tree in the garden, until someone pets him. Then he comes with you, blanket and all: wherever you go in the house, trotting a step behind as you walk. You can pet him in whichever room he's in. When you leave, he naps at the foot of your bed for half a day, then wanders back to the garden.
 - **Do a face mask in Rithanya's room.** She always has the powder. Your sticker wears a green mask with cucumber slices for two hours, so a friend who comes by catches you in it, and Rithanya hears whose face used her powder.
 - **Make kettle Maggi in Amirdhavarshini's room.** Like in the hostel. The kettle and two bowls sit out on her mat, steaming, for the night (twelve hours), with a note if you leave one.
 - **Movie time.** Rithanya loves movies, so the Movies tab is hers. Suggest a movie and say why, tick off the ones you've watched, or plan a movie night on the living room sofas. You pick the time in your own clock, and everyone sees it in theirs, with a note if it falls while someone's usually asleep. A new plan replaces the old one. Rithanya's suggestions are marked as her picks.
@@ -97,7 +97,7 @@ Run it locally with `pnpm start` (it keeps its data in `./data`), then run `pnpm
 - food from the kitchen is on the counter for everyone
 - a friend finds out who tidied their room
 - the garden remembers who planted what and who watered it
-- Laddoo follows whoever played with him
+- Laddoo goes along with whoever pets him, wherever they go
 - a friend who's home right now shows up where she is in the house
 - nobody walks around on their own
 - a face mask shows on the friend wearing it, and Rithanya hears whose it was

@@ -20,6 +20,7 @@ import {
   type Visit,
 } from "./pages.ts";
 import { personById, type Person } from "./people.ts";
+import { isPlace } from "./scene.ts";
 import * as store from "./store.ts";
 import { fromLocal } from "./time.ts";
 
@@ -98,7 +99,7 @@ function confirmation(did: string | null, owner?: Person): string | undefined {
     case "plant":
       return "Planted. Come back in a few days to see it grow.";
     case "play":
-      return "Laddoo had the best time, and followed you to your room.";
+      return "Laddoo loved that. He's coming with you wherever you go.";
     case "mask":
       return "Mask on. It comes off by itself in a couple of hours.";
     case "kettle":
@@ -254,8 +255,17 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     return redirect(res, "/garden?did=plant");
   }
 
-  store.leave({ author: me.id, kind: pathname === "/garden/water" ? "water" : "play", place: "garden" });
-  return redirect(res, pathname === "/garden/water" ? "/garden?did=water" : "/garden?did=play");
+  if (pathname === "/garden/water") {
+    store.leave({ author: me.id, kind: "water", place: "garden" });
+    return redirect(res, "/garden?did=water");
+  }
+
+  // Petting Laddoo happens wherever he is, and you stay in that room. The row
+  // keeps the garden as its place, as it always has.
+  const at = text(form, "at");
+  const back = !isPlace(at) ? "/garden" : at.startsWith("room:") ? `/room/${at.slice("room:".length)}` : `/${at}`;
+  store.leave({ author: me.id, kind: "play", place: "garden" });
+  return redirect(res, `${back}?did=play`);
 }
 
 const server = createServer((req, res) => {

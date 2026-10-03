@@ -5,7 +5,10 @@
 //   room you're standing in;
 // - on a phone or tablet with a thumb stick, and a Go in button;
 // - by tapping a room, which walks you there before the room opens.
-// On a phone the house is wider than the screen, so the view follows you.
+// Going into a room zooms in on it, and walking out of the room you're in
+// zooms back out to the whole house, with you where you stepped out. Laddoo
+// trots after whoever last petted him. On a phone the house is wider than
+// the screen, so the view follows you.
 (() => {
   const svg = document.querySelector(".house-svg");
   const me = svg?.querySelector(".walker.me");
@@ -14,22 +17,30 @@
   const map = svg.closest(".map");
   const people = me.parentNode;
   const view = svg.viewBox.baseVal;
+  const startView = svg.getAttribute("viewBox");
+  const picture = svg.querySelector("image");
+  const W = picture.width.baseVal.value;
+  const H = picture.height.baseVal.value;
   const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const spot = (g) => g.transform.baseVal.consolidate()?.matrix ?? { e: 0, f: 0 };
+  const spot = (g) => g.transform.baseVal.consolidate()?.matrix ?? { a: 1, e: 0, f: 0 };
+  const ease = (k) => (k < 0.5 ? 2 * k * k : 1 - (2 - 2 * k) ** 2 / 2);
 
   const rooms = [...svg.querySelectorAll("a.room-link")].map((link) => ({
     link,
     place: link.dataset.place,
     go: link.dataset.go,
+    view: link.dataset.view.split(" ").map(Number),
     outline: link.querySelector("polygon").getAttribute("points").trim().split(/\s+/).map((p) => p.split(",").map(Number)),
   }));
-  // On a room's page, the room you're already in.
-  const current = svg.querySelector("a.room-link[aria-current=page]")?.dataset.place;
+  // On a room's page, the room you're in.
+  const current = rooms.find((r) => r.link.getAttribute("aria-current") === "page");
   const others = [...people.children].filter((g) => g !== me).map((g) => ({ g, y: spot(g).f }));
 
   const start = spot(me);
   let x = start.e;
   let y = start.f;
+  // Walking yourself somewhere on your own, or zooming: hands off.
+  let busy = false;
 
   /* ---------- where you can stand ---------- */
 
@@ -57,11 +68,7 @@
   // for. Your head stays in the picture.
   const WALL = 28;
   const walkable = (p) =>
-    p[0] > view.x + 30 &&
-    p[0] < view.x + view.width - 30 &&
-    p[1] > view.y + 92 &&
-    p[1] < view.y + view.height - 8 &&
-    rooms.some((r) => inside(p, r.outline) || near(p, r.outline, WALL));
+    p[0] > 30 && p[0] < W - 30 && p[1] > 92 && p[1] < H - 8 && rooms.some((r) => inside(p, r.outline) || near(p, r.outline, WALL));
 
   const roomAt = (p) => rooms.find((r) => inside(p, r.outline));
 
@@ -98,7 +105,7 @@
   let lastRoom;
   const target = () => {
     const r = (lastRoom = roomAt([x, y]) ?? lastRoom);
-    return r && r.place !== current ? r : undefined;
+    return r && r !== current ? r : undefined;
   };
 
   function showGo() {
@@ -107,14 +114,97 @@
     if (r) goLabel.textContent = r.go;
   }
 
-  const enter = (r) => location.assign(r.link.getAttribute("href"));
   goButton.addEventListener("click", () => {
     const r = target();
-    if (r) enter(r);
+    if (r && !busy) enter(r);
   });
+
+  /* ---------- zooming ---------- */
+
+  // Zoom so `to` (x, y, width, height in the picture's pixels) fills the part
+  // of the house you can see, then carry on.
+  function zoom(to, then) {
+    if (still) return then();
+    const box = svg.getBoundingClientRect();
+    // Hold the drawing's size on the page while its viewBox changes.
+    Object.assign(svg.style, { width: `${box.width}px`, height: `${box.height}px`, maxWidth: "none", maxHeight: "none", aspectRatio: "auto" });
+    // A phone's house is wider than the screen; only what's on it counts.
+    const seenW = Math.min(box.width, map.clientWidth);
+    const scale = Math.min(seenW / to[2], box.height / to[3]);
+    const end = [
+      to[0] + to[2] / 2 - (map.scrollLeft + seenW / 2) / scale,
+      to[1] + to[3] / 2 - box.height / 2 / scale,
+      box.width / scale,
+      box.height / scale,
+    ];
+    const from = [view.x, view.y, view.width, view.height];
+    const begun = performance.now();
+    const frame = (now) => {
+      const k = Math.min(1, (now - begun) / 550);
+      svg.setAttribute("viewBox", from.map((a, i) => (a + (end[i] - a) * ease(k)).toFixed(2)).join(" "));
+      if (k < 1) requestAnimationFrame(frame);
+      else then();
+    };
+    requestAnimationFrame(frame);
+  }
+
+  const hold = () => {
+    busy = true;
+    keys.clear();
+    letGo();
+  };
+
+  function enter(r) {
+    hold();
+    zoom(r.view, () => location.assign(r.link.getAttribute("href")));
+  }
+
+  // Walking out of the room you're in goes back to the whole house, and you
+  // carry on from where you stepped out.
+  const CARRY = "five-windows-at";
+  function leave() {
+    hold();
+    try {
+      sessionStorage.setItem(CARRY, JSON.stringify({ person: me.dataset.person, x, y, at: Date.now() }));
+    } catch {
+      // you'll start back at your spot instead
+    }
+    zoom([0, 0, W, H], () => location.assign("/"));
+  }
+
+  /* ---------- Laddoo ---------- */
+
+  // He trots after you if you were the last to pet him, a step behind,
+  // on whichever side you're walking away from.
+  const laddoo = svg.querySelector(`g.laddoo[data-with="${me.dataset.person}"]`);
+  const dogScale = laddoo ? spot(laddoo).a : 1;
+  let dog = laddoo ? [spot(laddoo).e, spot(laddoo).f] : undefined;
+  let side = 1;
+  let trotting = false;
+  let trotted = 0;
+  const besideYou = () => [x + side * 50, y + 6];
+  const putDog = () => laddoo.setAttribute("transform", `translate(${dog[0].toFixed(1)} ${dog[1].toFixed(1)}) scale(${dogScale})`);
+
+  function trot(now) {
+    const [tx, ty] = besideYou();
+    const k = still ? 1 : 1 - Math.exp(-5 * Math.min(0.05, (now - trotted) / 1000));
+    trotted = now;
+    dog = [dog[0] + (tx - dog[0]) * k, dog[1] + (ty - dog[1]) * k];
+    putDog();
+    trotting = Math.hypot(tx - dog[0], ty - dog[1]) > 0.5;
+    if (trotting) requestAnimationFrame(trot);
+  }
+
+  function heel() {
+    if (!laddoo || trotting) return;
+    trotting = true;
+    trotted = performance.now();
+    requestAnimationFrame(trot);
+  }
 
   /* ---------- moving ---------- */
 
+  let lastX = x;
   function draw() {
     me.setAttribute("transform", `translate(${x.toFixed(1)} ${y.toFixed(1)})`);
     // Stand in front of anyone further up the picture, and behind anyone
@@ -122,8 +212,13 @@
     // restarts the sticker's bob.
     const behind = others.find((o) => o.y > y)?.g ?? null;
     if (me.nextSibling !== behind) people.insertBefore(me, behind);
+    if (x > lastX + 0.01) side = -1;
+    else if (x < lastX - 0.01) side = 1;
+    lastX = x;
+    heel();
     follow();
     showGo();
+    if (current && !busy && !inside([x, y], current.outline) && !near([x, y], current.outline, 10)) leave();
   }
 
   // Keep you in the middle part of a phone's screen.
@@ -156,7 +251,7 @@
 
   function step(now) {
     const [dx, dy] = heading();
-    if (!dx && !dy) {
+    if (busy || (!dx && !dy)) {
       walking = false;
       me.classList.remove("walking");
       return;
@@ -175,7 +270,7 @@
   }
 
   function walk() {
-    if (walking) return;
+    if (walking || busy) return;
     walking = true;
     last = performance.now();
     me.classList.add("walking");
@@ -207,6 +302,7 @@
     const way = KEYS[event.code];
     if (way) {
       event.preventDefault();
+      if (busy) return;
       keys.add(way);
       walk();
       return;
@@ -215,7 +311,7 @@
     const focused = document.activeElement;
     if ((event.code === "Enter" || event.code === "KeyE") && (!focused || focused === document.body)) {
       const r = target();
-      if (r) {
+      if (r && !busy) {
         event.preventDefault();
         enter(r);
       }
@@ -227,6 +323,7 @@
   /* ---------- thumb stick ---------- */
 
   function push(event) {
+    if (busy) return;
     const box = stickEl.getBoundingClientRect();
     const r = box.width / 2;
     let dx = (event.clientX - box.left - r) / r;
@@ -238,10 +335,10 @@
     knob.style.transform = `translate(${dx * r * 0.55}px, ${dy * r * 0.55}px)`;
     if (stick[0] || stick[1]) walk();
   }
-  const letGo = () => {
+  function letGo() {
     stick = [0, 0];
     knob.style.transform = "";
-  };
+  }
   stickEl.addEventListener("pointerdown", (event) => {
     stickEl.setPointerCapture(event.pointerId);
     push(event);
@@ -258,8 +355,12 @@
   svg.addEventListener("click", (event) => {
     const link = event.target.closest("a.room-link");
     if (!link || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    if (still || roomAt([x, y])?.link === link) return;
+    const r = rooms.find((room) => room.link === link);
+    if (still || r === current) return;
     event.preventDefault();
+    if (busy) return;
+    if (roomAt([x, y]) === r) return enter(r);
+    hold();
     const [tx, ty] = link.dataset.walk.split(",").map(Number);
     const [fx, fy] = [x, y];
     const ms = Math.min(1100, Math.max(450, Math.hypot(tx - fx, ty - fy) * 1.4));
@@ -267,31 +368,63 @@
     me.classList.add("walking");
     const glide = (now) => {
       const k = Math.min(1, (now - begun) / ms);
-      const eased = k < 0.5 ? 2 * k * k : 1 - (2 - 2 * k) ** 2 / 2;
-      x = fx + (tx - fx) * eased;
-      y = fy + (ty - fy) * eased;
+      x = fx + (tx - fx) * ease(k);
+      y = fy + (ty - fy) * ease(k);
       draw();
-      if (k < 1) requestAnimationFrame(glide);
-      else location.assign(link.getAttribute("href"));
+      if (k < 1) return requestAnimationFrame(glide);
+      me.classList.remove("walking");
+      enter(r);
     };
     requestAnimationFrame(glide);
   });
 
-  // Coming back with the browser's back button can restore the page mid-walk.
+  // In a room, every way back to the whole house zooms out on the way.
+  if (current) {
+    for (const link of document.querySelectorAll('a[href="/"]')) {
+      link.addEventListener("click", (event) => {
+        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || still) return;
+        event.preventDefault();
+        if (!busy) leave();
+      });
+    }
+  }
+
+  // Coming back with the browser's back button can restore the page mid-walk
+  // or mid-zoom.
   addEventListener("pageshow", (event) => {
     if (!event.persisted) return;
+    svg.setAttribute("viewBox", startView);
+    svg.removeAttribute("style");
     [x, y] = [start.e, start.f];
     keys.clear();
     letGo();
     me.classList.remove("walking");
+    busy = false;
     draw();
   });
 
-  // Start with you in view, and the way into the room you're standing in.
+  /* ---------- arriving ---------- */
+
+  // Back in the whole house after walking out of a room: pick up where you
+  // stepped out.
+  try {
+    const carried = JSON.parse(sessionStorage.getItem(CARRY) ?? "null");
+    sessionStorage.removeItem(CARRY);
+    if (!current && carried?.person === me.dataset.person && Date.now() - carried.at < 20000 && walkable([carried.x, carried.y])) {
+      [x, y] = [carried.x, carried.y];
+      lastX = x;
+      if (dog) [dog[0], dog[1]] = besideYou();
+    }
+  } catch {
+    // start at your spot
+  }
+  if (dog) putDog();
+  draw();
+
+  // Start with you in view.
   if (map.scrollWidth > map.clientWidth) {
     const you = me.getBoundingClientRect();
     const box = map.getBoundingClientRect();
     map.scrollLeft += you.left + you.width / 2 - (box.left + box.width / 2);
   }
-  showGo();
 })();

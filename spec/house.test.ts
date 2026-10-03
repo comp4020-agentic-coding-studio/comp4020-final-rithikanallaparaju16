@@ -183,13 +183,19 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect(text(withText(garden, ".patches li", `${a.name}'s patch`))).toContain("Marigolds");
   });
 
-  it("lets Laddoo follow whoever played with him", async () => {
-    const [a, b, c] = await people();
-    expect((await post("/garden/dog", {}, b.id)).status).toBe(303);
+  it("sends Laddoo along with whoever pets him, wherever they go", async () => {
+    const [a, b] = await people();
+    await page("/kitchen", b.id);
+    const res = await post("/garden/dog", { at: "kitchen" }, b.id);
+    expect(res.status).toBe(303);
+    expect(res.headers.get("location"), `${b.name} didn't stay in the kitchen`).toBe("/kitchen?did=play");
 
-    const house = await page("/", a.id);
-    expect(house.querySelector(`.laddoo[data-place="room:${b.id}"]`), `Laddoo isn't in ${b.name}'s room`).not.toBeNull();
-    expect(house.querySelector(`.laddoo[data-place="room:${c.id}"]`)).toBeNull();
+    let house = await page("/", a.id);
+    expect(house.querySelector(`.laddoo[data-with="${b.id}"][data-place="kitchen"]`), `Laddoo isn't in the kitchen with ${b.name}`).not.toBeNull();
+
+    await page(`/room/${b.id}`, b.id);
+    house = await page("/", a.id);
+    expect(house.querySelector(`.laddoo[data-with="${b.id}"][data-place="room:${b.id}"]`), `Laddoo didn't follow ${b.name} to her room`).not.toBeNull();
   });
 
   it("shows a friend who's home right now wherever they are in the house", async () => {
