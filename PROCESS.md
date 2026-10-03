@@ -161,6 +161,32 @@ yet reviewed:
 - **Switching who you are:** your sticker and "Not Rithika?" sit in the top
   bar and take you back to the door. Everyone has "Come in as" buttons.
 
+### Session 5: walking yourself around
+
+I asked for avatars to move only when their person is there, and for easy
+movement: the keyboard on a laptop, and game-style controls on phones and
+iPads, like PUBG. [ADR 0008](doc/adr/0008-you-walk-yourself-and-nobody-else-moves.md)
+records it, and is *proposed* until I review it. The agent's calls:
+
+- **Nobody moves on their own.** The wandering loop is gone. Friends stand
+  where they last were. Someone who's here right now breathes a little
+  (a slow bob) and glows underfoot; nobody else moves at all.
+- **You walk yourself.** On a laptop it's the arrow keys or WASD. On a touch
+  screen it's a thumb stick in the bottom-left: push a little to walk
+  slowly, all the way to go faster. A Go in button in the bottom-right names
+  the room you're standing in ("Go into Neha's room", "Go out to the
+  garden"); Enter or E does it on a keyboard. Tapping a room still walks you
+  there and goes in.
+- **Walls don't stop you.** You walk straight through the walls between
+  rooms, so there's never a door to hunt for, but you stay inside the house.
+- **Where you stand inside a room isn't saved.** Going into a room is what
+  tells friends where you are, as before; walking about doesn't.
+- **The stick shows on touch screens** (including iPads), and the keyboard
+  always works unless you're typing in a form. A "Walk with the arrow keys
+  or WASD" hint shows on laptops until you first walk.
+- **The owner gets her room's first spot**, so a visitor never stands on
+  Aswathy's yoga mat while she's beside it.
+
 ## What went wrong, and what we found
 
 - The agent's shell didn't have node on its PATH, because mise wasn't active.
@@ -217,6 +243,22 @@ yet reviewed:
   hit-testing. It only showed when the agent tapped the middle of a window
   with a real mouse event and found the `<form>` under the finger. The rule
   is now scoped to SVG groups, and `scripts/shot.ts` can tap for real.
+- In session 5, the first keyboard test stopped dead at the wall between
+  the living room and the bedrooms. The room outlines leave gaps of up to
+  about 50px where walls are drawn, and the agent had only allowed 14px.
+  From the kitchen, the only ways down were a sliver through Amirdha's room
+  or round by the garden. It now allows 28px either side, so every wall
+  can be crossed.
+- Once the wandering stopped, everyone stood on her room's first spot all
+  the time. Aswathy's first spot was under her own name tag, and Rithika's
+  nearly was. A visitor could also take the owner's spot. The spots were
+  reordered, and the owner now goes first.
+- The iPad screenshot (820px) showed the top bar broken: the greeting
+  squeezed into a one-word-wide column over the Home tab. It was caused by
+  session 4's long "Not Amirdhavarshini?" switch, and nobody had looked
+  between phone and laptop widths. At tablet widths the greeting now goes and
+  the switch is just your sticker. Wider than that, the greeting stays on one
+  line and trails off.
 
 ## Deliberately left out
 
@@ -267,6 +309,13 @@ feel closer before it goes in.
     argument, never `element.click()`
   - scope SVG-only CSS to the element (`g.people`), because class names are
     shared with the HTML
+- **Session 5:** `CLAUDE.md` now says nobody moves on their own (ADR 0008),
+  and that automatic wandering shouldn't come back. Its client JavaScript rule
+  describes the controls, and says to read room outlines from the page so
+  `ROOMS` stays the only place coordinates live. `scripts/shot.ts` emulates
+  touch at phone widths (`TOUCH=1` for wider screens). The testing rules now
+  ask for an iPad check at 820px, because that range broke in session 4
+  without anyone looking.
 
 ## Project log
 
@@ -543,4 +592,52 @@ Movies. Each of those writes to the real house, so I'm the first one in.
 
 **Commits:** [`df979fe`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/df979fe)
 (the door fix and the features), [`babd141`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/babd141)
-(this log entry, deployed), and this deploy note. Not pushed to GitHub.
+(this log entry, deployed), and [`8755c3e`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/8755c3e)
+(the deploy note). Not pushed to GitHub.
+
+### 9. "dont make the avatars move if the user is not using it" (3 Oct 2026)
+
+**Asked:** "okay this is good, but dont make the avatars move if the user is
+not using it, movemet should only be there if the user is there. then make
+the movement easy, for laptop, we can use the keyboard to move, for phone and
+ipad like online games-pubg etc"
+
+**Agent:** read ADR 0007, which had turned down a walkable avatar, and wrote
+ADR 0008 instead of changing it. Then it built what's under "Session 5"
+above:
+
+- `src/scene.ts` stopped generating the walking keyframes.
+- `public/house.js` was rewritten around the keys, the stick and the Go in
+  button.
+- `scripts/shot.ts` now emulates touch at phone widths, with `TOUCH=1` for
+  an iPad.
+
+The spec gained one check, "never walks anyone around on their own", for 21
+in all. The agent unpacked the previous commit into `/tmp`, ran it on another
+port, and saw the check fail there ("person 1 is set to wander") before
+trusting it. `pnpm check` passed 21/21 against a scratch copy of the local
+house.
+
+**How walking was checked:** a scratch script in `/tmp` sent real key
+presses and touch drags through Chrome's DevTools protocol:
+
+- On a laptop it held the right arrow, then down, then A, then pressed
+  Enter. "You" went from the kitchen through the living room into Aswathy's
+  room, then Rithanya's, and the button followed along each step ("Go into
+  the living room", "Go into Aswathy's room"…). Enter opened `/room/4`.
+- On a phone it dragged the stick to the right. The knob followed the
+  finger, "you" walked into Aswathy's room, and the view scrolled from 289
+  to 594 to keep up.
+
+Screenshots: the house at 390px and 1280px, the house and Aswathy's room on
+an iPad (820px, touch), Rithanya's room at 1280px and Aswathy's room at 390px.
+A real tap on a door window still signs in.
+
+**Fixed along the way:** the walls blocking the bedrooms, Aswathy under her
+tag, a visitor on the owner's spot, and the iPad bar (all under "What went
+wrong").
+
+**Correction:** none this prompt.
+
+**Commits:** [`3e04bde`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/3e04bde)
+(walking, the fixes and the docs), and this log entry.
