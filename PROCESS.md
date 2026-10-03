@@ -209,6 +209,61 @@ back out when I leave a room I'd zoomed into. The agent's calls:
 - **Walking out of a room doesn't tell friends you've left it.** As before,
   friends see you in the last room you went into.
 
+### Session 7: things light up, the house keeps where you stopped, and Shinzo
+
+I asked for whatever I can do to light up when I'm near it, for sleeping in
+any bed, for an option to pet or feed the dog, and for one study table each
+in Amirdha's and Aswathy's rooms, with two chairs for Aswathy (one to work
+on, one for her clothes). Then I reported that where I was and where the dog
+was weren't being kept, asked for the dog to be called Shinzo, and asked
+for him not to be asleep all the time. The agent's calls:
+
+- **What lights up, and what it offers.** You walk up to it and it glows
+  gold. Buttons appear above Go in; on a keyboard, Enter or E does the
+  first one, ahead of going in, and the number keys do the rest.
+  - Any bed: "Sleep in Amirdhavarshini's bed", or "your bed".
+  - Your desk: what's on it. A friend's desk: leave her something.
+  - Amirdha's mat: sit on your own cushion, or make kettle Maggi. I'd said
+    "sit on the couches" in her room; she has floor cushions round the mat,
+    not couches, so the cushions are the seats.
+  - Rithanya's mirror: do a face mask.
+  - Aswathy's yoga mat: meditate.
+  - The sofas: sit down, or plan a movie night.
+  - The wall of notes: write on it, or read it.
+  - The kitchen stove: cook something. I didn't ask for this one.
+  - The garden patches: water them, or plant something.
+  - Shinzo: pet him or give him a treat.
+
+  Each button is a link or a form the page already has, and the room pages
+  have the same buttons, so nothing needs the script.
+- **Anyone can sleep in anyone's bed, and sit down.** It's a `nap` or `sit`
+  row, so it shows in "while you were away" ("Neha slept in your bed").
+  Friends who come by see you lying or sitting there. You get up when you
+  walk, or after two hours.
+- **A treat is new (`treat`).** Shinzo follows whoever last petted or fed
+  him, the same way.
+- **One study table each.** In Amirdha's room the spare laptop table and
+  its chair are painted out, and the floorboards run on to the wall.
+  Aswathy keeps the table at the foot of her bed, with the two chairs
+  already in the picture: one to work on, and the one with the pile of
+  clothes. Her desk notes moved onto the table she kept.
+- **The house keeps where you stopped (ADR 0009).** When you stop walking,
+  the page sends your spot to the server, and you're there next time,
+  after a reload or a week. Friends stay where they stopped too, instead of
+  going back to their own rooms once they've been away ten minutes. During
+  their sleep hours they're in bed. Shinzo is drawn beside whoever he's
+  with, so he's kept too.
+- **Laddoo is Shinzo** everywhere anyone sees him. His code, CSS and picture
+  are still called `laddoo`, and petting is still the `play` kind, since
+  stored rows can't be renamed.
+- **Shinzo is up in the daytime.** He's awake during the day by your own
+  clock. He naps only at night (8 pm to 5 am for you), unless someone petted
+  or fed him in the last three hours, or he's with a friend who's here.
+  His only picture lies on his blanket, so awake now means he hops and
+  wiggles, rather than the old 2° wag. I didn't ask for the hop.
+- **The house's pictures carry a fingerprint in their address,** so a
+  changed picture shows straight away instead of after a day.
+
 ## What went wrong, and what we found
 
 - The agent's shell didn't have node on its PATH, because mise wasn't active.
@@ -288,6 +343,26 @@ back out when I leave a room I'd zoomed into. The agent's calls:
   `scripts/shot.ts`: capturing past the screen made Chrome lay the page out
   again, which moved the sideways-scrolled house. It now captures a page that
   fits the screen as it is.
+- In session 7, painting out the spare study tables took four goes. Rows
+  copied from too high up brought a dark wedge of ceiling beam with them.
+  A straight line drawn along the beam came out jagged, so it was dropped.
+  Floor copied from beside Aswathy's table brought the table's front edge
+  along, so the floor is now copied from open boards further left. A
+  stepped patch in Amirdha's room left a seam, so it became a rectangle.
+- Before session 7, persistence only covered the room you went into, not
+  where you walked inside it. The database on Fly was fine: one machine, one
+  volume since the day before, and friends still "home now". Where you walked
+  only lived in your own browser, and Shinzo's place followed from it.
+- The first test for keeping your spot used (1215, 300), which is the
+  garden's own first spot, so it would have passed with nothing saved. The
+  agent moved it to (1290, 380), where only walking could put you.
+- After the spare table was painted out, the browser still showed it.
+  Pictures were cached for a day under the same address. They're now asked
+  for by a fingerprint of the file.
+- The glow was too faint to see over the picture at first, so the agent
+  made it stronger. Later, screenshots showed Shinzo looking asleep even when
+  he was awake. His only picture lies down, and "awake" was a 2° wag. It's
+  now a hop.
 
 ## Deliberately left out
 
@@ -349,6 +424,12 @@ feel closer before it goes in.
   page fits on it. `CLAUDE.md` says why, and to measure positions in the page
   before blaming the code. Its client JavaScript rule now covers the zooms,
   Laddoo trotting after you, and the one-load `sessionStorage` handoff.
+- **Session 7:** `CLAUDE.md` calls the dog Shinzo and says his code is still
+  `laddoo`. It describes the hotspots in `hotspots()` and the `nap` and
+  `sit` kinds. It explains `POST /here` as the one write that needs the
+  script, and lists the new `visits` columns (ADR 0009). It also says pages
+  ask for art through `art()` in `src/assets.ts`, because a cached picture
+  hid the painted-out table.
 
 ## Project log
 
@@ -743,3 +824,102 @@ the real house.
 **Commits:** [`ccf0229`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/ccf0229)
 (Laddoo, the zooms, the shot fix and the docs), [`5ab3a80`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/5ab3a80)
 (this log entry, deployed), and the deploy note. Not pushed to GitHub.
+
+### 11. "every time i can do stuff, highlight the things i can do" (3 Oct 2026)
+
+**Asked:** "every time i can do stuff, highlight the things i can do, for
+example when i enter  amirdhas room, i can sit on the couches, sleep on her
+bed wtc. then when i go near laddoo, give me an option to pet or give him
+food. then everytime i go near the memory or note wall, highlihg them so i
+know i can do that, everytime i go to the garden also same.add feature like
+this. and aswathys and amirdhas room has 2 study tables, one is enough for
+each room, aswthy can have 2 chairs. one to work on and one to put her
+clothes on. and sleep option when we go near beds. everybody can sleep on
+all beds"
+
+**Agent:** started on what's under "Session 7" above. It gridded each room
+of the picture to read off coordinates for beds, desks, seats and the
+other spots. It painted out the spare tables in `scripts/cut-art.py`
+(four goes, see "What went wrong") and began the code: the `nap`, `sit`
+and `treat` kinds, `resting()`, the hotspots in `src/scene.ts`, the room
+page buttons, and the server routes.
+
+**Interruption:** partway through, at the first typecheck, the response
+stopped with "Your computer went to sleep mid-response". The work sat
+uncommitted until entry 14 picked it up.
+
+**Correction:** none this prompt.
+
+### 12. The session 4 message, sent again (3 Oct 2026)
+
+**Asked:** the same message as entry 8, word for word: "okayokay, rithanya
+doesnt have cats, its kitkat chocolate. … also right now when i click on
+somebody i wanna enter the house as them. this is not happening"
+
+**Agent:** said everything in it was already built and live since session
+4, and listed where each part is: the KitKats, the mirror and face masks,
+kettle Maggi, the Movies tab, and coming in as someone from the door or
+the Everyone tab. It hit-tested the live door without tapping or signing in:
+a tap on a window lands on that friend's button. It suggested a hard
+refresh in case the browser had an old copy. It also said entry 11 was
+about half done and that it would carry on. It changed nothing.
+
+**Correction:** none.
+
+### 13. "open live site" (3 Oct 2026)
+
+**Asked:** "open live site", sent twice; the second came in while the agent
+was answering the first.
+
+**Agent:** opened https://comp4020-final-rithikanallaparaju16.fly.dev/ in
+the browser, once. It said the live site was still session 6, without the
+glow or the table changes, because that work wasn't finished or deployed.
+
+**Correction:** none.
+
+### 14. "the persistence still doesnt work, and name the dog shinzo, also dont make it always sleep" (3 Oct 2026)
+
+**Asked:** "the persistence still doesnt work, and name the dog shinzo,
+also dont make it always sleep"
+
+**Agent:** checked Fly read-only first (`flyctl machines list` and
+`volumes list`). There was one machine with one volume, there since the
+day before, and the Dockerfile sets `DATA_DIR=/data`. It then asked what
+wasn't being remembered, with four options: where I walked, things I
+left, who I am, and Laddoo following me.
+
+**Correction:** I turned the question down to explain in my own words:
+"where i was, where the dog was etc, data is not persisting".
+
+**Agent, after that:** built the rest of "Session 7" above, together with
+the unfinished work from entry 11:
+
+- Your spot goes to `POST /here` when you stop walking and when the page
+  closes, onto new `visits` columns (ADR 0009). Everyone is drawn where
+  she stopped.
+- Shinzo is the dog's name in every word anyone sees, and he's awake in
+  the daytime.
+- Things light up, with buttons, when you're near them.
+- One study table each.
+- The art addresses carry a fingerprint.
+
+Three spec tests are new: keeping your spot (with Shinzo beside you after
+a treat), sleeping or sitting anywhere, and the hotspots offering the right
+things. `/sit` and `/here` were added to the "only takes things" test.
+`pnpm check` passed 24/24 against a scratch house in `/tmp`.
+
+**How it was checked in a browser:**
+
+- Rithika walked to (495, 296). A reload in a fresh browser brought her
+  back to the same spot.
+- Walking her to Amirdhavarshini's bed lit it gold. "Sleep in
+  Amirdhavarshini's bed" appeared above "Go into Amirdhavarshini's room",
+  at laptop width, at 390px with the stick, and on an iPad (820px, touch).
+- Her room now has one study table.
+- `/room/3` at 390px showed tidy, sleep, and sit on your cushion together.
+- A real tap on Neha's window at the door let me in as Neha. She was still
+  sitting on the living room sofa, with Shinzo beside her.
+
+**Commits:** [`8c0b81e`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/8c0b81e)
+(the code, the art, the spec, README, `CLAUDE.md` and ADR 0009), and this
+log entry.
