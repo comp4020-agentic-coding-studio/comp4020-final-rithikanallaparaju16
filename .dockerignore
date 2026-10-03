@@ -12,3 +12,4 @@ data
 mise.local.toml
 *.pem
 .claude
+stitch_virtual_shared_house

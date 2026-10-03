@@ -104,7 +104,7 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect(found, `${b.name} can't find the note ${a.name} pinned up`).toBeDefined();
     expect(text(found)).toContain(a.name);
     expect(found!.classList.contains("new")).toBe(true);
-    expect(text((await page("/", b.id)).querySelector(".away"))).toContain(`${a.name} wrote on the wall`);
+    expect(text((await page("/updates", b.id)).querySelector(".away"))).toContain(`${a.name} wrote on the wall`);
   });
 
   it("knows which notes are yours", async () => {
@@ -146,7 +146,7 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect(desk, `${b.name} can't find the note on her desk`).toBeDefined();
     expect(text(desk)).toContain(a.name);
     expect(text(desk)).toContain("masala chai");
-    expect(text((await page("/", b.id)).querySelector(".away"))).toContain(`${a.name} left a note and a cup of masala chai on your desk`);
+    expect(text((await page("/updates", b.id)).querySelector(".away"))).toContain(`${a.name} left a note and a cup of masala chai on your desk`);
 
     const peek = await page(`/room/${b.id}`, c.id);
     expect(text(peek.body)).not.toContain(note);
@@ -167,7 +167,7 @@ describe.skipIf(!throwaway)("living in the house", () => {
     const [a, b] = await people();
     expect((await post(`/room/${b.id}/tidy`, {}, a.id)).status).toBe(303);
 
-    expect(text((await page("/", b.id)).querySelector(".away"))).toContain(`${a.name} tidied your room`);
+    expect(text((await page("/updates", b.id)).querySelector(".away"))).toContain(`${a.name} tidied your room`);
     expect(text((await page(`/room/${b.id}`, b.id)).querySelector(".status"))).toContain(`Last tidied by ${a.name}`);
   });
 
@@ -185,8 +185,20 @@ describe.skipIf(!throwaway)("living in the house", () => {
     const [a, b, c] = await people();
     expect((await post("/garden/dog", {}, b.id)).status).toBe(303);
 
-    expect((await page(`/room/${b.id}`, a.id)).querySelector(".scene .dog")).not.toBeNull();
-    expect((await page(`/room/${c.id}`, a.id)).querySelector(".scene .dog")).toBeNull();
+    const house = await page("/", a.id);
+    expect(house.querySelector(`.laddoo[data-place="room:${b.id}"]`), `Laddoo isn't in ${b.name}'s room`).not.toBeNull();
+    expect(house.querySelector(`.laddoo[data-place="room:${c.id}"]`)).toBeNull();
+  });
+
+  it("shows a friend who's home right now wherever they are in the house", async () => {
+    const [a, b] = await people();
+    await page("/kitchen", a.id);
+
+    const house = await page("/", b.id);
+    const friend = house.querySelector(`.walker[data-person="${a.id}"]`);
+    expect(friend, `${b.name} can't see ${a.name} in the house`).not.toBeNull();
+    expect(friend!.getAttribute("data-place")).toBe("kitchen");
+    expect(text(withText(await page("/everyone", b.id), ".clocks li", a.name))).toContain("home now, in the kitchen");
   });
 
   it("only takes things the house actually has", async () => {

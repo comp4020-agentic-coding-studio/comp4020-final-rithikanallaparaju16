@@ -18,21 +18,25 @@ A good version of this house:
 
 ## The house
 
-The house is drawn from above, like a game. The garden is out the back, five bedrooms open onto the hallway, and the living room, kitchen and Amirdhavarshini's room are along the front. Amirdhavarshini's is the biggest room, with the biggest bed and a mat on the floor, because that's where everyone hangs out. Tap any room to go in.
+The house is a cutaway seen from above, like a game, illustrated in Google Stitch. Amirdhavarshini's room is the big one in the corner, with the biggest bed and a round mat and cushions on the floor, because that's where everyone hangs out. The kitchen and the living room are in the middle, the garden is out the back, and Rithika's, Rithanya's, Aswathy's and Neha's rooms run along the front. Tap any room to go in, and your avatar walks there.
+
+Each of us is a little sticker in the house. Whoever's awake wanders around her room, and anyone who's been here in the last ten minutes is wherever she last went, so you can find a friend in the kitchen. During their sleep hours, friends are tucked up in bed.
 
 Each bedroom is someone's own:
 
 - **Neha's** has a pink tablecloth, a blue checked blanket and the board games. Neha sleeps the longest in the house.
-- **Rithanya's** has a box of cats on the study table and UPSC books everywhere. She sleeps in too.
-- **Aswathy's** has a yoga mat, a quiet corner with two cushions for meditating together, and a banana that should have been thrown out a while ago. Tidying doesn't touch the banana.
-- **Rithika's** has fairy lights, a plant and a desk by the window.
+- **Rithanya's** has UPSC books on the study table, and cats in boxes and baskets. She sleeps in too.
+- **Aswathy's** has a yoga mat for meditating and bananas that should have been thrown out a while ago. Tidying doesn't touch the bananas.
+- **Rithika's** has shelves of little bottles and jars, a pink bed and a desk.
 - **Amirdhavarshini's** has the hangout mat, with a cushion for each of us around it.
 
 Everyone has a laptop.
 
+On a laptop, the house sits beside "while you were away" and everyone's clocks. On a phone, the house fills the screen and you pan around it, with tabs at the bottom for Home, Updates and Everyone.
+
 ## Every room keeps its owner's time
 
-A bedroom runs on its owner's clock. If it's late afternoon in Canberra and 3 am in New Jersey, Rithika's room is in evening light and Neha's is dark, with Neha asleep in bed, whoever is looking. Each room's window shows the sky where that friend is. The living room, kitchen and garden follow your own clock.
+A bedroom runs on its owner's clock. If it's late afternoon in Canberra and 3 am in New Jersey, Rithika's room is in evening light and Neha's is dark, with Neha asleep in bed and a lamp on in Rithika's, whoever is looking. Each room's name tag shows its owner's time. The living room, kitchen and garden follow your own clock.
 
 Characters sleep at night where they live: Neha from 11:30 pm to 10:30 am, Rithanya from 11:30 pm to 9:30 am, and everyone else from 11 pm to 7 am. Anyone who's been in the house in the last ten minutes is shown awake and "home now", so being there at the same time shows.
 
@@ -43,29 +47,31 @@ Characters sleep at night where they live: Neha from 11:30 pm to 10:30 am, Ritha
 - **Cook for everyone.** Leave a dish out on the kitchen counter. It stays out for three days.
 - **Tidy someone's room.** Rooms get a little lived-in after a couple of days, and messier after five. Anyone can tidy any room, and the owner finds out who did.
 - **Look after the garden.** Everyone has a patch to plant in. Plants sprout, grow and bloom over three days. They look thirsty after two days without water, but they never die, and anyone can water the lot.
-- **Play with Laddoo.** He follows whoever played with him back to their room and naps at the foot of their bed for half a day.
+- **Play with Laddoo.** He naps on his blanket under the tree in the garden. Play with him and he follows you back to your room, blanket and all, for half a day.
 
-When you come home, **While you were away** lists what's new since your last visit, starting with what was left for you: who tidied your room, what's on your desk, who wrote on the wall, what's in the kitchen. A visit is a stretch of page loads with no 30-minute gap, so the *new* marks survive a refresh and reset the next time you come back.
+When you come home, **While you were away** lists what's new since your last visit, starting with what was left for you: who tidied your room, what's on your desk, who wrote on the wall, what's in the kitchen. Rooms with something new for you twinkle in the house too. A visit is a stretch of page loads with no 30-minute gap, so the *new* marks survive a refresh and reset the next time you come back. The Updates tab also keeps what happened lately, so there's always something to read.
 
 ## What isn't here yet, on purpose
 
-Photos, drawings, real-time presence, notifications, and editing or deleting things you left. Each one has to show it makes five people feel closer first. The avatars are a first pass; they'll get closer to who's who.
+Photos, drawings, real-time presence, notifications, and editing or deleting things you left. Each one has to show it makes five people feel closer first. Seeing a friend in the kitchen is the nearest the house gets to presence: it's only where she last was, for ten minutes, and you never have to be there at the same time.
 
 Anyone with the link can pick anyone at the door. That's fine for a prototype that strangers at a crit need to walk into, but it means a private desk note is a courtesy, not a lock. A shared front-door key is the likely next step before the real five move in.
 
 ## How it's built
 
-It's kept as small as the problem: one Node process, no framework, no runtime dependencies and no client-side JavaScript. Every page is drawn on the server, and every action is a plain HTML form.
+It's kept as small as the problem: one Node process, no framework and no runtime dependencies. Every page is drawn on the server, and every action is a plain HTML form. One small script makes your avatar walk to the room you tap, but everything works without it.
 
 - `src/server.ts` holds the routes.
-- `src/store.ts` keeps everything people leave in one SQLite table (Node's built-in `node:sqlite`), in a file on the Fly volume at `/data`, the only storage that survives a redeploy.
+- `src/store.ts` keeps everything people leave in one SQLite table (Node's built-in `node:sqlite`), plus when each friend was last here and where, in a file on the Fly volume at `/data`, the only storage that survives a redeploy.
 - `src/house.ts` works out what the house looks like from that log: how messy a room is, how thirsty the plants are, where Laddoo is, and what's on the counter.
 - `src/time.ts` turns each friend's time zone into a clock and a time of day.
-- `src/art.ts` draws the house, the rooms, the five of us and Laddoo as SVG.
-- `src/pages.ts` puts the pages together, and `public/style.css` styles them.
+- `src/scene.ts` lays an SVG layer over the illustration: the rooms as links, each room's light, what's been left, Laddoo and the five of us.
+- `src/art.ts` draws the small things in SVG: food, notes, clutter and plants.
+- `src/pages.ts` puts the pages together, `public/style.css` styles them, and `public/house.js` does the walking.
 - `src/people.ts` lists the five, with their cities, time zones and sleep hours.
+- `scripts/cut-art.py` cuts the Stitch exports into the house picture, Laddoo and the five stickers in `public/art/`. It runs by hand, not on the server.
 
-The big decisions (the stack, the storage, who counts as a person, the drawn house, the log of things, and the clocks) are written up as decision records in `doc/adr/` in the repository.
+The big decisions (the stack, the storage, who counts as a person, the illustrated house, the log of things, and the clocks) are written up as decision records in `doc/adr/` in the repository.
 
 Run it locally with `pnpm start` (it keeps its data in `./data`), then run `pnpm check` in another terminal to check it against the spec.
 
@@ -85,6 +91,7 @@ Run it locally with `pnpm start` (it keeps its data in `./data`), then run `pnpm
 - a friend finds out who tidied their room
 - the garden remembers who planted what and who watered it
 - Laddoo follows whoever played with him
+- a friend who's home right now shows up where she is in the house
 - the house only takes things it has
 
 The checks that write only run against a throwaway house, never the deployed one. `PROCESS.md` in the repo records what was verified on the deployed app and how.

@@ -1,6 +1,7 @@
 # 0004. A top-down house, drawn as SVG on the server
 
-Status: proposed. Built in session 2; waiting on Rithika's review.
+Status: superseded by 0007 in session 3, when the house moved to Rithika's
+Google Stitch illustration.
 
 ## Context
 

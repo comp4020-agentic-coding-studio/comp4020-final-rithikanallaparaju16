@@ -24,6 +24,12 @@ db.exec(`
   );
 `);
 
+// Where in the house each friend last was ("room:2", "kitchen"), so the house
+// can show them there while they're home. Added in session 3.
+if (!db.prepare("SELECT 1 FROM pragma_table_info('visits') WHERE name = 'place'").get()) {
+  db.exec("ALTER TABLE visits ADD COLUMN place TEXT NOT NULL DEFAULT ''");
+}
+
 // The first house kept notes in their own table; they move onto the living
 // room wall, where they'd have been.
 if (db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'notes'").get()) {
@@ -55,10 +61,12 @@ const selectThings = db.prepare(
   "SELECT id, author, kind, place, body, item, created_at FROM things ORDER BY created_at DESC, id DESC",
 );
 const selectVisit = db.prepare("SELECT last_seen, seen_until FROM visits WHERE person = ?");
-const selectVisits = db.prepare("SELECT person, last_seen FROM visits");
+const selectVisits = db.prepare("SELECT person, last_seen, place FROM visits");
+// An empty place (the whole house, Updates) keeps wherever you last were.
 const upsertVisit = db.prepare(`
-  INSERT INTO visits (person, last_seen, seen_until) VALUES (?, ?, ?)
-  ON CONFLICT (person) DO UPDATE SET last_seen = excluded.last_seen, seen_until = excluded.seen_until
+  INSERT INTO visits (person, last_seen, seen_until, place) VALUES (?, ?, ?, ?)
+  ON CONFLICT (person) DO UPDATE SET last_seen = excluded.last_seen, seen_until = excluded.seen_until,
+    place = CASE excluded.place WHEN '' THEN visits.place ELSE excluded.place END
 `);
 
 export function leave(t: { author: string; kind: Kind; place: string; body?: string; item?: string }): void {
@@ -83,13 +91,19 @@ export function lastSeen(): Map<string, number> {
   return new Map(selectVisits.all().map((r) => [String(r.person), Number(r.last_seen)]));
 }
 
+// The place each friend was on their last page load, or nothing if they've
+// only ever been at the door or looking at the whole house.
+export function whereabouts(): Map<string, string> {
+  return new Map(selectVisits.all().filter((r) => r.place).map((r) => [String(r.person), String(r.place)]));
+}
+
 // A visit is a run of page loads with no 30-minute gap, so "new" marks survive
 // a refresh or leaving something, and reset only when you come back another time.
 const VISIT_GAP = 30 * 60 * 1000;
 
-// Records that `person` is here now; returns the moment before which
-// everything counts as already seen (0 on a first visit).
-export function recordVisit(person: string): number {
+// Records that `person` is here now, in `place` if they're in a room; returns
+// the moment before which everything counts as already seen (0 on a first visit).
+export function recordVisit(person: string, place = ""): number {
   const now = Date.now();
   const prev = selectVisit.get(person);
   const seenUntil = !prev
@@ -97,7 +111,7 @@ export function recordVisit(person: string): number {
     : now - Number(prev.last_seen) > VISIT_GAP
       ? Number(prev.last_seen)
       : Number(prev.seen_until);
-  upsertVisit.run(person, now, seenUntil);
+  upsertVisit.run(person, now, seenUntil, place);
   return seenUntil;
 }
 

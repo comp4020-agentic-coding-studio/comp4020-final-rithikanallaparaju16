@@ -1,10 +1,11 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { find, FOOD, GIFTS, PLANTS, roomPlace } from "./house.ts";
 import { markdown } from "./markdown.ts";
 import {
   bedroomPage,
   doorPage,
+  everyonePage,
   gardenPage,
   housePage,
   kitchenPage,
@@ -13,6 +14,7 @@ import {
   MAX_NOTE,
   messagePage,
   readmePage,
+  updatesPage,
   type Visit,
 } from "./pages.ts";
 import { personById, type Person } from "./people.ts";
@@ -23,6 +25,13 @@ const YEAR = 365 * 24 * 60 * 60;
 
 const README = new URL("../README.md", import.meta.url);
 const STYLE = new URL("../public/style.css", import.meta.url);
+const SCRIPT = new URL("../public/house.js", import.meta.url);
+const ART = new URL("../public/art/", import.meta.url);
+
+// The house's pictures, made by scripts/cut-art.py. Only files that are there
+// at boot are served, so a path can never reach outside public/art.
+const ART_TYPES: Record<string, string> = { ".png": "image/png", ".jpg": "image/jpeg" };
+const ART_FILES = new Set(readdirSync(ART).filter((f) => ART_TYPES[f.slice(f.lastIndexOf("."))]));
 
 type Headers = Record<string, string>;
 
@@ -62,9 +71,11 @@ async function readForm(req: IncomingMessage): Promise<URLSearchParams | undefin
 const text = (form: URLSearchParams, name: string): string =>
   (form.get(name) ?? "").replace(/\r\n?/g, "\n").trim();
 
-function visit(me: Person): Visit {
-  const seenUntil = store.recordVisit(me.id);
-  return { me, things: store.things(), seen: store.lastSeen(), seenUntil, now: Date.now() };
+// `place` is the room this page is in; the whole house and the tabs leave you
+// wherever you last were.
+function visit(me: Person, place = ""): Visit {
+  const seenUntil = store.recordVisit(me.id, place);
+  return { me, things: store.things(), seen: store.lastSeen(), where: store.whereabouts(), seenUntil, now: Date.now() };
 }
 
 // Confirmations after leaving something. Only these fixed lines are ever shown,
@@ -113,6 +124,18 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   if (route === "GET /readme") return redirect(res, "/readme/");
   if (route === "GET /readme/") return send(res, 200, readmePage(markdown(readFileSync(README, "utf8"))));
   if (route === "GET /style.css") return send(res, 200, readFileSync(STYLE), "text/css; charset=utf-8");
+  if (route === "GET /house.js") return send(res, 200, readFileSync(SCRIPT), "text/javascript; charset=utf-8");
+  const art = req.method === "GET" && pathname.startsWith("/art/") ? pathname.slice("/art/".length) : undefined;
+  if (art !== undefined) {
+    if (!ART_FILES.has(art)) return send(res, 404, messagePage("Nothing here", "There's no picture by that name."));
+    res.writeHead(200, { "content-type": ART_TYPES[art.slice(art.lastIndexOf("."))], "cache-control": "public, max-age=86400" });
+    return void res.end(readFileSync(new URL(art, ART)));
+  }
+
+  if (route === "GET /updates" || route === "GET /everyone") {
+    if (!me) return redirect(res, "/");
+    return send(res, 200, pathname === "/updates" ? updatesPage(visit(me)) : everyonePage(visit(me)));
+  }
 
   const roomMatch = pathname.match(/^\/room\/([^/]+)(\/leave|\/tidy)?$/);
   const owner = roomMatch ? personById(roomMatch[1]) : undefined;
@@ -125,7 +148,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   };
   if (req.method === "GET" && (pages[pathname] || (owner && !roomMatch?.[2]))) {
     if (!me) return redirect(res, "/");
-    const v = visit(me);
+    const v = visit(me, owner ? roomPlace(owner.id) : pathname.slice(1));
     return send(res, 200, owner ? bedroomPage(owner, v, confirmation(did, owner)) : pages[pathname](v));
   }
 
