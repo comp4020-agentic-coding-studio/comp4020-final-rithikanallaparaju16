@@ -117,4 +117,4 @@ Run it locally with `pnpm start` (it keeps its data in `./data`), then run `pnpm
 - a movie night shows at the right time in each friend's own clock
 - the house only takes things it has
 
-The checks that write only run against a throwaway house, never the deployed one. `PROCESS.md` in the repo records what was verified on the deployed app and how.
+The checks that write only run against a throwaway house, never the deployed one. `doc/process-log.md` in the repo records what was verified on the deployed app and how.

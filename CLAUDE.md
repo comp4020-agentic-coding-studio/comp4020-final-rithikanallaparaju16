@@ -198,8 +198,14 @@ call a deploy working without that check.
 ## Process rules
 
 - After every prompt, add an entry to the project log at the bottom of
-  PROCESS.md: what was asked, what the agent did, any correction Rithika made,
-  and the commit hash(es).
+  `doc/process-log.md`: what was asked, what the agent did, any correction
+  Rithika made, and the commit hash(es). Session decisions, what went wrong
+  and how the harness changed go in that file too.
+- `PROCESS.md` is Rithika's overview for markers, not the log. It runs to
+  900–1100 words and is rewritten, not appended to, at each crit. Every claim
+  cites a commit as a link whose text is the hash, and `pnpm check:evidence`
+  checks they resolve. Don't add to it unless she asks. The brief advises
+  she drafts it herself.
 - Record corrections and interruptions as they happened. Don't invent
   interactions or guess at motives.
 - Never read or print `mise.local.toml`; it holds the Fly token.
