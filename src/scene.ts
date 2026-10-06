@@ -161,6 +161,9 @@ const PATCHES: Pt[] = [[1075, 138], [1150, 138], [1188, 200], [1180, 228], [1100
 
 export type Spot = { key: string; color?: string; fresh: boolean };
 
+// A dish on the counter, and what eating it is called ("Eat Neha's dosa").
+export type Dish = Spot & { id: number; label: string };
+
 // Something you can do at a thing in the picture: post a form (with its
 // fields), or go to a page. public/house.js offers it when you walk up, with
 // its emoji on the button, and pops the emoji over the thing as you do it.
@@ -190,7 +193,7 @@ export type Scene = {
   me: Person;
   bedrooms: Bedroom[];
   figures: Figure[];
-  dishes: Spot[];
+  dishes: Dish[];
   // Kettle Maggi on Amirdhavarshini's mat.
   kettle: boolean;
   // `with` is whoever last petted him.
@@ -350,6 +353,8 @@ function pops(s: Scene, standing: Map<string, Pt>): string {
     kettle: above(MAT_TABLE, 44),
     wall: [WALL_MIDDLE],
     dish: above(COUNTER[1], 30),
+    // Over whoever ate it, who's usually standing in front of the counter.
+    eat: above(you, 118),
     nap: above(you, 42),
     sit: above(you, 90),
     mask: above(you, 108),
@@ -387,7 +392,11 @@ function hotspots(s: Scene): string {
     { place: `room:${YOGA_ROOM}`, area: YOGA, doings: [{ label: "Meditate on the yoga mat", emoji: EMOJI.yoga, post: "/sit", fields: { seat: "yoga" } }] },
     { place: "living", area: WALL_BOARD, doings: [{ label: "Write on the wall", emoji: EMOJI.write, href: "/living#write" }, { label: "Read the wall", emoji: EMOJI.read, href: "/living#wall" }] },
     { place: "living", area: SOFAS, doings: [{ label: "Sit on the sofa", emoji: EMOJI.sit, post: "/sit", fields: { seat: "sofa" } }, { label: "Plan a movie night", emoji: EMOJI.night, href: "/movies" }] },
-    { place: "kitchen", area: STOVE, doings: [{ label: "Cook something", emoji: EMOJI.dish, href: "/kitchen#cook" }] },
+    // Whatever's out on the counter can be eaten, which takes it away.
+    { place: "kitchen", area: STOVE, doings: [
+      { label: "Cook something", emoji: EMOJI.dish, href: "/kitchen#cook" },
+      ...s.dishes.slice(0, COUNTER.length).map((d): Doing => ({ label: d.label, emoji: EMOJI.eat, post: "/kitchen/eat", fields: { dish: String(d.id) } })),
+    ] },
     { place: "garden", area: PATCHES, doings: [{ label: "Water the garden", emoji: EMOJI.water, post: "/garden/water" }, { label: "Plant something", emoji: EMOJI.plant, href: "/garden#plant" }] },
   );
   const svg = spots.map((h) => `<g class="act" data-place="${h.place}" data-do="${esc(JSON.stringify(h.doings))}"><polygon class="halo" points="${pts(h.area)}"/><polygon class="edge" points="${pts(h.area)}"/></g>`);

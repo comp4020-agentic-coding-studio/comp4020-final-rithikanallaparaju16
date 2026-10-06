@@ -3,6 +3,7 @@ import { art } from "./assets.ts";
 import {
   counter,
   desk,
+  dishName,
   dog,
   DOG,
   find,
@@ -230,7 +231,7 @@ function freshPlaces(v: Visit): Set<string> {
   for (const t of v.things) {
     if (!isNew(t, v)) continue;
     if (t.kind === "note") out.add("living");
-    else if (t.kind === "dish") out.add("kitchen");
+    else if (t.kind === "dish" || t.kind === "eat") out.add("kitchen");
     else if (t.kind === "water" || t.kind === "plant" || t.kind === "play" || t.kind === "treat") out.add("garden");
     else if (t.kind === "kettle" || t.kind === "mask") out.add(t.place);
     else if (t.place === roomPlace(v.me.id)) out.add(t.place);
@@ -271,7 +272,12 @@ function scene(v: Visit, focus?: string, did?: string): Scene {
         spot: spotOf(p, v),
       };
     }),
-    dishes: counter(v.things, v.now).map((t) => ({ key: t.item, fresh: isNew(t, v) })),
+    dishes: counter(v.things, v.now).map((t) => ({
+      key: t.item,
+      fresh: isNew(t, v),
+      id: t.id,
+      label: `Eat ${t.author === v.me.id ? "your" : `${nameOf(t.author)}'s`} ${dishName(t)}`,
+    })),
     kettle: kettle(v.things, v.now) !== undefined,
     dog: { place: d.place, awake: d.awake, with: d.with?.id },
     fresh: freshPlaces(v),
@@ -363,6 +369,14 @@ function happening(t: Thing, me: Person, all: Thing[]): Happening | undefined {
     }
     case "dish":
       return { text: `${by} made ${find(FOOD, t.item)?.short ?? "something"} for everyone`, href: "/kitchen", forYou: false, at };
+    case "eat": {
+      // The cook hears who ate what she made.
+      const dish = all.find((d) => `dish:${d.id}` === t.place);
+      if (!dish) return undefined;
+      if (dish.author === t.author) return { text: `${by} finished ${mine ? "your" : "her"} own ${dishName(dish)}`, href: "/kitchen", forYou: false, at };
+      if (dish.author === me.id) return { text: `${by} ate your ${dishName(dish)}`, href: "/kitchen", forYou: true, at };
+      return { text: `${by} ate ${nameOf(dish.author)}'s ${dishName(dish)}`, href: "/kitchen", forYou: false, at };
+    }
     case "water":
       return { text: `${by} watered the garden`, href: "/garden", forYou: false, at };
     case "plant":
@@ -738,11 +752,12 @@ export function kitchenPage(v: Visit, did?: Done): string {
   const list = dishes.map((t) => {
     const dish = find(FOOD, t.item);
     const cls = ["dish", isNew(t, v) ? "new" : "", t.author === v.me.id ? "mine" : ""].filter(Boolean).join(" ");
-    return `<li class="${cls}">${isNew(t, v) ? `<span class="tag">new</span>` : ""}<span class="icons">${iconSvg(t.item)}</span><div><p class="body">${esc(`${cap(by(t, v))} made ${dish?.short ?? "something"}`)}</p>${t.body ? `<p class="body hand">${esc(t.body)}</p>` : ""}<p class="by">${esc(ago(t.createdAt, v.now))}</p></div></li>`;
+    const eat = `<form method="post" action="/kitchen/eat" class="inline"><button class="soft" name="dish" value="${t.id}">${emoji("eat")} Eat it</button></form>`;
+    return `<li class="${cls}" data-id="${t.id}">${isNew(t, v) ? `<span class="tag">new</span>` : ""}<span class="icons">${iconSvg(t.item)}</span><div><p class="body">${esc(`${cap(by(t, v))} made ${dish?.short ?? "something"}`)}</p>${t.body ? `<p class="body hand">${esc(t.body)}</p>` : ""}<p class="by">${esc(ago(t.createdAt, v.now))}</p>${eat}</div></li>`;
   }).join("\n");
 
   return roomPage(v, "kitchen", "The kitchen", `
-  ${roomHead("The kitchen", "Cook something and leave it out for everyone. Food stays on the counter for three days.", undefined, "#c4553c")}
+  ${roomHead("The kitchen", "Cook something and leave it out for everyone. Food stays on the counter for three days, or until someone eats it.", undefined, "#c4553c")}
   ${done(did)}
   ${laddooCard("kitchen", v)}
   <section class="card" aria-labelledby="counter-heading">

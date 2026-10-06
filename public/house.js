@@ -190,25 +190,50 @@
   /* ---------- Shinzo ---------- */
 
   // He trots after you if you were the last to pet him or feed him, a step
-  // behind, on whichever side you're walking away from.
+  // behind, on whichever side you're walking away from. His picture faces
+  // left; he turns to face the way he's going, and then to face you.
   const laddoo = svg.querySelector(`g.laddoo[data-with="${me.dataset.person}"]`);
   const dogScale = laddoo ? spot(laddoo).a : 1;
   let dog = laddoo ? [spot(laddoo).e, spot(laddoo).f] : undefined;
+  let face = 1;
   let side = 1;
   let trotting = false;
   let trotted = 0;
   const besideYou = () => [x + side * 50, y + 6];
-  const putDog = () => laddoo.setAttribute("transform", `translate(${dog[0].toFixed(1)} ${dog[1].toFixed(1)}) scale(${dogScale})`);
+  const putDog = () =>
+    laddoo.setAttribute("transform", `translate(${dog[0].toFixed(1)} ${dog[1].toFixed(1)}) scale(${face * dogScale} ${dogScale})`);
 
   function trot(now) {
     const [tx, ty] = besideYou();
     const k = still ? 1 : 1 - Math.exp(-5 * Math.min(0.05, (now - trotted) / 1000));
     trotted = now;
+    if (Math.abs(tx - dog[0]) > 2) face = tx < dog[0] ? 1 : -1;
     dog = [dog[0] + (tx - dog[0]) * k, dog[1] + (ty - dog[1]) * k];
-    putDog();
     trotting = Math.hypot(tx - dog[0], ty - dog[1]) > 0.5;
+    if (!trotting) face = dog[0] >= x ? 1 : -1;
+    laddoo.classList.toggle("trotting", trotting);
+    putDog();
     if (trotting) requestAnimationFrame(trot);
   }
+
+  // Petting him or giving him a treat wakes him up where he is. The page you
+  // land on has him at your heels; he gets up from where he was and comes
+  // over, so that spot rides along for one page load.
+  const PUP = "five-windows-pup";
+  function rememberPup(g) {
+    try {
+      const m = spot(g);
+      sessionStorage.setItem(PUP, JSON.stringify({ x: m.e, y: m.f, at: Date.now() }));
+    } catch {
+      // he's just at your heels when you land
+    }
+  }
+  // The room pages' own Pet and Treat buttons, too.
+  document.addEventListener("submit", (event) => {
+    const action = event.target.getAttribute("action");
+    const g = svg.querySelector("g.laddoo");
+    if (g && (action === "/garden/dog" || action === "/garden/treat")) rememberPup(g);
+  });
 
   function heel() {
     if (!laddoo || trotting) return;
@@ -319,6 +344,7 @@
     if (t.dog) {
       t.g.classList.add("awake");
       for (const z of t.g.querySelectorAll(".zz")) z.remove();
+      rememberPup(t.g);
     }
     const fields = { ...d.fields };
     // Shinzo is wherever he is now, which may not be where the page drew him.
@@ -584,6 +610,14 @@
     }
   } catch {
     // start at your spot
+  }
+  // Just petted or fed: he gets up from where he was and comes to you.
+  try {
+    const was = JSON.parse(sessionStorage.getItem(PUP) ?? "null");
+    sessionStorage.removeItem(PUP);
+    if (dog && was && Date.now() - was.at < 20000) dog = [was.x, was.y];
+  } catch {
+    // he's already at your heels
   }
   if (dog) putDog();
   draw();

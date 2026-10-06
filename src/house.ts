@@ -77,9 +77,14 @@ export function mess(things: Thing[], id: string, now: number): 0 | 1 | 2 {
   return days < 2 ? 0 : days < 5 ? 1 : 2;
 }
 
-// Food stays out on the counter for three days.
-export const counter = (things: Thing[], now: number): Thing[] =>
-  things.filter((t) => t.kind === "dish" && now - t.createdAt < 3 * DAY);
+// Food stays out on the counter for three days, or until someone eats it.
+export function counter(things: Thing[], now: number): Thing[] {
+  const eaten = new Set(things.filter((t) => t.kind === "eat").map((t) => t.place));
+  return things.filter((t) => t.kind === "dish" && now - t.createdAt < 3 * DAY && !eaten.has(`dish:${t.id}`));
+}
+
+// What a dish is called after "ate your": "dosa", "mango".
+export const dishName = (t: Thing): string => (find(FOOD, t.item)?.short ?? "food").replace(/^a /, "");
 
 export function plants(things: Thing[]): Map<string, Thing> {
   const mine = new Map<string, Thing>();

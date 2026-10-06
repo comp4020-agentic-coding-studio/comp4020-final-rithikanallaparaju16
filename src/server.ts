@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { ART, ART_TYPES, isArt } from "./assets.ts";
-import { DOG, find, FOOD, GIFTS, KETTLE_ROOM, MASK_ROOM, movies, PLANTS, roomPlace, SEATS } from "./house.ts";
+import { counter, DOG, find, FOOD, GIFTS, KETTLE_ROOM, MASK_ROOM, movies, PLANTS, roomPlace, SEATS } from "./house.ts";
 import { markdown } from "./markdown.ts";
 import {
   bedroomPage,
@@ -105,6 +105,8 @@ function line(did: string | null, owner?: Person): string | undefined {
       return "Pinned to the wall. Whoever comes by next will see it.";
     case "dish":
       return "Left out on the counter for everyone.";
+    case "eat":
+      return "Every last bite. The plate's off the counter, and the cook will hear it was you.";
     case "water":
       return "The garden's had a good drink.";
     case "plant":
@@ -192,7 +194,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
 
   if (method !== "POST") return send(res, 404, messagePage("Nothing here", "There's no room by that name in this house."));
 
-  const writes = ["/wall", "/kitchen", "/garden/water", "/garden/plant", "/garden/dog", "/garden/treat", "/sit", "/here", "/movies", "/movies/watched", "/movies/night"];
+  const writes = ["/wall", "/kitchen", "/kitchen/eat", "/garden/water", "/garden/plant", "/garden/dog", "/garden/treat", "/sit", "/here", "/movies", "/movies/watched", "/movies/night"];
   if (!writes.includes(pathname) && !roomMatch?.[2]) {
     return send(res, 404, messagePage("Nothing here", "There's no room by that name in this house."));
   }
@@ -261,6 +263,14 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     if (body.length > MAX_DISH_NOTE) return send(res, 400, messagePage("Too long", `Kitchen notes fit up to ${MAX_DISH_NOTE} characters.`, "/kitchen"));
     store.leave({ author: me.id, kind: "dish", place: "kitchen", body, item });
     return redirect(res, "/kitchen?did=dish");
+  }
+
+  // Anyone can eat what's on the counter, which takes it off for everyone.
+  if (pathname === "/kitchen/eat") {
+    const dish = counter(store.things(), Date.now()).find((t) => String(t.id) === form.get("dish"));
+    if (!dish) return send(res, 400, messagePage("All gone", "Someone's already eaten that, or it was out too long.", "/kitchen"));
+    store.leave({ author: me.id, kind: "eat", place: `dish:${dish.id}` });
+    return redirect(res, "/kitchen?did=eat");
   }
 
   if (pathname === "/movies") {

@@ -114,8 +114,9 @@ accepted record.
   controls (arrow keys/WASD, the thumb stick, the Go in button), walks you to
   a tapped room, keeps a phone's view on you, zooms in going into a room and
   out leaving one, walks Shinzo after whoever petted or fed him, and lights
-  up the hotspot you're next to. Where you stepped out of a room rides in
-  `sessionStorage` for one page load only. Where you stopped goes to the
+  up the hotspot you're next to. Where you stepped out of a room, and where
+  Shinzo was when you petted or fed him (so he gets up and comes over on the
+  page you land on), ride in `sessionStorage` for one page load only. Where you stopped goes to the
   server with `sendBeacon` to `POST /here` (204, no page), the one write
   that needs the script, since only the script walks. It reads the room
   outlines and hotspots from the page, so `ROOMS` and `hotspots()` stay the
@@ -142,12 +143,19 @@ accepted record.
 
 - mise isn't active in the agent's shell, so node isn't on PATH. Run
   everything as `mise exec -- <command>` (`mise exec -- pnpm check`).
-- Deploy with `mise exec -- flyctl deploy --remote-only --ha=false -a
-  comp4020-final-rithikanallaparaju16`. mise supplies the token from
-  `mise.local.toml`. If mise says that file isn't trusted, `mise trust
-  mise.local.toml` is the fix; it's Rithika's own file.
-- There's no Docker locally, so Fly's remote builder is the only place the
-  image gets built before CI.
+- The repo has been public since 6 October 2026, and CI now checks and
+  deploys every push to `main` (`.github/workflows/checks.yml`). Shipping is
+  push, then `gh run watch` until `check` and `deploy` pass. Don't
+  `flyctl deploy` by hand any more; a second deploy races CI's. Before that,
+  deploys were `mise exec -- flyctl deploy --remote-only --ha=false -a
+  comp4020-final-rithikanallaparaju16`, with the token from
+  `mise.local.toml` (`mise trust mise.local.toml` if mise refuses it; it's
+  Rithika's own file). `flyctl status` and `flyctl logs` are still fine for
+  reading.
+- Crit cutoffs are tagged: after a shipped deploy before a crit's cutoff, tag
+  the deployed commit `crit-<n>` and push the tag. Re-shipping before the
+  cutoff moves it (`git tag -fa`, then force-push that tag only). Never move
+  one after its cutoff.
 - If port 8080 is already taken (Rithika may have a server running), don't
   kill it. Use `PORT=8091 pnpm start` and `APP_URL=http://localhost:8091 pnpm
   check`. `src/store.ts` migrates the database when it loads, before the server
@@ -190,7 +198,7 @@ accepted record.
 
 ## Deploying
 
-The deployed app is the real app. After deploying, check the live URL: the door
+The deployed app is the real app. After CI deploys, check the live URL: the door
 loads, `/readme/` renders, and the read-only spec passes
 (`APP_URL=https://comp4020-final-rithikanallaparaju16.fly.dev pnpm test`). Never
 call a deploy working without that check.

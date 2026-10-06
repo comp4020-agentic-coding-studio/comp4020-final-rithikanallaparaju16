@@ -305,6 +305,26 @@ agent's calls:
   hours after a pet or a treat. Now he also wakes on the spot when you press
   the button: the z's go and he starts hopping before the page changes.
 
+On 6 October I asked for the dog to wake up and come behind whoever pets
+him, and for food to leave the kitchen table once it's eaten. The agent's
+calls:
+
+- **Shinzo gets up and comes over.** When you pet him or give him a treat,
+  the page remembers where he was, for one page load. On the page you land
+  on he starts there, wakes, and trots to your heels in about a second. He
+  bounds as he goes, faces the way he's walking, then turns to face you. This
+  works from the room pages' Pet and Treat buttons too. His one picture
+  still lies on the blanket, so moving is what shows he's up.
+- **Food can be eaten (`eat`).** There was no way to eat anything before;
+  food just disappeared after three days. Now:
+  - The kitchen counter's glow offers "😋 Eat Neha's dosa" and the like, as
+    well as "Cook something".
+  - Each plate on the kitchen page has an "Eat it" button.
+  - Anyone can eat anything, their own cooking included. Eating takes the
+    plate off the counter for everyone, and the cook hears "Rithika ate your
+    dosa".
+  - 😋✨ pops over whoever ate it.
+
 ## What went wrong, and what we found
 
 - The agent's shell didn't have node on its PATH, because mise wasn't active.
@@ -482,6 +502,9 @@ feel closer before it goes in.
   `doc/process-log.md`, and the process rules in `CLAUDE.md` now say so. They
   also say `PROCESS.md` is my 900–1100-word overview: rewritten at each crit
   rather than appended to, every claim citing a commit, and drafted by me.
+  Later that day, `CLAUDE.md`'s Tooling section changed: CI deploys every
+  push now that the repo is public, so hand deploys with `flyctl` stopped,
+  and crit cutoffs get a `crit-<n>` tag on the deployed commit.
 
 ## Project log
 
@@ -1184,5 +1207,53 @@ retried them.
 
 **Correction:** none.
 
-**Commits:** this log entry. It's committed locally after the tag and not
-pushed, so the tagged and deployed state stays exactly what was checked.
+**Commits:** [`2c57ed6`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/2c57ed6)
+(this log entry). It was committed locally after the tag, and pushed with
+entry 19.
+
+### 19. "once i pet the dog, make the dog wake up and come behind the person thatt pet it" (6 Oct 2026)
+
+**Asked:** "once i pet the dog, make the dog wake up and come behind the
+person thatt pet it. also once the food is eaten, it has to leave the
+kitchen table. and ship the chnages"
+
+**Agent:** built what's under "On 6 October" in Session 7 above:
+
+- `public/house.js` saves Shinzo's spot in `sessionStorage` when you pet or
+  feed him, from the glow or from a room page's buttons. On the page you
+  land on, he trots from there (`trot()` now faces him and adds a `trotting`
+  class), and `style.css` gives him bounds while he moves.
+- A new `eat` kind, whose place is `dish:<id>`. `counter()` leaves out
+  eaten dishes. `POST /kitchen/eat` refuses a dish that's gone. A happening
+  tells the cook. The counter's hotspot and the kitchen page offer it.
+
+One spec test is new: a cooked biryani leaves the counter once a friend
+eats it, the cook hears "ate your biryani", and eating it again is
+refused. `/kitchen/eat` was added to the "only takes things" test.
+`pnpm check` passed 26/26 against the scratch house in `/tmp`.
+
+**How it was checked in a browser:**
+
+- Neha petted Shinzo in the garden, so he was beside her at (1265, 306).
+  Rithika stood a step away, and a scratch script pressed Enter and sampled
+  him every 100ms. On `/garden?did=play` he started at Neha's side, trotted
+  facing right with the `trotting` class, and stopped behind Rithika at
+  (1350, 346) after about a second. Then he turned to face her.
+- Standing Rithika at the counter lit it with "🍳 Cook something" and
+  "😋 Eat Neha's dosa" (plus two older dosas from spec runs). Pressing 2
+  landed on `/kitchen`, the plate was gone, and Neha's Updates said
+  "Rithika ate your dosa".
+- The first 😋✨ pop sat over the counter, which put it right on Rithika's
+  face, so it moved above the eater's head. At 390px it shows there, and
+  every plate in the list has its Eat it button.
+- A real tap on Neha's window at the door still let me in as Neha.
+
+**Correction:** none this prompt.
+
+**Ship (after this commit):** the plan is to push this commit to `main` for
+CI to check and deploy. Then the `crit-8` tag moves to it, since the cutoff
+(7 October, 1:30 pm) hasn't passed. Whether that worked, and what the live
+checks found, goes in the next entry, so this commit stays the one that
+ships.
+
+**Commits:** this log entry, with the code, the spec, README and `CLAUDE.md`.

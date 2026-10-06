@@ -687,6 +687,22 @@ g.laddoo.near .halo {
   animation: hop 2.2s ease-in-out infinite;
 }
 
+/* coming after you (public/house.js): quick little bounds */
+.laddoo.trotting image {
+  transform-box: fill-box;
+  transform-origin: 50% 90%;
+  animation: trot 0.26s ease-in-out infinite alternate;
+}
+
+@keyframes trot {
+  from {
+    transform: translateY(0) rotate(-3deg);
+  }
+  to {
+    transform: translateY(-9px) rotate(3deg);
+  }
+}
+
 @keyframes bob {
   to {
     transform: translateY(-3px);

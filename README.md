@@ -24,7 +24,7 @@ Each of us is a little sticker in the house, and nobody moves unless they're the
 
 Whatever you walk up to that you can use lights up gold: a bed, a desk, the cushions on Amirdhavarshini's mat, Rithanya's mirror, Aswathy's yoga mat, the sofas, the wall of notes, the stove, the garden patches, Shinzo. Buttons for what you can do there appear above the Go in button. On a keyboard, Enter or E does the first one (ahead of going in), and the number keys do the rest.
 
-Everything you can do has a little emoji on its button: 😴 sleep, 💧 water, 🌱 plant, 🐾 pet Shinzo, 🦴 give him a treat, 🧹 tidy, 🍜 kettle Maggi, 🥒 face mask, and so on. The emoji pops up over the thing as you do it. Once it's done, something pops up where you did it: drops fall on the garden, a sprout comes up, hearts float over Shinzo, sparkles show where the clutter was, z's drift over you in bed.
+Everything you can do has a little emoji on its button: 😴 sleep, 💧 water, 🌱 plant, 🐾 pet Shinzo, 🦴 give him a treat, 🧹 tidy, 🍜 kettle Maggi, 🥒 face mask, 😋 eat, and so on. The emoji pops up over the thing as you do it. Once it's done, something pops up where you did it: drops fall on the garden, a sprout comes up, hearts float over Shinzo, sparkles show where the clutter was, z's drift over you in bed.
 
 The house keeps where you stopped. Reload, or come back next week, and you're standing there, with Shinzo beside you if he's with you.
 
@@ -54,11 +54,11 @@ Characters sleep at night where they live: Neha from 11:30 pm to 10:30 am, Ritha
 
 - **Leave something on a friend's desk.** Write a note, add something with it (masala chai, filter coffee, dosa, biryani, Maggi, cake, a mango, a flower, chocolate or a KitKat from Rithanya's box), and it waits on their desk. Only they can read the note; anyone who walks in sees that something's been left.
 - **Write on the living room wall.** Something funny from today, a good-luck wish, anything. Tick "big news" and it stays pinned at the top. Older notes go into a memory box rather than disappearing.
-- **Cook for everyone.** Leave a dish out on the kitchen counter. It stays out for three days.
+- **Cook for everyone, and eat what's out.** Leave a dish out on the kitchen counter. It stays out for three days, or until someone eats it: then the plate's gone from the counter for everyone, and the cook hears who ate it.
 - **Tidy someone's room.** Rooms get a little lived-in after a couple of days, and messier after five. Anyone can tidy any room, and the owner finds out who did.
 - **Look after the garden.** Everyone has a patch to plant in. Plants sprout, grow and bloom over three days. They look thirsty after two days without water, but they never die, and anyone can water the lot.
 - **Sleep or sit down anywhere.** Anyone can sleep in anyone's bed, sit on her cushion on Amirdhavarshini's mat, sit on the sofa, or meditate on Aswathy's yoga mat. Friends who come by find you there, and the bed's owner hears who slept in it. You get up when you walk, or after two hours.
-- **Pet Shinzo, or give him a treat.** He starts on his blanket under the tree in the garden. Pet him or feed him and he comes with you, blanket and all, trotting a step behind as you walk. He stays wherever you leave him for half a day, then wanders back to the garden. Petting him or giving him a treat wakes him straight away, and he stays up for three hours after. Otherwise he's up and about in the daytime (by your clock), hopping around, and at night he naps, unless he's with a friend who's here.
+- **Pet Shinzo, or give him a treat.** He starts on his blanket under the tree in the garden. Pet him or feed him and he wakes up, gets up from wherever he was and trots over behind you, blanket and all. After that he follows a step behind as you walk, facing the way he's going. He stays wherever you leave him for half a day, then wanders back to the garden. Petting him or giving him a treat wakes him straight away, and he stays up for three hours after. Otherwise he's up and about in the daytime (by your clock), hopping around, and at night he naps, unless he's with a friend who's here.
 - **Do a face mask in Rithanya's room.** She always has the powder. Your sticker wears a green mask with cucumber slices for two hours, so a friend who comes by catches you in it, and Rithanya hears whose face used her powder.
 - **Make kettle Maggi in Amirdhavarshini's room.** Like in the hostel. The kettle and two bowls sit out on her mat, steaming, for the night (twelve hours), with a note if you leave one.
 - **Movie time.** Rithanya loves movies, so the Movies tab is hers. Suggest a movie and say why, tick off the ones you've watched, or plan a movie night on the living room sofas. You pick the time in your own clock, and everyone sees it in theirs, with a note if it falls while someone's usually asleep. A new plan replaces the old one. Rithanya's suggestions are marked as her picks.
@@ -102,6 +102,7 @@ Run it locally with `pnpm start` (it keeps its data in `./data`), then run `pnpm
 - only the five can leave things
 - a note left on a friend's desk reaches that friend, and others only see that it's there
 - food from the kitchen is on the counter for everyone
+- food leaves the counter once someone eats it, and the cook hears who ate it
 - a friend finds out who tidied their room
 - the garden remembers who planted what and who watered it
 - Shinzo goes along with whoever pets him, wherever they go

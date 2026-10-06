@@ -59,8 +59,9 @@ export type Kind =
   // and movies (a suggestion, who's watched it, and a planned movie night).
   | "mask" | "kettle" | "movie" | "watched" | "movienight"
   // Session 7: sleeping in any bed, sitting down somewhere (the item is the
-  // seat), and giving Shinzo (then Laddoo) a treat.
-  | "nap" | "sit" | "treat";
+  // seat), and giving Shinzo (then Laddoo) a treat. Then eating a dish off the
+  // counter (the place is `dish:<id>`, like `movie:<id>`).
+  | "nap" | "sit" | "treat" | "eat";
 
 export type Thing = {
   id: number;

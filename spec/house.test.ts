@@ -165,6 +165,19 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect(text(dish)).toContain(`${a.name} made dosa`);
   });
 
+  it("takes food off the counter once someone eats it, and tells the cook", async () => {
+    const [a, b, c] = await people();
+    const note = unique("help yourselves");
+    await post("/kitchen", { item: "biryani", body: note }, a.id);
+    const id = withText(await page("/kitchen", b.id), ".dish", note)?.getAttribute("data-id");
+    expect(id, "the biryani never made it onto the counter").toBeTruthy();
+
+    expect((await post("/kitchen/eat", { dish: id! }, b.id)).headers.get("location")).toBe("/kitchen?did=eat");
+    expect(withText(await page("/kitchen", c.id), ".dish", note), "the empty plate is still on the counter").toBeUndefined();
+    expect(text((await page("/updates", a.id)).querySelector(".away"))).toContain(`${b.name} ate your biryani`);
+    expect((await post("/kitchen/eat", { dish: id! }, c.id)).status, "the same biryani got eaten twice").toBe(400);
+  });
+
   it("tells a friend who tidied their room while they were away", async () => {
     const [a, b] = await people();
     expect((await post(`/room/${b.id}/tidy`, {}, a.id)).status).toBe(303);
@@ -340,6 +353,7 @@ describe.skipIf(!throwaway)("living in the house", () => {
   it("only takes things the house actually has", async () => {
     const [a, b] = await people();
     expect((await post("/kitchen", { item: "pizza" }, a.id)).status).toBe(400);
+    expect((await post("/kitchen/eat", { dish: "999999" }, a.id)).status).toBe(400);
     expect((await post(`/room/${b.id}/leave`, { item: "diamond" }, a.id)).status).toBe(400);
     expect((await post("/garden/plant", { item: "cactus" }, a.id)).status).toBe(400);
     expect((await post(`/room/${a.id}/leave`, { body: "to me" }, a.id)).status).toBe(400);
