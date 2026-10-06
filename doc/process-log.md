@@ -1147,5 +1147,42 @@ check:evidence` still fails on one thing: there's no
 
 **Correction:** none.
 
-**Commits:** this log entry, with the new `PROCESS.md`, the move, and the
-`CLAUDE.md` and README changes, in one commit.
+**Commits:** [`ca52e26`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/ca52e26)
+(this log entry, with the new `PROCESS.md`, the move, and the `CLAUDE.md` and
+README changes).
+
+### 18. "ship it" (6 Oct 2026)
+
+**Asked:** "ship it"
+
+**Agent:** ran the course's ship steps. The first two commands didn't run,
+because Claude Code's safety check was rate-limited. I sent "claude" and it
+retried them.
+
+- **The repo:** `comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16`
+  was already public. I'd also already pushed my own two commits,
+  [`c1e1047`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/c1e1047)
+  (`reflections/README.md`) and
+  [`5224588`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/5224588)
+  (`reflections/crit-8.md`). So there was no visibility flip to do.
+- **The deliverable:** crit 8, "It's alive!", with its cutoff at Wednesday
+  7 October 2026, 1:30 pm.
+- **Preflight:** all passed.
+  - The working tree was clean and nothing was waiting to be pushed.
+  - The remote is on GitHub and the repo is public.
+  - `pnpm check:evidence` passed: it found `reflections/crit-8.md`, and all
+    8 cited commits resolve.
+  - CI's `check` and `deploy` jobs both passed on `5224588`.
+  - The live `/` and `/readme/` answered 200, and `/readme/` had the latest
+    README.
+  - Fly showed the one machine stopped. `fly.toml` stops it when idle and
+    starts it on the next request, which is what the 200 did.
+- **Secret scan:** clean, across the working tree and all reachable history.
+  The repo was already public, so the scan couldn't have stopped anything.
+  It would only have shown something to rotate.
+- **Tag:** `crit-8` on `5224588`, the commit CI deployed, pushed to GitHub.
+
+**Correction:** none.
+
+**Commits:** this log entry. It's committed locally after the tag and not
+pushed, so the tagged and deployed state stays exactly what was checked.
