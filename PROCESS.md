@@ -549,7 +549,8 @@ in the house. Rather than leave test data there, the first real note will be
 mine, and then the agent restarts the machine and checks the note is still
 there.
 
-**Commits:** this log update.
+**Commits:** [`4c7722a`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/4c7722a)
+(this log update).
 
 ### 5. "throw away the last design and do this" (2 Oct 2026)
 
@@ -624,7 +625,8 @@ and carried on from a summary. Before it finished, I sent the next prompt
 **Correction:** none this prompt.
 
 **Commits:** [`d6fc9d0`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/d6fc9d0)
-(the Stitch house), and this log entry.
+(the Stitch house), and [`e79943b`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/e79943b)
+(this log entry).
 
 ### 7. "continue the response, and open the live site for me, keep updating process.md with all the logs and commit hashes" (3 Oct 2026)
 
@@ -865,7 +867,8 @@ the real house.
 
 **Commits:** [`ccf0229`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/ccf0229)
 (Laddoo, the zooms, the shot fix and the docs), [`5ab3a80`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/5ab3a80)
-(this log entry, deployed), and the deploy note. Not pushed to GitHub.
+(this log entry, deployed), and [`abd92a0`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/abd92a0)
+(the deploy note). Not pushed to GitHub.
 
 ### 11. "every time i can do stuff, highlight the things i can do" (3 Oct 2026)
 
@@ -892,6 +895,9 @@ uncommitted until entry 14 picked it up.
 
 **Correction:** none this prompt.
 
+**Commits:** none of its own. The work went into [`8c0b81e`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/8c0b81e)
+with entry 14, and this entry was written in [`6d0ff95`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/6d0ff95).
+
 ### 12. The session 4 message, sent again (3 Oct 2026)
 
 **Asked:** the same message as entry 8, word for word: "okayokay, rithanya
@@ -908,6 +914,9 @@ about half done and that it would carry on. It changed nothing.
 
 **Correction:** none.
 
+**Commits:** none, since nothing changed. This entry was written in
+[`6d0ff95`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/6d0ff95).
+
 ### 13. "open live site" (3 Oct 2026)
 
 **Asked:** "open live site", sent twice; the second came in while the agent
@@ -918,6 +927,9 @@ the browser, once. It said the live site was still session 6, without the
 glow or the table changes, because that work wasn't finished or deployed.
 
 **Correction:** none.
+
+**Commits:** none, since nothing changed. This entry was written in
+[`6d0ff95`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/6d0ff95).
 
 ### 14. "the persistence still doesnt work, and name the dog shinzo, also dont make it always sleep" (3 Oct 2026)
 
@@ -1047,4 +1059,29 @@ something in the real house.
 **Commits:** [`d5599d6`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/d5599d6)
 (the emoji, the pops, the spec, README, `CLAUDE.md` and the session 7
 notes), [`d287c91`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/d287c91)
-(this log entry, deployed), and the deploy note. Not pushed to GitHub.
+(this log entry, deployed), and [`bebcf39`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/bebcf39)
+(the deploy note). Not pushed to GitHub.
+
+### 16. "update prcess.md with the commit hashes as well so i can modify it now" (6 Oct 2026)
+
+**Asked:** "i need you to update prcess.md with the commit hashes as well so
+i can modify it now"
+
+**Agent:** checked every **Commits** line against `git log`. It filled in
+the four that named a commit without its hash:
+
+- entry 4's log update: `4c7722a`
+- entry 6's log entry: `e79943b`
+- entry 10's deploy note: `abd92a0`
+- entry 15's deploy note: `bebcf39`
+
+It also added a **Commits** line to entries 11, 12 and 13, which had none:
+entry 11's work went into `8c0b81e`, and all three entries were written in
+`6d0ff95`. Nothing else in the log changed, and nothing was deployed, since
+`PROCESS.md` isn't part of the app.
+
+**Correction:** none.
+
+**Commits:** this log entry, committed so my own edits start from a clean
+copy. A commit can't contain its own hash, so the agent gave it to me in
+its reply.
