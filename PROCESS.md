@@ -120,7 +120,7 @@ about a house you mostly visit alone.
 
 ## How I know it works
 
-`spec/` has one test per promise the house makes, 23 so far beside the two
+`spec/` has one test per promise the house makes, 24 so far beside the two
 the course ships, run against the app over HTTP. Tests that write only run
 against a throwaway house, so the real one never gets test notes. When the
 agent added the check that nobody wanders, it ran the check against the

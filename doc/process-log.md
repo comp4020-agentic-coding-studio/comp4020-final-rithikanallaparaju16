@@ -1256,4 +1256,40 @@ CI to check and deploy. Then the `crit-8` tag moves to it, since the cutoff
 checks found, goes in the next entry, so this commit stays the one that
 ships.
 
-**Commits:** this log entry, with the code, the spec, README and `CLAUDE.md`.
+**Commits:** [`06c8c86`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/06c8c86)
+(this log entry, with the code, the spec, README and `CLAUDE.md`).
+
+### 20. "update all chnages and ship now" (6 Oct 2026)
+
+**Asked:** "update all chnages and ship now"
+
+**What happened to entry 19's ship:**
+
+- The secret scan came back clean before the push.
+- `06c8c86` was pushed to `main`, and CI run 37425669073 passed both
+  `check` and `deploy`.
+- On the live app, `/` and `/readme/` answered 200. `/readme/` had the
+  new kitchen and Shinzo lines, and the live `house.js` had the code that
+  saves Shinzo's spot and the trotting.
+- The read-only spec passed 4 and skipped 22.
+- A hit-test on the live door, with no tap and no visit, still found Neha's
+  button under the finger.
+- The `crit-8` tag moved from `5224588` to `06c8c86` (it's a tag, so only
+  that ref was force-pushed).
+
+**Agent:** found nothing uncommitted: my machine and GitHub were both at
+`06c8c86`. So "update" meant the written record:
+
+- `PROCESS.md`'s test count went from 23 to 24, since the eating test was
+  new. Nothing else in it was out of date.
+- This log got entry 19's hash and this entry.
+
+The code didn't change, so `pnpm check` runs in CI.
+
+**Correction:** none.
+
+**Ship (after this commit):** the same steps as entry 19: a secret scan,
+push, CI's `check` and `deploy`, the live checks, and then `crit-8` moves
+to this commit. The results go in the next entry.
+
+**Commits:** this log entry, with the `PROCESS.md` count.
