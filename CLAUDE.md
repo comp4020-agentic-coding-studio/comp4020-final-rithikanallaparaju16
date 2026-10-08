@@ -146,12 +146,8 @@ accepted record.
 - The repo has been public since 6 October 2026, and CI now checks and
   deploys every push to `main` (`.github/workflows/checks.yml`). Shipping is
   push, then `gh run watch` until `check` and `deploy` pass. Don't
-  `flyctl deploy` by hand any more; a second deploy races CI's. Before that,
-  deploys were `mise exec -- flyctl deploy --remote-only --ha=false -a
-  comp4020-final-rithikanallaparaju16`, with the token from
-  `mise.local.toml` (`mise trust mise.local.toml` if mise refuses it; it's
-  Rithika's own file). `flyctl status` and `flyctl logs` are still fine for
-  reading.
+  `flyctl deploy` by hand any more; a second deploy races CI's. `flyctl
+  status` and `flyctl logs` are still fine for reading.
 - Crit cutoffs are tagged: after a shipped deploy before a crit's cutoff, tag
   the deployed commit `crit-<n>` and push the tag. Re-shipping before the
   cutoff moves it (`git tag -fa`, then force-push that tag only). Never move
