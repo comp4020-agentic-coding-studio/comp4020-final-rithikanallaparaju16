@@ -61,7 +61,11 @@ export type Kind =
   // Session 7: sleeping in any bed, sitting down somewhere (the item is the
   // seat), and giving Shinzo (then Laddoo) a treat. Then eating a dish off the
   // counter (the place is `dish:<id>`, like `movie:<id>`).
-  | "nap" | "sit" | "treat" | "eat";
+  | "nap" | "sit" | "treat" | "eat"
+  // Session 8: a hug (the item is the others in it, as ids joined by commas),
+  // a birthday wish (the place is her room), and UNO on Amirdhavarshini's mat:
+  // a game dealt (`uno`) and each move in it (`unomove`, placed `uno:<id>`).
+  | "hug" | "wish" | "uno" | "unomove";
 
 export type Thing = {
   id: number;

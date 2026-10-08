@@ -19,10 +19,11 @@ if (!url || !out) {
   process.exit(1);
 }
 
-const port = 9333;
+// SHOT_PORT lets two of these run at once without sharing a browser.
+const port = Number(process.env.SHOT_PORT ?? 9333);
 const chrome = spawn(
   CHROME,
-  ["--headless=new", `--remote-debugging-port=${port}`, "--user-data-dir=/tmp/five-windows-shot", "--hide-scrollbars", "about:blank"],
+  ["--headless=new", `--remote-debugging-port=${port}`, `--user-data-dir=/tmp/five-windows-shot-${port}`, "--hide-scrollbars", "about:blank"],
   { stdio: "ignore" },
 );
 
