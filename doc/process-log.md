@@ -1545,3 +1545,39 @@ home, if Rithika wants either.
 
 **Commits:** none for the code. This entry and the prompt in `PROCESS.md`
 are committed locally and go out with the next push.
+
+### 25. "the living room cant be dark, make it have light everything" (8 Oct 2026)
+
+**Asked:** "the living room cant be dark, make it have light everything"
+
+**Agent:** read it as the living room being lit at every hour, and asked
+nothing first:
+- The living room's outline joined the bedrooms in the `not-bedrooms`
+  mask, so the visitor's night, dusk and dawn shades never reach it.
+- After dark, a warm tint and a lamp glow over the sofas join the fireplace.
+- The kitchen and garden still follow the visitor's clock, and bedrooms
+  their owners'. ADR 0014 records it, superseding that part of 0006.
+
+A new spec test checks that the living room's outline is in the mask on the
+house and on `/living`. It failed against the old code (with the change
+stashed, on a second scratch server) and passes with it. `pnpm check`
+passed 37/37. A 1280px screenshot at 9:48 pm in Canberra showed the living
+room lit and warm, with the kitchen and garden in night shade.
+
+**Decision to redirect:** only the living room. "Everything" could also
+mean the kitchen or the whole house; either is a small change.
+
+**Correction:** none.
+
+**Commits:** [`e81ef0d`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/e81ef0d)
+(the code, test, ADR, README and `CLAUDE.md`), then this entry with the
+prompt in `PROCESS.md`.
+
+**Ship (after this commit):**
+1. Push to `main` and watch CI.
+2. Check the live door and `/readme/`, and run the read-only spec.
+3. Move `crit-9` to the new deployed commit, since the cutoff (14 October)
+   hasn't passed.
+4. Open the live site.
+
+The results go in the next entry.
