@@ -1511,3 +1511,37 @@ so i can change it later"
 4. Open the live site for Rithika.
 
 The results go in the next entry.
+
+### 24. "why is the living room dark" (8 Oct 2026)
+
+**What happened to entry 23's ship:**
+- The diff scan for secrets found only prose about passwords and the
+  session-token code.
+- `571fac5` was pushed to `main`, and CI run 37747374629 passed `check` and
+  `deploy`.
+- On the live app, `/`, `/readme/`, `/live.js` and `/house.js` answered
+  200, and `/readme/` had the new UNO, Shinzo and bedtime lines.
+- `/live` answered `text/event-stream` through Fly's proxy.
+- The read-only spec passed 5 and skipped 31.
+- `crit-9` was tagged on `571fac5` and pushed, and the live site was opened
+  for Rithika.
+- The five worktrees were removed after their branches were merged; the
+  main checkout's `node_modules` was untouched.
+
+**Asked:** "why is the living room dark"
+
+**Agent:** checked the time in Canberra: 9:38 pm. The shared rooms follow
+the visitor's clock (session 3), so after 8 pm they get the night shade,
+with the fireplace glowing, while bedrooms follow their owners' clocks. Then
+it checked that session 8 hadn't made it worse:
+- the shading code in `src/scene.ts` is unchanged since `d22650a`
+- `house.js`'s live swap removes the old `g.light` before putting the new
+  one in, so the shade can't stack
+
+It offered a lighter night shade, or lamps in the living room while someone's
+home, if Rithika wants either.
+
+**Correction:** none.
+
+**Commits:** none for the code. This entry and the prompt in `PROCESS.md`
+are committed locally and go out with the next push.
