@@ -133,3 +133,10 @@ and desktop width. It looks at each screenshot before calling a change
 done. After every deploy it checks the door, `/readme/` and the read-only
 spec, and never anything that writes to the real house. That part is left
 to the five of us.
+
+## Prompts
+
+Every prompt I gave the agent from 8 October, word for word, with the commit it led to.
+
+- "i want you to use liveview for viewing all the updates live, i should not need to refresh my page everytime to see what is going on. and if one person is logged in as one of us, nobody else can choose that person. so max of 5 users can only use my website. i want the avatars to be able to hug eachother. there can be a group hugs of 1,2,3,4 or evan and at max 5 people. the option should show if im close to any user that is online. i also wanna add birthdays and the avatars should be able to celebrate in the whole birthday month. the whole month there should be some decorations in the birthday girls room and a crown on her head. the dog, shinzo can wander whenever he wants. i want him to get up and wander, rn he wanders while sleeping on the mat.Fanning work out to subagents is encouraged for complex tasks. make sure they work together.make nehas sleeping hours to be 10. and give option of the avatars to play uno wheneber they sit togther in amirdhas room. make a uno game w 7 cards to each player. max of 5 players can play this game. so now i will add the birthdays rithika 16th october neha 2nd june aswathy 8th november rithanya january 12th Amirdha may 19th in process.md add this prompt and its hash. do this for every prompt so i can change it later": [`cd89e32`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/cd89e32) (written up in [`2b110a0`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/2b110a0))
+- "continue and open the live after", "continue and ship it when done and open it live" and "continue": the same work, shipped as [`cd89e32`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/cd89e32)
