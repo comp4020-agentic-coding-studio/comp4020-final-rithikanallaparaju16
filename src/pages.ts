@@ -1,4 +1,4 @@
-import { emoji, iconSvg, patchesSvg, plantSvg, POP } from "./art.ts";
+import { emoji, EMOJI, iconSvg, patchesSvg, plantSvg, POP } from "./art.ts";
 import { art } from "./assets.ts";
 import {
   counter,
@@ -31,9 +31,27 @@ import {
 } from "./house.ts";
 import { esc } from "./html.ts";
 import { PEOPLE, personById, type Person } from "./people.ts";
-import { houseSvg, isPlace, type Figure, type Scene, type Spot } from "./scene.ts";
+import { houseSvg, isPlace, type Doing, type Figure, type Scene, type Spot } from "./scene.ts";
 import type { Thing } from "./store.ts";
 import { ago, asleep, clock, dayLabel, hello, localInput, phase, type Phase } from "./time.ts";
+import {
+  canPlay,
+  cardName,
+  COLOR_NAME,
+  COLORS,
+  dealFor,
+  gameOf,
+  games,
+  isWild,
+  onTheMat,
+  players,
+  replay,
+  top,
+  whoseTurn,
+  type Card,
+  type Color,
+  type Game,
+} from "./uno.ts";
 
 export { esc };
 
@@ -171,7 +189,8 @@ const TAB_ICON: Record<Tab, string> = {
 };
 
 function tabs(current: Tab, v: Visit): string {
-  const somethingNew = v.things.some((t) => isNew(t, v));
+  // A card played in UNO isn't news on its own.
+  const somethingNew = v.things.some((t) => isNew(t, v) && t.kind !== "unomove");
   const tab = (key: Tab, href: string, label: string): string =>
     `<a href="${href}"${key === current ? ` aria-current="page"` : ""}><svg viewBox="0 0 24 24" aria-hidden="true">${TAB_ICON[key]}</svg><span>${label}</span>${key === "updates" && somethingNew ? `<span class="dot" title="Something new since you were last here"></span>` : ""}</a>`;
   return `<nav class="tabs" aria-label="Around the house">${tab("home", "/", "Home")}${tab("updates", "/updates", "Updates")}${tab("movies", "/movies", "Movies")}${tab("everyone", "/everyone", "Everyone")}</nav>`;
@@ -233,7 +252,8 @@ function freshPlaces(v: Visit): Set<string> {
     if (t.kind === "note") out.add("living");
     else if (t.kind === "dish" || t.kind === "eat") out.add("kitchen");
     else if (t.kind === "water" || t.kind === "plant" || t.kind === "play" || t.kind === "treat") out.add("garden");
-    else if (t.kind === "kettle" || t.kind === "mask") out.add(t.place);
+    else if (t.kind === "kettle" || t.kind === "mask" || t.kind === "uno") out.add(t.place);
+    else if (t.kind === "unomove") continue;
     else if (t.place === roomPlace(v.me.id)) out.add(t.place);
   }
   return out;
@@ -283,7 +303,19 @@ function scene(v: Visit, focus?: string, did?: string): Scene {
     fresh: freshPlaces(v),
     focus,
     did,
+    uno: unoDoings(v, rests),
   };
+}
+
+// Sitting on the mat with friends, you can deal UNO; in a game, it's a step
+// away from the mat.
+function unoDoings(v: Visit, rests: Map<string, Thing>): { seated: Doing[]; mat: Doing[] } {
+  const mine = gameOf(v.things, v.me.id);
+  const playing = mine !== undefined && !replay(mine, v.things).winner;
+  const yours: Doing = { label: "Your UNO game", emoji: EMOJI.uno, href: "/uno" };
+  const deal: Doing[] = dealFor(v.me.id, rests) ? [{ label: playing ? "Deal a new UNO game" : "Play UNO", emoji: EMOJI.uno, post: "/uno" }] : [];
+  const sitting = onTheMat(rests).includes(v.me.id);
+  return { seated: sitting ? [...(playing ? [yours] : []), ...deal] : [], mat: playing ? [yours] : [] };
 }
 
 /* ---------- the door ---------- */
@@ -348,6 +380,17 @@ function happening(t: Thing, me: Person, all: Thing[]): Happening | undefined {
       return { text: `${by} watched “${title()}”`, href: "/movies", forYou: false, at };
     case "movienight":
       return { text: `${by} planned movie night: “${title()}”, ${dayLabel(me.tz, Number(t.body))}`, href: "/movies", forYou: false, at };
+    // A game of UNO says who dealt it and who won it, not every card.
+    case "uno": {
+      const others = players(t).filter((p) => p !== t.author);
+      const who = [...others.filter((p) => p === me.id).map(() => "you"), ...others.filter((p) => p !== me.id).map(nameOf)];
+      return { text: `${by} started UNO with ${names(who)}`, href: "/uno", forYou: !mine && others.includes(me.id), at };
+    }
+    case "unomove": {
+      const start = all.find((g) => g.kind === "uno" && `uno:${g.id}` === t.place);
+      if (!start || replay(start, all).won?.id !== t.id) return undefined;
+      return { text: `${by} won UNO`, href: "/uno", forYou: !mine && players(start).includes(me.id), at };
+    }
     case "note":
       return { text: t.item === "big" ? `${by} pinned big news on the wall` : `${by} wrote on the wall`, href: "/living", forYou: false, at };
     case "desk": {
@@ -651,6 +694,158 @@ function kettleCard(owner: Person, v: Visit): string {
   </form>`;
 }
 
+/* ---------- UNO on the mat ---------- */
+
+const whoName = (id: string, v: Visit): string => (id === v.me.id ? "you" : nameOf(id));
+
+const turnLine = (g: Game, v: Visit): string =>
+  g.winner ? `${cap(whoName(g.winner, v))} won!` : whoseTurn(g) === v.me.id ? "It's your turn." : `It's ${nameOf(whoseTurn(g))}'s turn.`;
+
+// Sitting on the mat with a friend, anyone can deal. A game, once dealt, waits
+// for whoever's turn it is, however long she's away.
+function unoCard(v: Visit): string {
+  const rests = resting(v.things, v.now, v.where, v.arrived);
+  const dealt = dealFor(v.me.id, rests);
+  const mine = gameOf(v.things, v.me.id);
+  const g = mine && replay(mine, v.things);
+  const playing = g && !g.winner;
+  const mat = onTheMat(rests);
+  const others = (ids: string[]): string => names(ids.filter((p) => p !== v.me.id).map(nameOf));
+  const game = !g ? ""
+    : playing ? `<p class="uno-now${whoseTurn(g) === v.me.id ? " yours" : ""}"><a href="/uno">Your game with ${esc(others(g.players))}</a>. ${esc(turnLine(g, v))}</p>`
+    : `<p class="small">Last game: ${esc(turnLine(g, v))} <a href="/uno">See how it ended</a>.</p>`;
+  const deal = dealt
+    ? `<form method="post" action="/uno" class="inline"><button class="soft">${emoji("uno")} ${playing ? "Deal a new game" : "Deal UNO"} for you and ${esc(others(dealt))}</button></form>
+    <p class="small">Seven cards each. Play your turn whenever you're home; the game waits for whoever's next.</p>`
+    : playing ? "" : `<p class="empty">Sit on the mat with a friend to play.${mat.length ? ` ${esc(cap(names(mat.map((p) => whoName(p, v)))))} ${mat.length === 1 && mat[0] !== v.me.id ? "is" : "are"} on the mat right now.` : ""}</p>`;
+  return `<section class="card uno-card-room" aria-labelledby="uno-heading">
+    <h2 id="uno-heading">UNO on the mat</h2>
+    ${game}
+    ${deal}
+  </section>`;
+}
+
+const UNO_MARK: Record<string, string> = { S: "⊘", R: "⇄", D: "+2", W: "", W4: "+4" };
+
+// A card as it looks on the table: its colour, a tilted white oval with the
+// number or symbol, and the same small in two corners. Wilds are black, with
+// the four colours in the oval.
+function unoFace(c: Card, big = false): string {
+  const v = isWild(c) ? c : c.slice(1);
+  const mark = UNO_MARK[v] ?? v;
+  const colour = isWild(c) ? "w" : c[0];
+  // A 6 and a 9 are underlined, so upside down neither reads as the other.
+  const turnable = v === "6" || v === "9" ? " turnable" : "";
+  return `<span class="uno-card c-${colour}${big ? " big" : ""}${turnable}" aria-hidden="true"><span class="corner">${mark}</span><span class="oval"><span class="mark">${mark}</span></span><span class="corner end">${mark}</span></span>`;
+}
+
+const back = `<span class="uno-back" aria-hidden="true"><span class="oval"><span class="mark">UNO</span></span></span>`;
+
+// The hand in colour order, wilds last.
+const ORDER = "rygbW";
+const RANK = "0123456789SRD4";
+const sorted = (hand: Card[]): Card[] =>
+  [...hand].sort((a, b) => ORDER.indexOf(a[0]) - ORDER.indexOf(b[0]) || RANK.indexOf(a.slice(-1)) - RANK.indexOf(b.slice(-1)) || a.length - b.length);
+
+function lastLine(g: Game, v: Visit): string {
+  if (!g.last) return `${cap(whoName(g.start.author, v))} dealt. ${g.players[0] === v.me.id ? "You go" : `${nameOf(g.players[0])} goes`} first.`;
+  const who = cap(whoName(g.last.by, v));
+  if (g.last.move === "draw") return `${who} drew a card.`;
+  if (g.last.move === "pass") return `${who} kept the card and passed.`;
+  return `${who} played ${isWild(g.last.move) ? "a" : "the"} ${cardName(g.last.move)}${g.last.color ? ` and picked ${COLOR_NAME[g.last.color]}` : ""}.`;
+}
+
+function unoHand(g: Game, v: Visit): string {
+  const hand = g.hands.get(v.me.id) ?? [];
+  const myTurn = !g.winner && whoseTurn(g) === v.me.id;
+  const cards = sorted(hand).map((c, i, all) => {
+    // Only the first of two the same is marked as just drawn.
+    const drawn = g.drawn === c && all.indexOf(c) === i;
+    const ok = myTurn && canPlay(g, v.me.id, c);
+    const tag = drawn ? `<span class="tag">just drawn</span>` : "";
+    if (!isWild(c)) {
+      return `<li class="in-hand${drawn ? " drawn" : ""}">${tag}<button class="uno-play" name="card" value="${c}" aria-label="Play the ${esc(cardName(c))}"${ok ? "" : " disabled"}>${unoFace(c)}</button></li>`;
+    }
+    const swatches = COLORS.map((k: Color) => `<button class="swatch s-${k}" name="card" value="${c}:${k}" aria-label="Play the ${esc(cardName(c))} as ${COLOR_NAME[k]}" title="${COLOR_NAME[k]}"${ok ? "" : " disabled"}></button>`).join("");
+    return `<li class="in-hand wild${drawn ? " drawn" : ""}${ok ? "" : " off"}">${tag}${unoFace(c)}<span class="swatches">${swatches}</span></li>`;
+  }).join("\n");
+  const turn = myTurn
+    ? g.drawn !== undefined
+      ? `<button class="soft" name="card" value="pass">Keep it and pass</button>`
+      : `<button class="soft" name="card" value="draw">${emoji("uno")} Draw a card</button>`
+    : "";
+  const help = g.winner ? "" : myTurn
+    ? g.drawn !== undefined ? "You can play the card you drew, or keep it and pass."
+    : isWild(top(g)) ? `Play a ${COLOR_NAME[g.color]} card or a wild, or draw one.`
+    : `Play a ${COLOR_NAME[g.color]} card, ${/^8/.test(top(g).slice(1)) ? "an" : "a"} ${cardName(top(g)).replace(/^\w+ /, "")}, or a wild. Or draw one.`
+    : `Your cards wait here until it's your turn.`;
+  return `<form method="post" action="/uno/move" class="card uno-hand-card" id="hand">
+    <input type="hidden" name="game" value="${g.start.id}">
+    <h2>Your hand${hand.length === 1 && !g.winner ? ` <span class="uno-call">UNO!</span>` : ""}</h2>
+    <p class="small">${esc(help)}</p>
+    <ul class="uno-hand${myTurn ? "" : " waiting"}">
+${cards}
+    </ul>
+    ${turn ? `<div class="doings">${turn}</div>` : ""}
+  </form>`;
+}
+
+// The discard pile, the colour in play and whose turn it is, above your hand.
+function unoTable(g: Game, v: Visit): string {
+  return `<section class="card uno-table" aria-labelledby="table-heading">
+    <h2 id="table-heading">On the mat</h2>
+    <div class="uno-piles">
+      <div class="uno-pile" title="The draw pile">${back}<span class="count">${g.pile.length} to draw</span></div>
+      <div class="uno-discard">${unoFace(top(g), true)}<span class="in-play c-${g.color}">${esc(cap(COLOR_NAME[g.color]))}</span></div>
+    </div>
+    <p class="uno-turn${!g.winner && whoseTurn(g) === v.me.id ? " yours" : ""}">${esc(turnLine(g, v))}${g.winner ? " 🎉" : ""}</p>
+    <p class="small">${esc(lastLine(g, v))}</p>
+  </section>`;
+}
+
+// Everyone's hand, face down, in the order play goes.
+function unoPlayers(g: Game, v: Visit): string {
+  const order = g.dir === 1 ? g.players : [...g.players].reverse();
+  const rows = g.players.map((p) => {
+    const n = g.hands.get(p)?.length ?? 0;
+    const you = p === v.me.id;
+    const cls = ["uno-player", !g.winner && whoseTurn(g) === p ? "turn" : "", g.winner === p ? "winner" : "", you ? "me" : ""].filter(Boolean).join(" ");
+    const backs = you ? "" : `<span class="backs" data-count="${n}">${back.repeat(n)}</span>`;
+    return `<li class="${cls}" data-person="${esc(p)}" style="--accent:${personById(p)?.color ?? "#8a5a3c"}"><span class="name">${you ? "You" : esc(nameOf(p))}</span>${backs}<span class="count">${n === 1 ? "1 card" : `${n} cards`}${n === 1 && !g.winner ? ` <span class="uno-call">UNO!</span>` : ""}</span></li>`;
+  }).join("\n");
+  return `<section class="card uno-around" aria-labelledby="around-heading">
+    <h2 id="around-heading">Around the mat</h2>
+    <ol class="uno-players">
+${rows}
+    </ol>
+    <p class="small">Play goes ${esc(order.map((p) => (p === v.me.id ? "you" : nameOf(p))).join(" → "))}, and round again.</p>
+  </section>`;
+}
+
+export function unoPage(v: Visit, did?: Done): string {
+  const mine = gameOf(v.things, v.me.id);
+  const start = mine ?? games(v.things)[0];
+  const g = start && replay(start, v.things);
+  const playing = g?.players.includes(v.me.id);
+  const owner = personById(KETTLE_ROOM)!;
+  const body = !g
+    ? `<section class="card"><p class="empty">Nobody's dealt a game yet. Sit on ${esc(owner.name)}'s mat with a friend, and deal.</p><p><a href="/room/${KETTLE_ROOM}">Go to the mat ›</a></p></section>`
+    : `${unoTable(g, v)}
+  ${g.winner ? `<p class="uno-again"><a href="/room/${KETTLE_ROOM}">Back to the mat for another round ›</a></p>` : ""}
+  ${playing ? unoHand(g, v) : `<p class="small">You're not in this game. Sit on the mat with a friend to deal one of your own.</p>`}
+  ${unoPlayers(g, v)}`;
+  return shell("UNO · Five Windows", `
+${bar(v, "home")}
+<main class="list uno">
+  <header class="room-head" style="--accent:${owner.color}">
+    <h1>UNO on the mat</h1>
+    <p class="local">On ${esc(owner.name)}'s mat, like old times. Seven cards each, and the game waits for whoever's turn it is.</p>
+  </header>
+  ${done(did)}
+  ${body}
+</main>`, phase(clock(v.me.tz, v.now)), "page-list");
+}
+
 export function bedroomPage(owner: Person, v: Visit, did?: Done): string {
   const mine = owner.id === v.me.id;
   const c = clock(owner.tz, v.now);
@@ -701,6 +896,7 @@ export function bedroomPage(owner: Person, v: Visit, did?: Done): string {
   ${laddooCard(roomPlace(owner.id), v)}
   ${owner.id === MASK_ROOM ? maskCard(owner, v) : ""}
   ${owner.id === KETTLE_ROOM ? kettleCard(owner, v) : ""}
+  ${owner.id === KETTLE_ROOM ? unoCard(v) : ""}
   <section class="card" id="desk" aria-labelledby="desk-heading">
     <h2 id="desk-heading">${mine ? "On your desk" : `On ${esc(owner.name)}'s desk`}</h2>
     ${left.length ? `<ul class="desk-list">\n${shown}\n</ul>${drawer}` : `<p class="empty">${mine ? "Nothing yet. When a friend leaves you something, it'll be here." : "Nothing yet."}</p>`}

@@ -1912,3 +1912,342 @@ button .emoji,
     font-size: 0.9rem;
   }
 }
+
+/* ---------- UNO on the mat (/uno, and the card in Amirdhavarshini's room) ---------- */
+
+.uno {
+  --uno-r: #d8321e;
+  --uno-y: #f2c418;
+  --uno-g: #3c9a3a;
+  --uno-b: #1f63c4;
+  --uno-w: #232020;
+}
+
+.uno-card,
+.uno-back {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  width: 64px;
+  height: 96px;
+  border-radius: 10px;
+  background: var(--face, var(--uno-w));
+  box-shadow: inset 0 0 0 4px #fff, 0 2px 6px rgba(40, 20, 10, 0.3);
+  color: #fff;
+  font: 700 15px/1 var(--serif);
+  overflow: hidden;
+  vertical-align: top;
+}
+
+.uno-card.big {
+  width: 84px;
+  height: 126px;
+  border-radius: 12px;
+}
+
+.c-r { --face: var(--uno-r); }
+.c-y { --face: var(--uno-y); }
+.c-g { --face: var(--uno-g); }
+.c-b { --face: var(--uno-b); }
+.c-w { --face: var(--uno-w); }
+
+.uno-card .oval,
+.uno-back .oval {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 72%;
+  height: 58%;
+  border-radius: 50%;
+  background: #fff;
+  transform: translate(-50%, -50%) rotate(-30deg);
+  display: grid;
+  place-items: center;
+}
+
+.uno-card .mark {
+  transform: rotate(30deg);
+  color: var(--face);
+  font-size: 30px;
+  letter-spacing: -1px;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.35);
+}
+
+.uno-card.big .mark {
+  font-size: 40px;
+}
+
+.uno-card .corner {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  font-size: 14px;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.4);
+}
+
+.uno-card .corner.end {
+  top: auto;
+  left: auto;
+  right: 8px;
+  bottom: 8px;
+  transform: rotate(180deg);
+}
+
+/* a wild's oval has all four colours */
+.uno-card.c-w .oval {
+  background: conic-gradient(var(--uno-r) 0 25%, var(--uno-b) 0 50%, var(--uno-y) 0 75%, var(--uno-g) 0);
+}
+
+.uno-card.c-w .mark {
+  color: #fff;
+  text-shadow: 0 0 3px #000, 1px 1px 0 #000;
+}
+
+.uno-back {
+  background: var(--uno-w);
+}
+
+.uno-back .oval {
+  background: var(--uno-r);
+}
+
+.uno-back .mark {
+  transform: rotate(30deg) skewX(-8deg);
+  color: var(--uno-y);
+  font: 700 17px/1 var(--serif);
+  text-shadow: 1px 1px 0 #000;
+}
+
+/* the table */
+
+.uno-piles {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 28px;
+  margin: 6px 0 10px;
+}
+
+.uno-pile,
+.uno-discard {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+
+.uno-pile .uno-back {
+  width: 70px;
+  height: 105px;
+  box-shadow: inset 0 0 0 4px #fff, 3px 3px 0 #fff, 4px 4px 0 rgba(0, 0, 0, 0.2), 0 2px 6px rgba(40, 20, 10, 0.3);
+}
+
+.uno-pile .count {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.in-play {
+  padding: 2px 12px;
+  border-radius: 999px;
+  background: var(--face);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+}
+
+.uno-turn {
+  margin: 4px 0 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.uno-turn.yours,
+.uno-now.yours {
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: #fff1d6;
+}
+
+.uno-table > .small {
+  text-align: center;
+}
+
+.uno-players {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.uno-player {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #f6ecd9;
+  border-left: 5px solid var(--accent);
+}
+
+.uno-player.turn {
+  background: #fff1d6;
+  box-shadow: 0 0 0 2px #e09a2c;
+}
+
+.uno-player .name {
+  min-width: 72px;
+  font-weight: 600;
+}
+
+.uno-player .backs {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  padding: 2px 0 2px 16px;
+}
+
+.uno-player .uno-back {
+  width: 26px;
+  height: 39px;
+  margin-left: -14px;
+  border-radius: 5px;
+  box-shadow: inset 0 0 0 2px #fff, 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.uno-player .uno-back .mark {
+  display: none;
+}
+
+.uno-player .count {
+  margin-left: auto;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  color: var(--ink-soft);
+}
+
+.uno-player.me .count {
+  margin-left: 0;
+}
+
+.uno-call {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--uno-r, #d8321e);
+  color: var(--uno-y, #f2c418);
+  font-size: 0.78rem;
+  font-weight: 700;
+  transform: rotate(-6deg);
+}
+
+/* your hand */
+
+.uno-hand {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 10px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.in-hand {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+
+.uno-play {
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  transition: transform 0.15s ease;
+}
+
+.uno-play:not(:disabled):hover,
+.uno-play:not(:disabled):focus-visible {
+  transform: translateY(-6px);
+}
+
+.uno-play:not(:disabled) .uno-card {
+  box-shadow: inset 0 0 0 4px #fff, 0 0 0 3px #f2b233, 0 4px 10px rgba(40, 20, 10, 0.35);
+}
+
+.uno-play:disabled {
+  cursor: default;
+}
+
+/* on your turn, the cards that won't go are dimmed */
+.uno-hand:not(.waiting) .uno-play:disabled .uno-card,
+.uno-hand:not(.waiting) .in-hand.wild.off .uno-card {
+  filter: saturate(0.55) brightness(0.92);
+  opacity: 0.7;
+}
+
+.in-hand.drawn .uno-card {
+  outline: 3px dashed #e09a2c;
+  outline-offset: 3px;
+}
+
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(2, 34px);
+  gap: 4px;
+}
+
+.swatch {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(40, 20, 10, 0.35);
+}
+
+.swatch.s-r { background: var(--uno-r); }
+.swatch.s-y { background: var(--uno-y); }
+.swatch.s-g { background: var(--uno-g); }
+.swatch.s-b { background: var(--uno-b); }
+
+.swatch:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.uno-hand-card .doings {
+  margin-top: 14px;
+}
+
+.uno-again {
+  margin: 0;
+  text-align: center;
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .uno-play {
+    transition: none;
+  }
+}
+
+.uno-card.turnable .mark,
+.uno-card.turnable .corner {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.in-hand .tag {
+  z-index: 2;
+  top: -12px;
+  right: auto;
+  left: 50%;
+  white-space: nowrap;
+  transform: translateX(-50%) rotate(-4deg);
+}

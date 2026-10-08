@@ -367,4 +367,63 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect((await post("/sit", { seat: "throne" }, a.id)).status).toBe(400);
     expect((await post("/here", { x: "5", y: "5" }, a.id)).status).toBe(400);
   });
+
+  // Everyone else goes off to the kitchen, so only `sitting` are on
+  // Amirdhavarshini's mat.
+  async function onlyOnTheMat(sitting: Person[], five: Person[]): Promise<void> {
+    for (const p of five) if (!sitting.includes(p)) await page("/kitchen", p.id);
+    for (const p of sitting) expect((await post("/sit", { seat: "mat" }, p.id)).status).toBe(303);
+  }
+
+  const backs = (doc: Document, id: string): number => doc.querySelectorAll(`.uno-player[data-person="${id}"] .uno-back`).length;
+
+  it("deals UNO, seven cards each, to friends sitting together on Amirdhavarshini's mat", async () => {
+    const five = await people();
+    const amirdha = five.find((p) => p.name === "Amirdhavarshini")!;
+    const [a, b] = five;
+    await onlyOnTheMat([a, b], five);
+    expect((await page(`/room/${amirdha.id}`, a.id)).querySelector("form[action='/uno']"), "the mat doesn't offer UNO to two friends on it").not.toBeNull();
+    const res = await post("/uno", {}, a.id);
+    expect(res.headers.get("location")).toBe("/uno?did=uno");
+
+    for (const [me, other] of [[a, b], [b, a]]) {
+      const table = await page("/uno", me.id);
+      expect(table.querySelectorAll(".uno-hand .in-hand").length, `${me.name} wasn't dealt seven cards`).toBe(7);
+      expect(backs(table, other.id), `${me.name} can't see ${other.name}'s seven cards face down`).toBe(7);
+    }
+    expect(text((await page("/updates", b.id)).querySelector(".away"))).toContain(`${a.name} started UNO with you`);
+  });
+
+  it("only lets whoever's turn it is play UNO", async () => {
+    const five = await people();
+    const [a, b] = five;
+    await onlyOnTheMat([a, b], five);
+    await post("/uno", {}, a.id);
+    const game = (await page("/uno", b.id)).querySelector("input[name=game]")?.getAttribute("value");
+    expect(game, "there's no game on the table").toBeTruthy();
+
+    expect((await post("/uno/move", { game: game!, card: "draw" }, b.id)).status, `${b.name} drew out of turn`).toBe(400);
+    expect((await post("/uno/move", { game: game!, card: "draw" }, a.id)).status, `${a.name} couldn't draw on her turn`).toBe(303);
+  });
+
+  it("deals UNO only when you're sitting on the mat with a friend", async () => {
+    const five = await people();
+    const [a, b, c] = five;
+    await onlyOnTheMat([a, b], five);
+    expect((await post("/uno", {}, c.id)).status, `${c.name} dealt without sitting on the mat`).toBe(400);
+    await page("/kitchen", b.id);
+    expect((await post("/uno", {}, a.id)).status, `${a.name} dealt with nobody else on the mat`).toBe(400);
+  });
+
+  it("deals all five in when everyone's on the mat", async () => {
+    const five = await people();
+    const dealer = five[2];
+    await onlyOnTheMat(five, five);
+    expect((await post("/uno", {}, dealer.id)).status).toBe(303);
+
+    const table = await page("/uno", dealer.id);
+    expect(table.querySelectorAll(".uno-player").length, "not everyone on the mat is playing").toBe(5);
+    expect(table.querySelectorAll(".uno-hand .in-hand").length).toBe(7);
+    for (const p of five.filter((p) => p !== dealer)) expect(backs(table, p.id), `${p.name} wasn't dealt seven`).toBe(7);
+  });
 });
