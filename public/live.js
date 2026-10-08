@@ -88,6 +88,10 @@
     timer = setTimeout(refresh, 250);
   };
 
+  // public/house.js asks for the page again when it can't follow a step on
+  // its own: a friend getting up from a seat, or Shinzo's hour running out.
+  document.addEventListener("house:refresh", soon);
+
   let source;
   function listen() {
     source = new EventSource("/live");
