@@ -76,5 +76,14 @@ keeps Fly's proxy from closing a quiet connection. Each change costs every
 open page one fetch of itself, which is fine for five people and wouldn't be
 for five hundred.
 
+Added later in session 8, when Rithika said "the uno game is lagging": the
+UNO page had no `data-live` part, so a friend's move only showed after a
+reload, and every card played was a whole page load as well. The game is now
+one live part, and the hand is a `data-quick` form: `public/live.js` posts it
+with `fetch` and swaps the answer in, the same way it swaps in a friend's
+change. The form still posts and redirects without the script, and a
+refused move posts again the ordinary way to show why. A button you've just
+pressed no longer counts as being busy with that part; only typing does.
+
 Revisit if the five want to see what each other are typing, or if a page
 fetching itself starts to feel slow.

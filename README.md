@@ -82,7 +82,7 @@ Only one person can be each of us at a time. A friend's window at the door stays
 It's kept as small as the problem: one Node process, no framework and no runtime dependencies. Every page is drawn on the server, and every action is a plain HTML form. One small script lets you walk your avatar around, and another keeps an open page up to date, but everything works without them: rooms are links.
 
 - `src/server.ts` holds the routes, and lets only one person be each of us at a time.
-- `src/live.ts` keeps a line open to every open page (server-sent events) and tells it when something changes or a friend walks; `public/live.js` then fetches the page again and swaps in what's new.
+- `src/live.ts` keeps a line open to every open page (server-sent events) and tells it when something changes or a friend walks; `public/live.js` then fetches the page again and swaps in what's new. It also plays your UNO cards without leaving the page.
 - `src/store.ts` keeps everything people leave in one SQLite table (Node's built-in `node:sqlite`), plus when each friend was last here and where she stopped, in a file on the Fly volume at `/data`, the only storage that survives a redeploy.
 - `src/house.ts` works out what the house looks like from that log: how messy a room is, how thirsty the plants are, where Shinzo's own day has taken him, who's asleep, sitting or hugging where, what's on the counter, who's in a face mask or a party hat, whether there's Maggi out, and the movie list.
 - `src/uno.ts` replays each UNO game from its moves in the log.
@@ -133,6 +133,7 @@ Run it locally with `pnpm start` (it keeps its data in `./data`), then run `pnpm
 - a friend's birthday month brings bunting and a crown, and her friends' wishes reach her
 - friends sitting together on Amirdhavarshini's mat can deal UNO, seven cards each, up to all five
 - only whoever's turn it is can play UNO
+- an open UNO table keeps up with friends' moves, and a card goes down without leaving the page
 - the house only takes things it has
 
 The checks that write only run against a throwaway house, never the deployed one. `doc/process-log.md` in the repo records what was verified on the deployed app and how.

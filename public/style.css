@@ -2216,6 +2216,25 @@ button .emoji,
   outline-offset: 3px;
 }
 
+/* the game swaps in live (public/live.js) without breaking the page's grid */
+.uno-game {
+  display: contents;
+}
+
+/* a card on its way down: it lifts, and the rest of the hand waits */
+.uno-hand-card.sending .in-hand.playing .uno-card {
+  filter: none;
+  opacity: 1;
+  transform: translateY(-14px);
+  transition: transform 0.12s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .uno-hand-card.sending .in-hand.playing .uno-card {
+    transition: none;
+  }
+}
+
 .swatches {
   display: grid;
   grid-template-columns: repeat(2, 34px);

@@ -17,11 +17,14 @@
 
   const kind = (body) => [...body.classList].find((c) => c.startsWith("page-"));
 
-  // Something you're in the middle of: what you're focused on, or a form
-  // you've started filling in.
+  // Something you're in the middle of: a field you're typing in, or a form
+  // you've started filling in. A button you last pressed doesn't count, or a
+  // card you played would keep your hand from ever catching up.
+  const typing = (el) =>
+    el.isContentEditable || /^(TEXTAREA|SELECT)$/.test(el.tagName) || (el.tagName === "INPUT" && !/^(button|submit|reset|hidden|checkbox|radio)$/.test(el.type));
   function busy(region) {
     const focused = document.activeElement;
-    if (focused && focused !== document.body && region.contains(focused)) return true;
+    if (focused && focused !== document.body && region.contains(focused) && typing(focused)) return true;
     for (const field of region.querySelectorAll("input, textarea, select")) {
       if (field.type === "checkbox" || field.type === "radio") {
         if (field.checked !== field.defaultChecked) return true;
@@ -32,6 +35,22 @@
       }
     }
     return false;
+  }
+
+  // The new version of each live part of the page goes in; the house
+  // drawing is handed to public/house.js.
+  function apply(doc) {
+    for (const fresh of doc.querySelectorAll("[data-live]")) {
+      const old = document.querySelector(`[data-live="${CSS.escape(fresh.dataset.live)}"]`);
+      if (!old || old.closest("svg") || busy(old)) continue;
+      old.replaceWith(document.importNode(fresh, true));
+    }
+    const event = new CustomEvent("house:fresh", { detail: { doc }, cancelable: true });
+    if (document.dispatchEvent(event)) {
+      const svg = document.querySelector(".house-svg");
+      const next = doc.querySelector(".house-svg");
+      if (svg && next) svg.replaceWith(document.importNode(next, true));
+    }
   }
 
   let fetching = false;
@@ -58,17 +77,7 @@
         location.reload();
         return;
       }
-      for (const fresh of doc.querySelectorAll("[data-live]")) {
-        const old = document.querySelector(`[data-live="${CSS.escape(fresh.dataset.live)}"]`);
-        if (!old || old.closest("svg") || busy(old)) continue;
-        old.replaceWith(document.importNode(fresh, true));
-      }
-      const fresh = new CustomEvent("house:fresh", { detail: { doc }, cancelable: true });
-      if (document.dispatchEvent(fresh)) {
-        const svg = document.querySelector(".house-svg");
-        const next = doc.querySelector(".house-svg");
-        if (svg && next) svg.replaceWith(document.importNode(next, true));
-      }
+      apply(doc);
     } catch {
       // the next change tries again
     } finally {
@@ -81,12 +90,58 @@
   }
 
   // A friend doing something often writes twice (she sat down, so she's in
-  // that room now); one fetch covers both.
+  // that room now), a few milliseconds apart; one fetch covers both.
   let timer;
   const soon = () => {
     clearTimeout(timer);
-    timer = setTimeout(refresh, 250);
+    timer = setTimeout(refresh, 150);
   };
+
+  // A form marked data-quick (your UNO hand) posts without leaving the page.
+  // The house answers with the page again, and its live parts are swapped
+  // in, so a card goes down without a reload. The pressed card lifts and the
+  // hand waits meanwhile. Anything unexpected posts the ordinary way.
+  document.addEventListener("submit", async (event) => {
+    const form = event.target;
+    const pressed = event.submitter;
+    if (!(form instanceof HTMLFormElement) || !form.hasAttribute("data-quick") || !pressed || event.defaultPrevented) return;
+    event.preventDefault();
+    const data = new URLSearchParams(new FormData(form));
+    if (pressed.name) data.append(pressed.name, pressed.value);
+    const buttons = [...form.querySelectorAll("button")];
+    const was = buttons.map((b) => b.disabled);
+    form.classList.add("sending");
+    pressed.closest("li")?.classList.add("playing");
+    for (const b of buttons) b.disabled = true;
+    const ordinary = () => {
+      buttons.forEach((b, i) => (b.disabled = was[i]));
+      if (pressed.name) {
+        const keep = document.createElement("input");
+        keep.type = "hidden";
+        keep.name = pressed.name;
+        keep.value = pressed.value;
+        form.append(keep);
+      }
+      HTMLFormElement.prototype.submit.call(form);
+    };
+    try {
+      const res = await fetch(form.action, { method: "POST", body: data });
+      // Turned down: nothing was written, so posting again shows why.
+      if (!res.ok) return ordinary();
+      // Somewhere else, or with something to pop up (you won): go there.
+      const to = new URL(res.url);
+      if (to.pathname !== location.pathname || to.searchParams.has("did")) return location.assign(res.url);
+      apply(new DOMParser().parseFromString(await res.text(), "text/html"));
+    } catch {
+      return ordinary();
+    }
+    // A form that wasn't swapped (nothing live to swap) gets its buttons back.
+    if (form.isConnected) {
+      form.classList.remove("sending");
+      form.querySelector(".playing")?.classList.remove("playing");
+      buttons.forEach((b, i) => (b.disabled = was[i]));
+    }
+  });
 
   // public/house.js asks for the page again when it can't follow a step on
   // its own: a friend getting up from a seat, or Shinzo's hour running out.

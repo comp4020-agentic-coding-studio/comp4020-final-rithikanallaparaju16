@@ -123,7 +123,12 @@ accepted record.
   in; then it fires `house:fresh`, and `public/house.js` swaps the SVG's
   groups, keeping your own walker. `moved` becomes `house:moved`, which
   walks that friend. A new card or list on a page needs a `data-live` key,
-  or it won't update live.
+  or it won't update live (the UNO page missed one at first, and felt like
+  lag: a friend's move only showed after a reload). A form marked
+  `data-quick` (UNO's hand) posts with `fetch` and swaps the answer's live
+  parts in without leaving the page; a refusal posts again the ordinary way
+  to show why. Focus on a button never holds back a live swap; only typing
+  does.
 - One of us at a time (ADR 0011). The cookie is `who=<id>.<token>`, and the
   token must match `visits.token`. A friend is held while a page with her
   token is open, or for 2 minutes after her last page load; the door shows

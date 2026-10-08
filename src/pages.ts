@@ -874,7 +874,7 @@ function unoHand(g: Game, v: Visit): string {
     : isWild(top(g)) ? `Play a ${COLOR_NAME[g.color]} card or a wild, or draw one.`
     : `Play a ${COLOR_NAME[g.color]} card, ${/^8/.test(top(g).slice(1)) ? "an" : "a"} ${cardName(top(g)).replace(/^\w+ /, "")}, or a wild. Or draw one.`
     : `Your cards wait here until it's your turn.`;
-  return `<form method="post" action="/uno/move" class="card uno-hand-card" id="hand">
+  return `<form method="post" action="/uno/move" class="card uno-hand-card" id="hand" data-quick>
     <input type="hidden" name="game" value="${g.start.id}">
     <h2>Your hand${hand.length === 1 && !g.winner ? ` <span class="uno-call">UNO!</span>` : ""}</h2>
     <p class="small">${esc(help)}</p>
@@ -937,7 +937,9 @@ ${bar(v, "home")}
     <p class="local">On ${esc(owner.name)}'s mat, like old times. Seven cards each, and the game waits for whoever's turn it is.</p>
   </header>
   ${done(did)}
+  <div class="uno-game" data-live="uno-game">
   ${body}
+  </div>
 </main>`, phase(clock(v.me.tz, v.now)), "page-list");
 }
 

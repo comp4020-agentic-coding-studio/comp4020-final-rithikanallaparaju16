@@ -548,6 +548,22 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect((await post("/uno/move", { game: game!, card: "draw" }, a.id)).status, `${a.name} couldn't draw on her turn`).toBe(303);
   });
 
+  it("keeps an open UNO table up to date, and plays a card without leaving the page", async () => {
+    const five = await people();
+    const [a, b] = five;
+    await onlyOnTheMat([a, b], five);
+    await post("/uno", {}, a.id);
+    const table = await page("/uno", b.id);
+    const live = table.querySelector("[data-live='uno-game']");
+    expect(live?.querySelector(".uno-table"), "the table doesn't change on an open page").toBeTruthy();
+    expect(live?.querySelector("form#hand[data-quick]"), "playing a card reloads the whole page").toBeTruthy();
+
+    const game = live!.querySelector("input[name=game]")!.getAttribute("value")!;
+    expect((await post("/uno/move", { game, card: "draw" }, a.id)).status).toBe(303);
+    // What b's open page fetches when it hears: a's move is on the table.
+    expect(text((await page("/uno", b.id)).querySelector("[data-live='uno-game'] .uno-table"))).toContain(`${a.name} drew a card`);
+  });
+
   it("deals UNO only when you're sitting on the mat with a friend", async () => {
     const five = await people();
     const [a, b, c] = five;
