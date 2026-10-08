@@ -540,4 +540,30 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect(table.querySelectorAll(".uno-hand .in-hand").length).toBe(7);
     for (const p of five.filter((p) => p !== dealer)) expect(backs(table, p.id), `${p.name} wasn't dealt seven`).toBe(7);
   });
+
+  it("lets Shinzo get up and wander the house on his own, the same for everyone", async () => {
+    const [a, b] = await people();
+    const [one, two] = await Promise.all([page("/", a.id), page("/", b.id)]);
+    type Waypoint = [number, number, number, string];
+    const dogOf = (doc: Document): Element => doc.querySelector(".house-svg g.laddoo")!;
+    const path = (doc: Document): Waypoint[] => JSON.parse(dogOf(doc).getAttribute("data-path") ?? "[]");
+    const mine = path(one);
+    const theirs = path(two);
+    const now = Number(dogOf(one).getAttribute("data-now"));
+
+    const hour = mine.filter(([t]) => t <= now + 60 * 60 * 1000);
+    expect(new Set(hour.map(([, x, y]) => `${x},${y}`)).size, "he stays put for the whole hour").toBeGreaterThanOrEqual(2);
+    for (const [, x, y] of mine) {
+      expect(x >= 0 && x <= 1376 && y >= 0 && y <= 768, `(${x}, ${y}) is outside the house`).toBe(true);
+    }
+    const from = Math.max(mine[0][0], theirs[0][0]);
+    expect(theirs.filter(([t]) => t > from), `${a.name} and ${b.name} see him go different ways`).toEqual(mine.filter(([t]) => t > from));
+
+    // Up on his feet unless he's napping; curled up in his picture only then.
+    const dog = dogOf(one);
+    expect(dog.classList.contains("napping"), "he's drawn asleep while he's up, or up while he's asleep").toBe(mine[0][3] === "nap");
+    expect(dog.classList.contains("walking"), "he's walking while standing still, or still while walking").toBe(mine[0][3] === "walk");
+    expect(dog.querySelector(".standing .leg"), "he has no legs to get up on").not.toBeNull();
+    expect(dog.querySelector(".lying image"), "his curled-up picture is gone").not.toBeNull();
+  });
 });

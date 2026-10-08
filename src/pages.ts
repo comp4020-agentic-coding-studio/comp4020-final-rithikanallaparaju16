@@ -1,6 +1,7 @@
 import { emoji, EMOJI, iconSvg, patchesSvg, plantSvg, POP } from "./art.ts";
 import { art } from "./assets.ts";
 import {
+  along,
   counter,
   desk,
   dishName,
@@ -25,13 +26,16 @@ import {
   stage,
   thirsty,
   wall,
+  wander,
   YOGA_ROOM,
   type Item,
   type Movie,
+  type Pose,
+  type Waypoint,
 } from "./house.ts";
 import { esc } from "./html.ts";
 import { PEOPLE, personById, type Person } from "./people.ts";
-import { houseSvg, isPlace, type Doing, type Figure, type Scene, type Spot } from "./scene.ts";
+import { DOG_SPOTS, houseSvg, isPlace, KENNEL, placeAt, type Doing, type Figure, type Scene, type Spot } from "./scene.ts";
 import type { Thing } from "./store.ts";
 import { ago, asleep, clock, dayLabel, hello, localInput, phase, type Phase } from "./time.ts";
 import {
@@ -114,16 +118,21 @@ function spotOf(p: Person, v: Visit): [number, number] | undefined {
   return v.where.get(p.id) === placeOf(p, v) ? v.spots.get(p.id) : undefined;
 }
 
-// Shinzo goes wherever the friend who last petted him or fed him goes, and
-// stays where she left him. He's up and about during the day, by the
-// visitor's own clock like the garden, and naps at night unless someone's
-// just made a fuss of him or he's with someone who's here.
-function laddooAt(v: Visit): { place: string; with?: Person; awake: boolean; last?: Thing } {
+// Shinzo goes wherever the friend who last petted him or fed him goes, for
+// half an hour, and stays where she left him. The rest of the time he does
+// what he likes, the same for everyone (src/house.ts wander): `at` and `pose`
+// are where his own day has him now, and `plan` the next hour of it.
+const DOG_PLAN = 60 * 60 * 1000;
+
+type Laddoo = { place: string; with?: Person; until?: number; last?: Thing; plan: Waypoint[]; at: [number, number]; pose: Pose };
+
+function laddooAt(v: Visit): Laddoo {
   const d = dog(v.things, v.now);
   const friend = d.with ? personById(d.with) : undefined;
-  const night = phase(clock(v.me.tz, v.now)) === "night";
-  const awake = !night || d.awake || (friend !== undefined && homeNow(friend, v));
-  return { place: friend ? placeOf(friend, v) : "garden", with: friend, awake, last: d.last };
+  const plan = wander(DOG_SPOTS, v.now, v.now + DOG_PLAN);
+  const own = along(plan, v.now);
+  if (friend) return { place: placeOf(friend, v), with: friend, until: d.until, last: d.last, plan, at: own.at, pose: "stand" };
+  return { place: placeAt(own.at) ?? "garden", last: d.last, plan, at: own.at, pose: own.pose };
 }
 
 function placeName(place: string, me: Person): string {
@@ -310,7 +319,7 @@ function scene(v: Visit, focus?: string, did?: string): Scene {
       label: `Eat ${t.author === v.me.id ? "your" : `${nameOf(t.author)}'s`} ${dishName(t)}`,
     })),
     kettle: kettle(v.things, v.now) !== undefined,
-    dog: { place: d.place, awake: d.awake, with: d.with?.id },
+    dog: { place: d.place, with: d.with?.id, until: d.until, plan: d.plan, now: v.now },
     fresh: freshPlaces(v),
     focus,
     did,
@@ -609,6 +618,17 @@ ${bar(v, "home")}
 </main>`, phase(clock(v.me.tz, v.now)), "page-room");
 }
 
+// What he's up to on his own: "wandering round the kitchen", "having a nap
+// on his blanket under the tree". Napping somewhere else, he's taken his
+// blanket with him, as his picture shows.
+function upTo(d: Laddoo, v: Visit): string {
+  const round = placeName(d.place, v.me).replace(/^in /, "round ");
+  if (d.pose === "walk") return `wandering ${round}`;
+  if (d.pose === "stand") return `having a sniff ${round}`;
+  if (d.at[0] === KENNEL[0] && d.at[1] === KENNEL[1]) return "having a nap on his blanket under the tree";
+  return `curled up on his blanket for a nap ${placeName(d.place, v.me)}`;
+}
+
 // Shinzo on the page of whichever room he's in, so you can pet him or give
 // him a treat there and he comes with you. The garden always says where he's
 // gone.
@@ -619,12 +639,12 @@ function laddooCard(place: string, v: Visit): string {
   const f = d.with;
   const mine = f?.id === v.me.id;
   const line = !f
-    ? d.awake ? "He's on his blanket under the tree, tail going." : "He's napping on his blanket under the tree."
+    ? here ? `He's ${upTo(d, v)}.` : `He's off on his own, ${upTo(d, v)}.`
     : !here ? `He went off with ${mine ? "you" : f.name}, and he's ${placeName(d.place, v.me)}.`
-    : mine ? "He's at your heels, and he goes wherever you go."
+    : mine ? "He's at your heels for a while, and goes wherever you go."
     : homeNow(f, v) ? `He's with ${f.name}, and goes wherever she goes.`
-    : sleeping(f, v) ? `He's ${d.awake ? "curled up, keeping watch," : "napping"} at the foot of ${f.name}'s bed.`
-    : `He's ${d.awake ? "waiting" : "napping"} right where ${f.name} left him.`;
+    : sleeping(f, v) ? `He's keeping watch at the foot of ${f.name}'s bed.`
+    : `He's waiting right where ${f.name} left him.`;
   const petted = d.last ? ` ${d.last.kind === "treat" ? "Last treat from" : "Last petted by"} ${by(d.last, v)}, ${ago(d.last.createdAt, v.now)}.` : "";
   const button = (action: string, key: string, label: string): string =>
     `<form method="post" action="${action}" class="inline"><input type="hidden" name="at" value="${esc(place)}"><button class="soft">${emoji(key)} ${label}</button></form>`;

@@ -160,14 +160,159 @@ export function resting(things: Thing[], now: number, where: Map<string, string>
 }
 
 // Shinzo goes with whoever last petted him (a "play") or gave him a treat,
-// for half a day before he wanders back to his blanket: wherever she goes,
-// and wherever she last stood once she's gone, or the foot of her bed while
-// she's asleep. Where she is comes from visits, so src/pages.ts works out the
-// room. `awake` is whether he's just been petted or fed; src/pages.ts also
-// keeps him up during the day.
-export function dog(things: Thing[], now: number): { with?: string; awake: boolean; last?: Thing } {
+// awake, for half an hour: wherever she goes, and wherever she last stood
+// once she's gone, or the foot of her bed while she's asleep. Then he goes
+// off on his own again (`wander`). Where she is comes from visits, so
+// src/pages.ts works out the room. `until` is when he leaves her.
+export const FOLLOW = 30 * 60 * 1000;
+
+export function dog(things: Thing[], now: number): { with?: string; until?: number; last?: Thing } {
   const played = things.find((t) => t.kind === "play" || t.kind === "treat");
-  if (!played) return { awake: false };
-  const since = now - played.createdAt;
-  return { with: since < 12 * HOUR ? played.author : undefined, awake: since < 3 * HOUR, last: played };
+  if (!played) return {};
+  const until = played.createdAt + FOLLOW;
+  return now < until ? { with: played.author, until, last: played } : { last: played };
+}
+
+/* ---------- Shinzo's own day ---------- */
+
+// The rest of the time he does what he likes, the same for everyone looking,
+// worked out from the clock alone (ADR 0012). Time runs in ten-minute slots.
+// In each, he either wanders (a few stops round the house, a sniff or a sit
+// at each) or has a nap, on his blanket or at the foot of a bed. Each slot
+// draws from its own seeded numbers, so where he is never needs a log, and
+// where a slot starts is just where the one before it ends.
+
+// [when, x, y, pose]: from `when` he's at (x, y) doing `pose` until the next
+// waypoint; "walk" heads for the next waypoint's spot, arriving on time.
+export type Pose = "walk" | "stand" | "nap";
+export type Waypoint = [number, number, number, Pose];
+// Somewhere he goes, in the picture's pixels (src/scene.ts DOG_SPOTS). `nap`
+// is how much he likes napping there; a spot without it is just for stopping.
+export type DogSpot = { at: [number, number]; nap?: number };
+
+const SLOT = 10 * 60 * 1000;
+const NAP_ODDS = 0.3;
+
+// mulberry32: small, quick, and the same numbers on every machine.
+function seeded(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), a | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function pick(spots: DogSpot[], weight: (s: DogSpot) => number, r: number): DogSpot {
+  const total = spots.reduce((sum, s) => sum + weight(s), 0);
+  let left = r * total;
+  for (const s of spots) {
+    left -= weight(s);
+    if (left < 0) return s;
+  }
+  return spots[spots.length - 1];
+}
+
+// Whether slot `k` is a nap, and where it ends: its first two draws, so the
+// next slot can find where he starts without replaying the day.
+function slotEnd(k: number, spots: DogSpot[]): { nap: boolean; at: [number, number]; r: () => number } {
+  const r = seeded(Math.imul(k, 2654435761) ^ 0x5eed);
+  const nap = r() < NAP_ODDS;
+  const at = pick(spots, (s) => (nap ? s.nap ?? 0 : 1), r()).at;
+  return { nap, at, r };
+}
+
+const same = (a: [number, number], b: [number, number]): boolean => a[0] === b[0] && a[1] === b[1];
+
+function slot(k: number, spots: DogSpot[]): Waypoint[] {
+  const start = k * SLOT;
+  const prev = slotEnd(k - 1, spots);
+  const { nap, at: end, r } = slotEnd(k, spots);
+  // Two naps in a row in the same place: he doesn't get up in between.
+  if (nap && prev.nap && same(prev.at, end)) return [[start, end[0], end[1], "nap"]];
+  const stops = nap ? [] : Array.from({ length: 1 + Math.floor(r() * 3) }, () => spots[Math.floor(r() * spots.length)].at);
+  stops.push(end);
+  // About 60 to 90 pixels a second, a little different each time.
+  let from = prev.at;
+  const walks = stops.map((to) => {
+    const ms = (Math.hypot(to[0] - from[0], to[1] - from[1]) / (60 + r() * 30)) * 1000;
+    from = to;
+    return ms;
+  });
+  // The rest of the slot is spent stopped: a while longer where he was
+  // (asleep still, if he was napping), a sniff or a sit at each stop, then a
+  // rest where he ends up. A nap slot just walks there and lies down.
+  const still = Math.max(0, SLOT - walks.reduce((a, b) => a + b, 0));
+  let pauses: number[];
+  if (nap) {
+    pauses = [Math.min(still, 5000 + r() * 30000)];
+  } else {
+    const shares = stops.map(() => 0.3 + r());
+    const total = shares.reduce((a, b) => a + b, 0) + 0.3 + r();
+    pauses = shares.map((w) => (still * w) / total);
+  }
+  const out: Waypoint[] = [];
+  let t = start;
+  let here = prev.at;
+  stops.forEach((to, i) => {
+    out.push([Math.round(t), here[0], here[1], i === 0 && prev.nap ? "nap" : "stand"]);
+    t += pauses[i];
+    out.push([Math.round(t), here[0], here[1], "walk"]);
+    t += walks[i];
+    here = to;
+  });
+  out.push([Math.round(t), here[0], here[1], nap ? "nap" : "stand"]);
+  return out;
+}
+
+// Where he is at `at` along `path`, what he's doing, and which way he faces:
+// 1 is the way he's drawn (left), -1 the other way, after his last walk.
+export function along(path: Waypoint[], at: number): { at: [number, number]; pose: Pose; facing: 1 | -1 } {
+  let i = 0;
+  while (i + 1 < path.length && path[i + 1][0] <= at) i++;
+  let facing: 1 | -1 = 1;
+  for (let j = i; j >= 0; j--) {
+    const next = path[j + 1];
+    if (path[j][3] === "walk" && next && next[1] !== path[j][1]) {
+      facing = next[1] < path[j][1] ? 1 : -1;
+      break;
+    }
+  }
+  const [t0, x0, y0, pose] = path[i];
+  const next = path[i + 1];
+  if (pose !== "walk" || !next) return { at: [x0, y0], pose: pose === "walk" ? "stand" : pose, facing };
+  const k = Math.max(0, Math.min(1, (at - t0) / (next[0] - t0)));
+  return { at: [Math.round(x0 + (next[1] - x0) * k), Math.round(y0 + (next[2] - y0) * k)], pose, facing };
+}
+
+// His plan from `from` to `to` (an hour, say): where he is at `from`, then
+// every waypoint after it, up to and including the first past `to`.
+export function wander(spots: DogSpot[], from: number, to: number): Waypoint[] {
+  const all: Waypoint[] = [];
+  for (let k = Math.floor(from / SLOT) - 1; k <= Math.floor(to / SLOT) + 1; k++) all.push(...slot(k, spots));
+  const now = along(all, from);
+  const path: Waypoint[] = [[from, now.at[0], now.at[1], now.pose]];
+  for (const w of all) {
+    if (w[0] <= from) continue;
+    const last = path[path.length - 1];
+    // Standing on where he's already standing adds nothing.
+    if (w[3] === last[3] && w[1] === last[1] && w[2] === last[2] && last[3] !== "walk") continue;
+    path.push(w);
+    if (w[0] > to) break;
+  }
+  return path;
+}
+
+// Leaving a friend at `at`, from `from`, to pick his own day back up: he walks
+// to the first stop in `plan` he can reach in time, and carries on from there.
+export function rejoin(from: [number, number], at: number, plan: Waypoint[]): Waypoint[] {
+  for (let i = 0; i < plan.length; i++) {
+    const [t, x, y, pose] = plan[i];
+    if (pose === "walk" || t < at) continue;
+    const arrive = Math.round(at + (Math.hypot(x - from[0], y - from[1]) / 75) * 1000);
+    if (arrive > t && plan[i + 1] && arrive > plan[i + 1][0]) continue;
+    return [[at, from[0], from[1], "walk"], [arrive, x, y, pose], ...plan.slice(i + 1)];
+  }
+  return [[at, from[0], from[1], "stand"]];
 }

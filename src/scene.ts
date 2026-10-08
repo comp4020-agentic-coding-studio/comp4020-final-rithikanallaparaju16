@@ -1,6 +1,6 @@
-import { EMOJI, icon, messItem, pop } from "./art.ts";
+import { BLANKET, DOG_STANDING, EMOJI, icon, messItem, pop } from "./art.ts";
 import { art } from "./assets.ts";
-import { DOG, KETTLE_ROOM, MASK_ROOM, YOGA_ROOM } from "./house.ts";
+import { along, DOG, KETTLE_ROOM, MASK_ROOM, rejoin, YOGA_ROOM, type DogSpot, type Pose, type Waypoint } from "./house.ts";
 import { esc } from "./html.ts";
 import type { Person } from "./people.ts";
 import type { Phase } from "./time.ts";
@@ -135,8 +135,27 @@ const COUNTER: Pt[] = [[560, 203], [602, 214], [646, 204]];
 // The low round table on Amirdhavarshini's mat, where the kettle goes.
 const MAT_TABLE: Pt = [292, 300];
 // Shinzo's blanket in the garden, where the illustration had him.
-const KENNEL: Pt = [1249, 122];
+export const KENNEL: Pt = [1249, 122];
 const FIREPLACE: Pt = [835, 205];
+
+// Where Shinzo stops for a sniff or a sit when he's off on his own, besides
+// the rooms' own spots for him: by his bowls, on the stepping stones, the
+// kitchen floor, the rug and beside the sofas, and a clear bit of floor in
+// each bedroom.
+const DOG_STOPS: Pt[] = [
+  [1300, 182], [1060, 45], [1290, 385], [1330, 255],
+  [512, 236], [590, 270],
+  [905, 292], [985, 332], [745, 412],
+  [110, 335], [240, 700], [400, 668], [900, 600], [1060, 520],
+];
+
+// Everywhere he goes on his own (src/house.ts wander): his blanket and the
+// foot of each bed to nap on, mostly the blanket, and the stops above.
+export const DOG_SPOTS: DogSpot[] = [
+  { at: KENNEL, nap: 5 },
+  ...Object.values(ROOMS).flatMap((r): DogSpot[] => (r.dog ? [{ at: r.dog, nap: 1 }] : [])),
+  ...DOG_STOPS.map((at): DogSpot => ({ at })),
+];
 
 // An oval as a polygon, for the round things that light up.
 const oval = (cx: number, cy: number, rx: number, ry: number): Pt[] =>
@@ -196,8 +215,9 @@ export type Scene = {
   dishes: Dish[];
   // Kettle Maggi on Amirdhavarshini's mat.
   kettle: boolean;
-  // `with` is whoever last petted him.
-  dog: { place: string; awake: boolean; with?: string };
+  // Shinzo. `with` is whoever he's going round with, until `until`; `plan`
+  // is his own day from `now` for an hour (src/house.ts wander).
+  dog: { place: string; with?: string; until?: number; plan: Waypoint[]; now: number };
   // Places with something new for the visitor since their last visit.
   fresh: Set<string>;
   // A room page's place; the whole house when absent.
@@ -312,24 +332,51 @@ function kettleMaggi(s: Scene): string {
 </g>`;
 }
 
-// Shinzo: beside whoever he's with, wherever she last stood; at the foot of
-// her bed if she's asleep; or on his blanket in the garden. public/house.js
-// walks him after you, and offers to pet him or give him a treat when you
-// walk up to him.
-function dogSpot(s: Scene, standing: Map<string, Pt>): { at: Pt; scale: number } {
-  const beside = s.dog.with ? standing.get(s.dog.with) : undefined;
-  const room = ROOMS[s.dog.place];
-  return { at: beside ? [beside[0] + 50, beside[1] + 6] : room?.dog ?? KENNEL, scale: beside ? 0.55 : room?.dog ? 0.62 : 1 };
+// Shinzo, right now: beside whoever he's with, wherever she last stood, or
+// at the foot of her bed if she's asleep; otherwise wherever his own day has
+// got to. `path` is where he goes from here for the next hour, so
+// public/house.js can walk him; `lying` is the size of his curled-up
+// picture, which is its own size only on his blanket under the tree.
+const HOUR = 60 * 60 * 1000;
+const same = (a: Pt, b: Pt): boolean => a[0] === b[0] && a[1] === b[1];
+
+function dogState(s: Scene, standing: Map<string, Pt>): { at: Pt; pose: Pose; facing: 1 | -1; path: Waypoint[]; lying: number } {
+  const d = s.dog;
+  if (d.with) {
+    const beside = standing.get(d.with);
+    const at: Pt = beside ? [beside[0] + 50, beside[1] + 6] : ROOMS[d.place]?.dog ?? KENNEL;
+    const after = d.until !== undefined && d.until < d.now + HOUR ? rejoin(at, d.until, d.plan) : [];
+    return { at, pose: "stand", facing: 1, path: [[d.now, at[0], at[1], "stand"], ...after], lying: 0.62 };
+  }
+  const now = along(d.plan, d.now);
+  return { at: now.at, pose: now.pose, facing: now.facing, path: d.plan, lying: same(now.at, KENNEL) ? 1 : 0.62 };
 }
 
+// Up and about, he's drawn this much smaller than his drawing's own units.
+const STANDS = 0.66;
+
+// The blanket stays under the tree while he's up. Napping, he's curled up on
+// it in his picture, wherever he's napping, so it's not under the tree too.
+function blanket(s: Scene, standing: Map<string, Pt>): string {
+  const covered = dogState(s, standing).pose === "nap";
+  return `<g class="blanket${covered ? " covered" : ""}" data-at="${KENNEL.join(",")}" transform="translate(${KENNEL[0]} ${KENNEL[1]})" aria-hidden="true">${BLANKET}</g>`;
+}
+
+// public/house.js walks him along `data-path` (from `data-now`, the server's
+// clock), turns `.facing` the way he's going, and offers to pet him or give
+// him a treat when you walk up to him.
 function laddoo(s: Scene, standing: Map<string, Pt>): string {
-  const { at: [x, y], scale } = dogSpot(s, standing);
-  const zz = s.dog.awake ? "" : `<text class="zz" x="52" y="-30">z</text><text class="zz small" x="66" y="-46">z</text>`;
+  const d = dogState(s, standing);
+  const [x, y] = d.at;
   const doings: Doing[] = [
     { label: `Pet ${DOG}`, emoji: EMOJI.play, post: "/garden/dog", fields: { at: s.dog.place } },
     { label: `Give ${DOG} a treat`, emoji: EMOJI.treat, post: "/garden/treat", fields: { at: s.dog.place } },
   ];
-  return `<g class="laddoo${s.dog.awake ? " awake" : ""}" data-place="${esc(s.dog.place)}" data-with="${esc(s.dog.with ?? "")}" data-do="${esc(JSON.stringify(doings))}" transform="translate(${x} ${y}) scale(${scale})" aria-hidden="true"><ellipse class="halo" cy="16" rx="92" ry="48"/><image href="${art("laddoo.png")}" x="-80" y="-46" width="160" height="92"/>${zz}</g>`;
+  const cls = ["laddoo", d.pose === "nap" ? "napping" : "awake", d.pose === "walk" ? "walking" : ""].filter(Boolean).join(" ");
+  const lying = `<g class="lying" transform="scale(${d.lying})"><ellipse class="halo" cy="16" rx="92" ry="48"/><image href="${art("laddoo.png")}" x="-80" y="-46" width="160" height="92"/><text class="zz" x="52" y="-30">z</text><text class="zz small" x="66" y="-46">z</text></g>`;
+  const up = `<g class="standing" transform="scale(${STANDS})"><ellipse class="halo" cy="-22" rx="62" ry="40"/><g class="facing" transform="scale(${d.facing} 1)">${DOG_STANDING}</g></g>`;
+  const data = `data-place="${esc(s.dog.place)}" data-with="${esc(s.dog.with ?? "")}" data-now="${s.dog.now}" data-path="${esc(JSON.stringify(d.path))}" data-do="${esc(JSON.stringify(doings))}"`;
+  return `<g class="${cls}" ${data} transform="translate(${x} ${y})" aria-hidden="true">${lying}${up}</g>`;
 }
 
 // What you just did pops up where you did it, once, on top of everything:
@@ -344,8 +391,8 @@ function pops(s: Scene, standing: Map<string, Pt>): string {
   const above = (p: Pt | undefined, dy: number): Pt[] => (p ? [[p[0], p[1] - dy]] : []);
   const you = standing.get(s.me.id);
   // Over his back, clear of whoever he's beside.
-  const dog = dogSpot(s, standing);
-  const pup: Pt[] = [[dog.at[0] + 14, dog.at[1] - Math.round(46 * dog.scale + 4)]];
+  const dog = dogState(s, standing);
+  const pup: Pt[] = [dog.pose === "nap" ? [dog.at[0] + 14, dog.at[1] - Math.round(46 * dog.lying + 4)] : [dog.at[0] + 6, dog.at[1] - 52]];
   const where: Record<string, Pt[]> = {
     play: pup,
     treat: pup,
@@ -529,6 +576,7 @@ export function houseSvg(s: Scene): string {
 <image href="${art("house.jpg")}" width="${W}" height="${H}" aria-hidden="true"/>
 ${RITHANYA}
 ${kettleMaggi(s)}
+${blanket(s, people.standing)}
 ${light(s)}
 ${things(s)}
 ${hotspots(s)}
