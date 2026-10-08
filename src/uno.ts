@@ -4,8 +4,14 @@ import type { Thing } from "./store.ts";
 // UNO on Amirdhavarshini's mat, worked out from the log like everything else
 // (ADR 0013): a `uno` row deals a game (its item is the players in turn order,
 // its body the seed for the shuffle), and each `unomove` placed `uno:<id>` is
-// a card played ("r7", "gS", "W4"), "draw" or "pass", with the colour picked
-// for a wild in its body. Replaying the moves in order gives the table.
+// a card played ("r7", "gS", "W4"), "draw", "pass" or "quit" (she left the
+// house), with the colour picked for a wild in its body. Replaying the moves
+// in order gives the table.
+//
+// Each turn lasts ten seconds (ADR 0016), counted from the move before it,
+// with no timer anywhere: whoever's turn runs out is taken to have gone, and
+// play moves on without her. Someone who'd just drawn was there, so for her
+// running out only passes.
 
 export type Color = "r" | "y" | "g" | "b";
 export const COLORS: Color[] = ["r", "y", "g", "b"];
@@ -17,6 +23,7 @@ export type Card = string;
 
 export const MAX_PLAYERS = 5;
 const HAND = 7;
+export const TURN = 10_000;
 
 export const isCard = (c: string): boolean => /^([rygb][0-9SRD]|W4?)$/.test(c);
 export const isWild = (c: Card): boolean => c.startsWith("W");
@@ -62,9 +69,15 @@ function shuffle(cards: Card[], rand: () => number): Card[] {
   return cards;
 }
 
+export type Left = { who: string; why: "time" | "quit" };
+
 export type Game = {
   start: Thing;
+  // Who's still playing, in turn order; whoever's gone is in `left`.
   players: string[];
+  left: Left[];
+  // When the turn in play started: the deal, or the move before it.
+  turnAt: number;
   hands: Map<string, Card[]>;
   // The top of each pile is its last card.
   pile: Card[];
@@ -78,7 +91,8 @@ export type Game = {
   winner?: string;
   // The move that emptied the winner's hand.
   won?: Thing;
-  // The last thing that happened, for the table to say.
+  // The last thing that happened, for the table to say. `move` is a card,
+  // "draw", "pass", "time" (her ten seconds ran out) or "quit".
   last?: { by: string; move: string; color?: Color };
   rand: () => number;
 };
@@ -97,10 +111,52 @@ export function deal(start: Thing): Game {
   // Turn cards over until a number comes up; the others go to the bottom.
   while (!isNumber(pile[pile.length - 1])) pile.unshift(pile.pop()!);
   const first = pile.pop()!;
-  return { start, players: ids, hands, pile, discard: [first], color: first[0] as Color, turn: 0, dir: 1, rand };
+  return { start, players: ids, left: [], turnAt: start.createdAt, hands, pile, discard: [first], color: first[0] as Color, turn: 0, dir: 1, rand };
 }
 
 const next = (g: Game, steps = 1): number => (((g.turn + g.dir * steps) % g.players.length) + g.players.length) % g.players.length;
+
+// When the turn in play runs out.
+export const deadline = (g: Game): number => g.turnAt + TURN;
+
+// `who` is out of the game: her cards go under the draw pile, and if it was
+// her turn, the next one along takes it. The last one left wins.
+function goes(g: Game, who: string, why: Left["why"], at: number): void {
+  const i = g.players.indexOf(who);
+  if (i < 0 || g.winner) return;
+  g.pile.unshift(...(g.hands.get(who) ?? []));
+  g.hands.set(who, []);
+  const hers = i === g.turn;
+  g.players.splice(i, 1);
+  g.left.push({ who, why });
+  g.last = { by: who, move: why };
+  if (g.players.length === 1) {
+    g.turn = 0;
+    g.drawn = undefined;
+    g.winner = g.players[0];
+    return;
+  }
+  if (i < g.turn) g.turn -= 1;
+  else if (hers) {
+    g.turn = g.dir === 1 ? i % g.players.length : (i - 1 + g.players.length) % g.players.length;
+    g.drawn = undefined;
+    g.turnAt = at;
+  }
+}
+
+// Every turn that ran out before `until`, in order.
+function expire(g: Game, until: number): void {
+  while (!g.winner && until - g.turnAt > TURN) {
+    const at = g.turnAt + TURN;
+    const who = whoseTurn(g);
+    if (g.drawn !== undefined) {
+      g.drawn = undefined;
+      g.last = { by: who, move: "pass" };
+      g.turn = next(g);
+      g.turnAt = at;
+    } else goes(g, who, "time", at);
+  }
+}
 
 // When the draw pile runs out, everything under the top of the discards is
 // shuffled into a new one.
@@ -128,10 +184,18 @@ export function canPlay(g: Game, who: string, card: Card): boolean {
 
 export type Move = { author: string; item: string; body: string };
 
-// Applies a move, or says why it can't happen and leaves the game as it was.
-export function play(g: Game, m: Move, row?: Thing): string | undefined {
+// Applies a move made at `at`, or says why it can't happen and leaves the game
+// as it was. Turns that ran out before it have already been played out
+// (replay() and the server expire them first).
+export function play(g: Game, m: Move, row?: Thing, at = row?.createdAt ?? Date.now()): string | undefined {
   if (g.winner) return "This game's already over.";
+  const gone = g.left.find((l) => l.who === m.author);
+  if (gone) return gone.why === "time" ? "Your ten seconds ran out, so you've left this game." : "You left the house, so you're out of this game.";
   if (!g.players.includes(m.author)) return "You're not in this game.";
+  if (m.item === "quit") {
+    goes(g, m.author, "quit", at);
+    return undefined;
+  }
   if (whoseTurn(g) !== m.author) return "It isn't your turn.";
   const hand = g.hands.get(m.author)!;
 
@@ -141,6 +205,7 @@ export function play(g: Game, m: Move, row?: Thing): string | undefined {
     g.last = { by: m.author, move: "draw" };
     if (card && fits(g, card)) g.drawn = card;
     else g.turn = next(g);
+    g.turnAt = at;
     return undefined;
   }
 
@@ -149,6 +214,7 @@ export function play(g: Game, m: Move, row?: Thing): string | undefined {
     g.drawn = undefined;
     g.last = { by: m.author, move: "pass" };
     g.turn = next(g);
+    g.turnAt = at;
     return undefined;
   }
 
@@ -163,6 +229,7 @@ export function play(g: Game, m: Move, row?: Thing): string | undefined {
   g.discard.push(card);
   g.color = color;
   g.drawn = undefined;
+  g.turnAt = at;
   g.last = { by: m.author, move: card, color: isWild(card) ? color : undefined };
   if (hand.length === 0) {
     g.winner = m.author;
@@ -191,10 +258,11 @@ export const gameOf = (things: Thing[], who: string): Thing | undefined => games
 
 const cache = new WeakMap<Thing[], Map<number, Game>>();
 
-// The game as it stands after every move so far. Moves the server would have
-// refused are skipped. Pages share one replay per game; a move about to be
+// The game as it stands at `now`, after every move so far and every turn that
+// ran out in between. Moves the server would have refused are skipped. Pages
+// share one replay per game (one `things` is one moment); a move about to be
 // checked gets a `fresh` one, since checking it changes the game.
-export function replay(start: Thing, things: Thing[], fresh = false): Game {
+export function replay(start: Thing, things: Thing[], now: number, fresh = false): Game {
   let seen = cache.get(things);
   if (!seen) cache.set(things, (seen = new Map()));
   const known = fresh ? undefined : seen.get(start.id);
@@ -203,11 +271,19 @@ export function replay(start: Thing, things: Thing[], fresh = false): Game {
   const place = `uno:${start.id}`;
   for (let i = things.length - 1; i >= 0; i--) {
     const t = things[i];
-    if (t.kind === "unomove" && t.place === place) play(g, t, t);
+    if (t.kind !== "unomove" || t.place !== place) continue;
+    // The server checked the move a moment before it was stored, so a move
+    // it took right at the end of a turn still counts.
+    expire(g, t.createdAt - 500);
+    play(g, t, t);
   }
+  expire(g, now);
   if (!fresh) seen.set(start.id, g);
   return g;
 }
+
+// Whether `who` is still playing a game that isn't over.
+export const stillIn = (g: Game, who: string): boolean => !g.winner && g.players.includes(who);
 
 // Everyone sitting on Amirdhavarshini's mat right now, by id, from
 // house.ts resting().

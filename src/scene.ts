@@ -145,9 +145,6 @@ const MAT_TABLE: Pt = [292, 300];
 // Shinzo's blanket in the garden, where the illustration had him.
 export const KENNEL: Pt = [1249, 122];
 const FIREPLACE: Pt = [835, 205];
-// The living room's lights are always on (ADR 0014): the visitor's night
-// never reaches it, and after dark its lamps warm it, over the sofas.
-const LIVING_LAMP: Pt = [815, 310];
 
 // Where Shinzo stops for a sniff or a sit when he's off on his own, besides
 // the rooms' own spots for him: by his bowls, on the stepping stones, the
@@ -291,8 +288,10 @@ const SHADE: Record<Phase, [string, number] | null> = {
 
 const dark = (phase: Phase): boolean => phase === "night" || phase === "dusk";
 
+// Only bedrooms dim, each by its owner's clock. The living room, kitchen,
+// garden and the halls between are always in daylight (ADR 0015); after dark
+// by the visitor's clock the fire is lit, but nothing gets darker.
 function light(s: Scene): string {
-  const outside = SHADE[s.light];
   const bedrooms = s.bedrooms.map((b) => {
     const room = ROOMS[`room:${b.owner.id}`];
     const shade = SHADE[b.phase];
@@ -300,10 +299,8 @@ function light(s: Scene): string {
     const lamp = b.lamp && dark(b.phase) && room.desk ? `<circle cx="${room.desk[0][0]}" cy="${room.desk[0][1]}" r="120" fill="url(#glow)"/>` : "";
     return fill + lamp;
   }).join("");
-  const rest = outside ? `<rect width="${W}" height="${H}" fill="${outside[0]}" opacity="${outside[1]}" mask="url(#not-bedrooms)"/>` : "";
   const fire = dark(s.light) ? `<circle cx="${FIREPLACE[0]}" cy="${FIREPLACE[1]}" r="140" fill="url(#glow)"/>` : "";
-  const lamps = dark(s.light) ? `<polygon points="${pts(ROOMS.living.outline)}" fill="#ffd9a0" opacity=".12"/><circle cx="${LIVING_LAMP[0]}" cy="${LIVING_LAMP[1]}" r="190" fill="url(#glow)"/>` : "";
-  return `<g class="light" aria-hidden="true">${rest}${bedrooms}${lamps}${fire}</g>`;
+  return `<g class="light" aria-hidden="true">${bedrooms}${fire}</g>`;
 }
 
 function left(spot: Spot, [x, y]: Pt, scale: number): string {
@@ -675,17 +672,12 @@ function tags(s: Scene): string {
 export function houseSvg(s: Scene): string {
   const [x, y, w, h] = s.focus ? ROOMS[s.focus].view : [0, 0, W, H];
   const people = figures(s);
-  // What the visitor's own time of day doesn't shade: each bedroom has its
-  // owner's light, and the living room's lights are always on.
-  const bedrooms = [...s.bedrooms.map((b) => ROOMS[`room:${b.owner.id}`].outline), ROOMS.living.outline]
-    .map((outline) => `<polygon points="${pts(outline)}" fill="#000"/>`).join("");
   return `<svg class="house-svg" viewBox="${x} ${y} ${w} ${h}" role="group" aria-label="${s.focus ? "The room, and the house around it" : "The house. Tap a room to go in."}">
 <defs>
 <clipPath id="head" clipPathUnits="objectBoundingBox"><ellipse cx=".5" cy=".32" rx=".36" ry=".27"/></clipPath>
 <clipPath id="sit" clipPathUnits="objectBoundingBox"><rect width="1" height=".78"/></clipPath>
 <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e6f4f8"/><stop offset="1" stop-color="#b9d6e2"/></linearGradient>
 <radialGradient id="glow"><stop offset="0" stop-color="#ffcf7a" stop-opacity=".6"/><stop offset="1" stop-color="#ffcf7a" stop-opacity="0"/></radialGradient>
-<mask id="not-bedrooms" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}"><rect width="${W}" height="${H}" fill="#fff"/>${bedrooms}</mask>
 </defs>
 <image href="${art("house.jpg")}" width="${W}" height="${H}" aria-hidden="true"/>
 ${RITHANYA}

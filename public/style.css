@@ -2091,6 +2091,27 @@ button .emoji,
   background: #fff1d6;
 }
 
+/* ten seconds a turn (ADR 0016), counted down by public/live.js */
+.uno-turn .countdown {
+  display: inline-block;
+  min-width: 2.4em;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #f3e3c4;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.uno-turn .countdown.low {
+  background: #d8321e;
+  color: #fff;
+}
+
+.uno-player.left {
+  opacity: 0.6;
+}
+
 .uno-table > .small {
   text-align: center;
 }

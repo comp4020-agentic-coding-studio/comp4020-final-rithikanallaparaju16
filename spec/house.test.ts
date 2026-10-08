@@ -564,6 +564,33 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect(text((await page("/uno", b.id)).querySelector("[data-live='uno-game'] .uno-table"))).toContain(`${a.name} drew a card`);
   });
 
+  it("gives each UNO player ten seconds a turn, then plays on without her", async () => {
+    const five = await people();
+    const [a, b, c] = five;
+    await onlyOnTheMat([a, b, c], five);
+    expect((await post("/uno", {}, a.id)).status).toBe(303);
+    const game = (await page("/uno", a.id)).querySelector("input[name=game]")!.getAttribute("value")!;
+    // The dealer goes first, and lets her whole ten seconds go by.
+    await new Promise((r) => setTimeout(r, 10_600));
+
+    const table = await page("/uno", b.id);
+    expect(text(table.querySelector(".uno-turn")), "play didn't move on without her").toContain("your turn");
+    expect(table.querySelector(`.uno-player.left[data-person="${a.id}"]`), `${a.name} is still in the game`).not.toBeNull();
+    expect((await post("/uno/move", { game, card: "draw" }, a.id)).status, `${a.name} played after her time ran out`).toBe(400);
+  }, 20_000);
+
+  it("takes whoever leaves the house out of her UNO game, so nobody waits on her", async () => {
+    const five = await people();
+    const [a, b, c] = five;
+    await onlyOnTheMat([a, b, c], five);
+    await post("/uno", {}, a.id);
+    await signOut(b.id);
+
+    const table = await page("/uno", a.id);
+    expect(table.querySelector(`.uno-player.left[data-person="${b.id}"]`), `${b.name} is still dealt in after leaving`).not.toBeNull();
+    expect(text(table.querySelector(".uno-around .small"))).toContain(`Play goes you → ${c.name}`);
+  });
+
   it("deals UNO only when you're sitting on the mat with a friend", async () => {
     const five = await people();
     const [a, b, c] = five;
@@ -661,14 +688,17 @@ describe.skipIf(!throwaway)("living in the house", () => {
     }
   });
 
-  it("keeps the living room's lights on, whatever the time", async () => {
+  it("keeps every common area lit, and dims only bedrooms by their owner's clock", async () => {
     const [a] = await people();
-    for (const path of ["/", "/living"]) {
+    for (const path of ["/", "/living", "/kitchen", "/garden"]) {
       const house = await page(path, a.id);
-      const living = house.querySelector(".house-svg a.room-link[data-place='living'] polygon")?.getAttribute("points");
-      const unshaded = [...house.querySelectorAll(".house-svg #not-bedrooms polygon")].map((p) => p.getAttribute("points"));
-      expect(living, "there's no living room to light").toBeTruthy();
-      expect(unshaded, `the night can reach the living room on ${path}`).toContain(living);
+      const bedrooms = [...house.querySelectorAll(".house-svg a.room-link[data-place^='room:'] polygon")].map((p) => p.getAttribute("points"));
+      expect(bedrooms.length, "there are no bedrooms to dim").toBe(5);
+      // Whatever the hour, the only shade in the light layer is a bedroom's.
+      expect(house.querySelector(".house-svg g.light rect"), `something shades the whole house on ${path}`).toBeNull();
+      for (const shade of house.querySelectorAll(".house-svg g.light polygon")) {
+        expect(bedrooms, `a common area is dimmed on ${path}`).toContain(shade.getAttribute("points"));
+      }
     }
   });
 });

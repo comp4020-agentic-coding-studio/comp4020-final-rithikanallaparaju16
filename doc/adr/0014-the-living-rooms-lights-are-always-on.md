@@ -1,6 +1,7 @@
 # 0014. The living room's lights are always on
 
-Status: proposed. Built in session 8; waiting on Rithika's review. Supersedes
+Status: superseded by 0015 the same day, when every common area became
+always lit. It was proposed, built in session 8, and it superseded
 the part of 0006 that has the living room follow the visitor's clock; the
 rest of 0006 stands.
 

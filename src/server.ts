@@ -29,7 +29,7 @@ import { PEOPLE, personById, type Person } from "./people.ts";
 import { isPlace, placeAt } from "./scene.ts";
 import * as store from "./store.ts";
 import { birthday, fromLocal } from "./time.ts";
-import { dealFor, gameOf, isWild, play, replay } from "./uno.ts";
+import { dealFor, gameOf, isWild, play, replay, stillIn } from "./uno.ts";
 
 const MAX_FORM = 8 * 1024;
 const YEAR = 365 * 24 * 60 * 60;
@@ -119,6 +119,18 @@ function visit(me: Person, place = ""): Visit {
   };
 }
 
+// Leaving the house (or coming in as someone else) lets her window open
+// again, and takes her out of any UNO game she's still in, so nobody waits
+// on her turn (ADR 0016).
+function leaveHouse(person: string, token: string): void {
+  const all = store.things();
+  const start = gameOf(all, person);
+  if (start && stillIn(replay(start, all, Date.now(), true), person)) {
+    store.leave({ author: person, kind: "unomove", place: `uno:${start.id}`, item: "quit" });
+  }
+  store.release(person, token);
+}
+
 // Confirmations after leaving something, with what you did so the house can
 // pop its emoji up where you did it. Only these fixed lines are ever shown,
 // whatever ?did= says.
@@ -201,14 +213,14 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     if (held(who.id)) {
       return send(res, 409, messagePage(`${who.name}'s already home`, `Someone's in the house as ${who.name} right now. Her window opens again once they leave.`));
     }
-    if (mine) store.release(mine.me.id, mine.token);
+    if (mine) leaveHouse(mine.me.id, mine.token);
     const token = randomUUID();
     store.claim(who.id, token);
     return redirect(res, "/", { "set-cookie": whoCookie(req, `${who.id}.${token}`, YEAR) });
   }
 
   if (route === "POST /leave") {
-    if (mine) store.release(mine.me.id, mine.token);
+    if (mine) leaveHouse(mine.me.id, mine.token);
     return redirect(res, "/", { "set-cookie": whoCookie(req, "", 0) });
   }
 
@@ -362,7 +374,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     const start = gameOf(all, me.id);
     if (!start || String(start.id) !== form.get("game")) return send(res, 400, messagePage("Which game?", "That game's been put away. Your latest one is on the mat.", "/uno"));
     const [card, color = ""] = text(form, "card").split(":");
-    const game = replay(start, all, true);
+    const game = replay(start, all, Date.now(), true);
     const why = play(game, { author: me.id, item: card, body: color });
     if (why) return send(res, 400, messagePage("Not that one", why, "/uno"));
     store.leave({ author: me.id, kind: "unomove", place: `uno:${start.id}`, item: card, body: isWild(card) ? color : "" });

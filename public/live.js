@@ -147,6 +147,29 @@
   // its own: a friend getting up from a seat, or Shinzo's hour running out.
   document.addEventListener("house:refresh", soon);
 
+  // UNO turns last ten seconds (ADR 0016). The page counts the turn in play
+  // down by the house's clock (data-now is when the house drew the page), and
+  // when it runs out asks for the page again: the house has played it out by
+  // then, and the turn has moved on, without whoever wasn't there. Nothing is
+  // written when a turn runs out, so no friend's change would bring it.
+  let asked = 0;
+  setInterval(() => {
+    for (const el of document.querySelectorAll("[data-deadline]")) {
+      // Counting from when the page arrived errs late, never early.
+      if (!el.dataset.offset) el.dataset.offset = String(Number(el.dataset.now) - Date.now());
+      const left = Math.max(0, Math.ceil((Number(el.dataset.deadline) - Date.now() - Number(el.dataset.offset)) / 1000));
+      const shown = el.querySelector(".countdown");
+      if (shown) {
+        shown.textContent = `${left}s`;
+        shown.classList.toggle("low", left <= 3);
+      }
+      if (left === 0 && Date.now() - asked > 1000) {
+        asked = Date.now();
+        soon();
+      }
+    }
+  }, 250);
+
   let source;
   function listen() {
     source = new EventSource("/live");
