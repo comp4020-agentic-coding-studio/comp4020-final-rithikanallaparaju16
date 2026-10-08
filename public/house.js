@@ -413,7 +413,28 @@
   addEventListener("pagehide", keep);
 
   // Sitting down, asleep in a bed or in a hug, you get up as soon as you walk.
-  const getUp = () => me.classList.remove("resting", "napping", "sitting", "hugging");
+  const getUp = () => {
+    if (me.classList.contains("hugging")) leaveHug();
+    me.classList.remove("resting", "napping", "sitting", "hugging");
+  };
+
+  // Walking out of a hug: it goes on without you, or ends if that leaves
+  // one. Friends' pages hear you walk and draw it again.
+  function leaveHug() {
+    const group = people();
+    const hug = [...(group?.querySelectorAll("g.hug") ?? [])].find((h) => (h.dataset.people ?? "").split(",").includes(myId));
+    if (!hug) return;
+    const rest = hug.dataset.people.split(",").filter((id) => id !== myId);
+    const walker = (id) => group.querySelector(`.walker[data-person="${CSS.escape(id)}"]`);
+    if (rest.length < 2) {
+      for (const id of rest) walker(id)?.classList.remove("hugging");
+      hug.remove();
+      return;
+    }
+    hug.dataset.people = rest.join(",");
+    const text = hug.querySelector(".hug-names");
+    if (text) text.textContent = list.format(rest.map((id) => walker(id)?.querySelector(".who")?.textContent ?? ""));
+  }
 
   /* ---------- friends ---------- */
 

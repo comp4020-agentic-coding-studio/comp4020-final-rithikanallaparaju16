@@ -2451,3 +2451,13 @@ g.party .flame {
 .birthday-card h2 .emoji {
   margin-right: 0.15em;
 }
+
+/* ---------- a friend close enough to hug (public/house.js) ---------- */
+
+/* Her shadow lights up warm, like the things you walk up to. */
+g.walker.near:not(.me) > .shadow {
+  fill: #ffd56b;
+  stroke: #fff4c8;
+  stroke-width: 3px;
+  animation: beckon 0.9s ease-in-out infinite alternate;
+}
