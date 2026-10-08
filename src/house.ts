@@ -159,6 +159,39 @@ export function resting(things: Thing[], now: number, where: Map<string, string>
   return out;
 }
 
+// A hug's people: whoever gave it first, then the others in it.
+export const hugPeople = (t: Thing): string[] => [t.author, ...t.item.split(",").filter(Boolean)];
+
+// Hugs still going on: each friend is in her latest hug for five minutes,
+// or until she walks off (`arrived` is when she came into her place or last
+// walked, from visits). A hug with fewer than two people left in it is over.
+export type Hug = { thing: Thing; by: string; people: string[] };
+
+export function hugs(things: Thing[], now: number, arrived: Map<string, number>): Hug[] {
+  const latestOf = new Map<string, Thing>();
+  for (const t of things) {
+    if (t.kind !== "hug") continue;
+    for (const p of hugPeople(t)) if (!latestOf.has(p)) latestOf.set(p, t);
+  }
+  const out: Hug[] = [];
+  for (const t of new Set(latestOf.values())) {
+    if (now - t.createdAt >= 5 * 60 * 1000) continue;
+    const people = hugPeople(t).filter((p) => latestOf.get(p) === t && (arrived.get(p) ?? 0) <= t.createdAt);
+    if (people.length >= 2) out.push({ thing: t, by: t.author, people });
+  }
+  return out;
+}
+
+// Anyone who wished someone a happy birthday in the last two hours is still
+// in a party hat.
+export function partyHats(things: Thing[], now: number): Set<string> {
+  return new Set(things.filter((t) => t.kind === "wish" && now - t.createdAt < 2 * HOUR).map((t) => t.author));
+}
+
+// Birthday wishes left in a friend's room, newest first.
+export const wishes = (things: Thing[], id: string): Thing[] =>
+  things.filter((t) => t.kind === "wish" && t.place === roomPlace(id));
+
 // Shinzo goes with whoever last petted him (a "play") or gave him a treat,
 // for half a day before he wanders back to his blanket: wherever she goes,
 // and wherever she last stood once she's gone, or the foot of her bed while

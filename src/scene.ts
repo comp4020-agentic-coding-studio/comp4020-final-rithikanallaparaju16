@@ -1,4 +1,4 @@
-import { EMOJI, icon, messItem, pop } from "./art.ts";
+import { balloons, bunting, cake, confetti, CROWN, EMOJI, icon, messItem, PARTY_HAT, pop } from "./art.ts";
 import { art } from "./assets.ts";
 import { DOG, KETTLE_ROOM, MASK_ROOM, YOGA_ROOM } from "./house.ts";
 import { esc } from "./html.ts";
@@ -38,6 +38,9 @@ type Room = {
   // when you walk up to them.
   bedArea?: Pt[];
   deskArea?: Pt[];
+  // Bedrooms only: in her birthday month, bunting from `from` to `to`
+  // (sagging by `sag`) and balloons tied down at `balloons`.
+  party?: { from: Pt; to: Pt; sag: number; balloons: Pt };
 };
 
 export const ROOMS: Record<string, Room> = {
@@ -53,6 +56,7 @@ export const ROOMS: Record<string, Room> = {
     dog: [350, 395],
     bedArea: [[80, 168], [196, 168], [198, 296], [80, 296]],
     deskArea: [[205, 170], [302, 170], [302, 240], [205, 240]],
+    party: { from: [30, 125], to: [312, 120], sag: 10, balloons: [74, 300] },
   },
   kitchen: {
     name: "Kitchen",
@@ -87,6 +91,7 @@ export const ROOMS: Record<string, Room> = {
     dog: [175, 585],
     bedArea: [[42, 636], [230, 636], [230, 728], [42, 728]],
     deskArea: [[280, 572], [352, 572], [352, 700], [280, 700]],
+    party: { from: [26, 512], to: [352, 512], sag: 9, balloons: [298, 566] },
   },
   "room:4": {
     name: "Rithanya's room",
@@ -100,6 +105,7 @@ export const ROOMS: Record<string, Room> = {
     dog: [580, 600],
     bedArea: [[366, 490], [482, 490], [482, 650], [366, 650]],
     deskArea: [[460, 645], [602, 645], [602, 705], [460, 705]],
+    party: { from: [364, 470], to: [648, 470], sag: 9, balloons: [600, 562] },
   },
   "room:5": {
     name: "Aswathy's room",
@@ -114,6 +120,7 @@ export const ROOMS: Record<string, Room> = {
     dog: [905, 700],
     bedArea: [[718, 488], [820, 488], [852, 645], [718, 645]],
     deskArea: [[738, 642], [856, 642], [858, 692], [740, 692]],
+    party: { from: [712, 515], to: [962, 500], sag: 8, balloons: [940, 585] },
   },
   "room:2": {
     name: "Neha's room",
@@ -127,6 +134,7 @@ export const ROOMS: Record<string, Room> = {
     dog: [1050, 640],
     bedArea: [[1128, 442], [1220, 442], [1272, 575], [1270, 612], [1172, 612], [1128, 525]],
     deskArea: [[1120, 630], [1262, 630], [1288, 700], [1120, 712]],
+    party: { from: [992, 410], to: [1222, 400], sag: 10, balloons: [1015, 530] },
   },
 };
 
@@ -182,10 +190,17 @@ export type Bedroom = {
   desk: Spot[];
   // A lamp's on at night when the owner's awake.
   lamp: boolean;
+  // Her birthday month (1), or the day itself (2), by her own clock.
+  birthday: 0 | 1 | 2;
 };
 
 // `spot` is where she walked to in `place`, if she has since going in.
-export type Figure = { person: Person; place: string; asleep: boolean; here: boolean; me: boolean; masked: boolean; rest?: Rest; spot?: Pt };
+// `crown` is for the birthday girl, all month; `hat` for anyone who's just
+// wished someone a happy birthday.
+export type Figure = { person: Person; place: string; asleep: boolean; here: boolean; me: boolean; masked: boolean; rest?: Rest; spot?: Pt; crown: boolean; hat: boolean };
+
+// A hug still going on: whoever gave it, and everyone still in it.
+export type HugGroup = { by: string; people: string[] };
 
 export type Scene = {
   // The visitor's own time of day: shared rooms, the hallway and outside.
@@ -198,6 +213,7 @@ export type Scene = {
   kettle: boolean;
   // `with` is whoever last petted him.
   dog: { place: string; awake: boolean; with?: string };
+  hugs: HugGroup[];
   // Places with something new for the visitor since their last visit.
   fresh: Set<string>;
   // A room page's place; the whole house when absent.
@@ -309,6 +325,23 @@ function kettleMaggi(s: Scene): string {
 </g>`;
 }
 
+// All through her birthday month, her room has bunting and balloons; on the
+// day itself, a cake on her desk and confetti on the floor.
+function party(s: Scene): string {
+  return s.bedrooms.map((b) => {
+    const room = ROOMS[`room:${b.owner.id}`];
+    if (!b.birthday || !room.party) return "";
+    const { from, to, sag, balloons: [bx, by] } = room.party;
+    const day = b.birthday === 2;
+    const desk = room.desk?.[0];
+    const extra = day ? `${desk ? cake(desk[0] - 14, desk[1] - 16) : ""}${confetti([[bx - 30, by + 18], [(from[0] + to[0]) / 2, by + 30]])}` : "";
+    return `<g class="party" data-place="room:${b.owner.id}" aria-hidden="true">${bunting(from, to, sag, b.owner.name)}${balloons(bx, by)}${extra}</g>`;
+  }).join("");
+}
+
+// Where to hug from and the balloons' hotspot, around the bunch.
+const balloonArea = ([x, y]: Pt): Pt[] => oval(x + 3, y - 50, 34, 58);
+
 // Shinzo: beside whoever he's with, wherever she last stood; at the foot of
 // her bed if she's asleep; or on his blanket in the garden. public/house.js
 // walks him after you, and offers to pet him or give him a treat when you
@@ -358,6 +391,9 @@ function pops(s: Scene, standing: Map<string, Pt>): string {
     nap: above(you, 42),
     sit: above(you, 90),
     mask: above(you, 108),
+    // Over the middle of the hug, above everyone's heads.
+    hug: above(you, 128),
+    wish: room?.party ? [[room.party.balloons[0] + 3, room.party.balloons[1] - 128]] : [],
   };
   const size = s.did === "tidy" || s.did === "play" || s.did === "treat" ? 24 : 32;
   const all = (where[s.did] ?? []).map((p, i) => pop(s.did!, p, size, i * 0.3)).join("");
@@ -384,6 +420,10 @@ function hotspots(s: Scene): string {
     }
     for (const [x, y] of (room.mess ?? []).slice(0, b.mess)) {
       spots.push({ place, area: oval(x, y, 26, 18), doings: [{ label: mine ? "Tidy your room" : `Tidy up ${name}'s room`, emoji: EMOJI.tidy, post: `/room/${id}/tidy` }] });
+    }
+    // Her birthday month: walk up to the balloons to wish her a happy birthday.
+    if (b.birthday && room.party) {
+      spots.push({ place, area: balloonArea(room.party.balloons), doings: [{ label: mine ? "Celebrate your birthday" : `Wish ${name} a happy birthday`, emoji: EMOJI.wish, post: `/room/${id}/wish` }] });
     }
   }
   spots.push(
@@ -421,15 +461,50 @@ const MASK = `<g class="mask"><ellipse cx="1" cy="-57" rx="16" ry="16" fill="#9f
 
 // A sleeper is just her head on the pillow, under the picture's blanket. A
 // second one in the same bed lies beside the first.
+// The birthday girl's crown, or the party hat of anyone who's just wished
+// someone a happy birthday, on top of a standing sticker's head. `dy` moves
+// it down for someone sitting.
+const HEAD_TOP = -86;
+function headwear(f: Figure, dy = 0): string {
+  if (f.crown) return `<g transform="translate(0 ${HEAD_TOP + dy})">${CROWN}</g>`;
+  if (f.hat) return `<g transform="translate(8 ${HEAD_TOP + 3 + dy}) rotate(16)">${PARTY_HAT}</g>`;
+  return "";
+}
+
 const BED_SPOTS: Pt[] = [[0, 0], [34, 6], [-30, 10]];
-const lying = (id: string): string =>
-  `<g transform="rotate(-10)"><image href="${art(`avatar-${id}.png`)}" x="-32" y="-27.5" width="64" height="86" clip-path="url(#head)"/><text class="zz" x="22" y="-24">z</text><text class="zz small" x="34" y="-40">z</text></g>`;
+const lying = (f: Figure): string => {
+  const hat = f.crown ? `<g transform="translate(0 -20) scale(.75)">${CROWN}</g>` : f.hat ? `<g transform="translate(6 -19) rotate(16) scale(.75)">${PARTY_HAT}</g>` : "";
+  return `<g transform="rotate(-10)"><image href="${art(`avatar-${f.person.id}.png`)}" x="-32" y="-27.5" width="64" height="86" clip-path="url(#head)"/>${hat}<text class="zz" x="22" y="-24">z</text><text class="zz small" x="34" y="-40">z</text></g>`;
+};
 
 // Someone sitting is drawn lower, with her legs tucked out of sight, so she
 // sits on the cushion or the sofa.
 const SIT_DOWN = 20;
-const sitting = (id: string, masked: boolean): string =>
-  `<image href="${art(`avatar-${id}.png`)}" x="-36" y="${SIT_DOWN - 95}" width="72" height="97" clip-path="url(#sit)"/>${masked ? `<g transform="translate(0 ${SIT_DOWN})">${MASK}</g>` : ""}`;
+const sitting = (f: Figure): string =>
+  `<image href="${art(`avatar-${f.person.id}.png`)}" x="-36" y="${SIT_DOWN - 95}" width="72" height="97" clip-path="url(#sit)"/>${f.masked ? `<g transform="translate(0 ${SIT_DOWN})">${MASK}</g>` : ""}${headwear(f, SIT_DOWN)}`;
+
+// A standing friend (or you), feet on (x, y). `extra` adds classes; someone
+// in a hug leans in toward its middle by `lean` degrees (style.css turns her
+// while she's `hugging`).
+function walkerSvg(f: Figure, [x, y]: Pt, pose: string, extra: string, lean?: number): string {
+  const p = f.person;
+  const cls = ["walker", f.me ? "me" : "", f.here ? "here" : "", extra].filter(Boolean).join(" ");
+  const body = `<g class="bob"><image href="${art(`avatar-${p.id}.png`)}" x="-36" y="-95" width="72" height="97"/>${f.masked ? MASK : ""}${headwear(f)}</g>`;
+  const style = `--accent:${p.color}${lean === undefined ? "" : `;--lean:${lean}deg`}`;
+  return `<g class="${cls}" data-person="${p.id}" data-place="${f.place}" transform="translate(${x} ${y})" style="${style}"><ellipse class="shadow" rx="22" ry="7"/>${lean === undefined ? body : `<g class="lean">${body}</g>`}${pose}<text class="who" y="24">${esc(f.me ? "you" : p.name)}</text></g>`;
+}
+
+// How close you have to be to hug someone, in the picture's pixels: about a
+// step and a half, feet to feet.
+export const HUG_REACH = 120;
+// How far apart people stand in a hug: close enough to overlap, with
+// everyone's face still showing.
+const HUG_GAP = 40;
+
+const HEART = "M0 5C-7 -1 -11 -6 -6.5 -10.5C-3.5 -13 0 -11 0 -7.5C0 -11 3.5 -13 6.5 -10.5C11 -6 7 -1 0 5Z";
+
+const listed = (names: string[]): string =>
+  names.length < 2 ? names.join("") : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 
 // The next free spot in that bed or on that seat. On Amirdhavarshini's mat,
 // everyone has her own cushion.
@@ -456,22 +531,26 @@ function restSpot(rest: Rest, who: string, taken: Map<string, number>): Pt | und
 // You're always a walker, so you can get up and go. Whoever's further down
 // the picture is drawn in front. `standing` is where everyone who isn't
 // asleep is, so Shinzo can be beside her.
+//
+// People in a hug stand close around whoever gave it, leaning in, with
+// hearts over them and their names together underneath.
 function figures(s: Scene): { svg: string; standing: Map<string, Pt> } {
   const drawn: { y: number; svg: string }[] = [];
   const standing = new Map<string, Pt>();
   const count = new Map<string, number>();
   const taken = new Map<string, number>();
+  const hugging = new Set(s.hugs.flatMap((h) => h.people));
+  const waiting: { f: Figure; at: Pt }[] = [];
   // Whoever's room it is gets its first spot, and her own bed's pillow.
   const own = (f: Figure): number => ((f.rest?.place ?? f.place) === `room:${f.person.id}` ? 0 : 1);
   for (const f of [...s.figures].sort((a, b) => own(a) - own(b))) {
     const p = f.person;
     const rest: Rest | undefined = f.rest ?? (f.asleep ? { kind: "nap", place: f.place, seat: "" } : undefined);
     const at = rest && restSpot(rest, p.id, taken);
-    const mask = f.masked ? MASK : "";
     if (rest && at && !f.me) {
       const [x, y] = at;
       if (rest.kind === "sit") standing.set(p.id, at);
-      const body = rest.kind === "nap" ? lying(p.id) : sitting(p.id, f.masked);
+      const body = rest.kind === "nap" ? lying(f) : sitting(f);
       drawn.push({ y, svg: `<g class="${rest.kind === "nap" ? "sleeper" : "sitter"}${f.here ? " here" : ""}" data-person="${p.id}" data-place="${rest.place}" transform="translate(${x} ${y})" style="--accent:${p.color}">${body}</g>` });
       continue;
     }
@@ -480,16 +559,44 @@ function figures(s: Scene): { svg: string; standing: Map<string, Pt> } {
     const fixed = at ?? f.spot;
     const i = fixed ? 0 : count.get(f.place) ?? 0;
     if (!fixed) count.set(f.place, i + 1);
-    const [x, y] = fixed ?? ROOMS[f.place].walk[i % ROOMS[f.place].walk.length];
-    standing.set(p.id, [x, y]);
-    const pose = !rest || !at ? "" : `<g class="pose">${rest.kind === "nap" ? lying(p.id) : sitting(p.id, f.masked)}</g>`;
-    const cls = ["walker", f.me ? "me" : "", f.here ? "here" : "", pose ? `resting ${rest!.kind === "nap" ? "napping" : "sitting"}` : ""].filter(Boolean).join(" ");
-    const who = f.me ? "you" : p.name;
-    drawn.push({ y, svg: `<g class="${cls}" data-person="${p.id}" data-place="${f.place}" transform="translate(${x} ${y})" style="--accent:${p.color}"><ellipse class="shadow" rx="22" ry="7"/><g class="bob"><image href="${art(`avatar-${p.id}.png`)}" x="-36" y="-95" width="72" height="97"/>${mask}</g>${pose}<text class="who" y="24">${esc(who)}</text></g>` });
+    const spot: Pt = fixed ?? ROOMS[f.place].walk[i % ROOMS[f.place].walk.length];
+    standing.set(p.id, spot);
+    const pose = !rest || !at ? "" : `<g class="pose">${rest.kind === "nap" ? lying(f) : sitting(f)}</g>`;
+    if (!pose && hugging.has(p.id)) {
+      waiting.push({ f, at: spot });
+      continue;
+    }
+    drawn.push({ y: spot[1], svg: walkerSvg(f, spot, pose, pose ? `resting ${rest!.kind === "nap" ? "napping" : "sitting"}` : "") });
+  }
+  for (const h of s.hugs) {
+    const group = waiting.filter((w) => h.people.includes(w.f.person.id)).sort((a, b) => a.at[0] - b.at[0]);
+    if (group.length < 2) {
+      for (const w of group) drawn.push({ y: w.at[1], svg: walkerSvg(w.f, w.at, "", "") });
+      continue;
+    }
+    const [cx, cy] = group.find((w) => w.f.person.id === h.by)?.at
+      ?? [group.reduce((a, w) => a + w.at[0], 0) / group.length, group.reduce((a, w) => a + w.at[1], 0) / group.length];
+    group.forEach((w, i) => {
+      const off = (i - (group.length - 1) / 2) * HUG_GAP;
+      const at: Pt = [Math.round(cx + off), Math.round(cy)];
+      standing.set(w.f.person.id, at);
+      const lean = Math.round(Math.max(-12, Math.min(12, -off * 0.32)));
+      // The middle of the hug in front, arms round the others.
+      drawn.push({ y: cy - Math.abs(off) / 100, svg: walkerSvg(w.f, at, "", "hugging", lean) });
+    });
+    const hearts = [[-18, 0, 0], [0, -14, 0.6], [18, -2, 1.2]].map(([dx, dy, delay]) =>
+      `<g transform="translate(${dx} ${dy - 112})"><path class="heart" d="${HEART}" style="animation-delay:${delay}s"/></g>`).join("");
+    const names = listed(group.map((w) => (w.f.me ? "you" : w.f.person.name)));
+    const people = group.map((w) => w.f.person.id).join(",");
+    drawn.push({ y: cy + 1, svg: `<g class="hug" data-people="${people}" transform="translate(${Math.round(cx)} ${Math.round(cy)})">${hearts}<text class="who hug-names" y="24">${esc(names)}</text></g>` });
   }
   drawn.sort((a, b) => a.y - b.y);
   return { svg: `<g class="people" aria-hidden="true">${drawn.map((d) => d.svg).join("")}</g>`, standing };
 }
+
+// Where everyone who isn't asleep is drawn, so the server can tell who's
+// close enough to hug.
+export const standingSpots = (s: Scene): Map<string, Pt> => figures(s).standing;
 
 const SPARKLE = "M0 -10L2.6 -2.6L10 0L2.6 2.6L0 10L-2.6 2.6L-10 0L-2.6 -2.6Z";
 
@@ -525,6 +632,7 @@ ${RITHANYA}
 ${kettleMaggi(s)}
 ${light(s)}
 ${things(s)}
+${party(s)}
 ${hotspots(s)}
 ${laddoo(s, people.standing)}
 <g class="links">${links(s)}</g>

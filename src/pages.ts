@@ -1,4 +1,4 @@
-import { emoji, iconSvg, patchesSvg, plantSvg, POP } from "./art.ts";
+import { crownSvg, emoji, iconSvg, patchesSvg, plantSvg, POP } from "./art.ts";
 import { art } from "./assets.ts";
 import {
   counter,
@@ -9,6 +9,7 @@ import {
   find,
   FOOD,
   GIFTS,
+  hugs,
   kettle,
   KETTLE_ROOM,
   latest,
@@ -18,6 +19,7 @@ import {
   MOVIE_LOVER,
   movieNight,
   movies,
+  partyHats,
   PLANTS,
   plants,
   resting,
@@ -25,15 +27,16 @@ import {
   stage,
   thirsty,
   wall,
+  wishes,
   YOGA_ROOM,
   type Item,
   type Movie,
 } from "./house.ts";
 import { esc } from "./html.ts";
 import { PEOPLE, personById, type Person } from "./people.ts";
-import { houseSvg, isPlace, type Figure, type Scene, type Spot } from "./scene.ts";
+import { houseSvg, HUG_REACH, isPlace, standingSpots, type Figure, type Scene, type Spot } from "./scene.ts";
 import type { Thing } from "./store.ts";
-import { ago, asleep, clock, dayLabel, hello, localInput, phase, type Phase } from "./time.ts";
+import { ago, asleep, birthday, birthdayLabel, clock, dayLabel, hello, localInput, phase, ymd, type Phase } from "./time.ts";
 
 export { esc };
 
@@ -208,8 +211,9 @@ export type Done = { key: string; text: string };
 const done = (d: Done | undefined): string =>
   d ? `<p class="done" role="status"><span class="emoji" aria-hidden="true">${POP[d.key]?.[0] ?? "✨"}</span> ${esc(d.text)}</p>` : "";
 
-const pane = (p: Person, light: Phase, asleepNow: boolean): string =>
-  `<span class="pane light-${light}${asleepNow ? " asleep" : ""}"><img src="${art(`avatar-${p.id}.png`)}" alt="" width="180" height="242"></span>`;
+// In her birthday month, she wears her crown in her window too.
+const pane = (p: Person, light: Phase, asleepNow: boolean, now: number): string =>
+  `<span class="pane light-${light}${asleepNow ? " asleep" : ""}"><img src="${art(`avatar-${p.id}.png`)}" alt="" width="180" height="242">${birthday(p, now) ? crownSvg() : ""}</span>`;
 
 /* ---------- the house, as the scene draws it ---------- */
 
@@ -233,7 +237,7 @@ function freshPlaces(v: Visit): Set<string> {
     if (t.kind === "note") out.add("living");
     else if (t.kind === "dish" || t.kind === "eat") out.add("kitchen");
     else if (t.kind === "water" || t.kind === "plant" || t.kind === "play" || t.kind === "treat") out.add("garden");
-    else if (t.kind === "kettle" || t.kind === "mask") out.add(t.place);
+    else if (t.kind === "kettle" || t.kind === "mask" || t.kind === "wish") out.add(t.place);
     else if (t.place === roomPlace(v.me.id)) out.add(t.place);
   }
   return out;
@@ -242,6 +246,7 @@ function freshPlaces(v: Visit): Set<string> {
 function scene(v: Visit, focus?: string, did?: string): Scene {
   const d = laddooAt(v);
   const masks = masked(v.things, v.now);
+  const hats = partyHats(v.things, v.now);
   const rests = resting(v.things, v.now, v.where, v.arrived);
   return {
     light: phase(clock(v.me.tz, v.now)),
@@ -257,6 +262,7 @@ function scene(v: Visit, focus?: string, did?: string): Scene {
         mess: mess(v.things, owner.id, v.now),
         desk: deskSpots(owner, v),
         lamp: !zz,
+        birthday: birthday(owner, v.now),
       };
     }),
     figures: PEOPLE.map((p): Figure => {
@@ -270,8 +276,11 @@ function scene(v: Visit, focus?: string, did?: string): Scene {
         masked: masks.has(p.id),
         rest: r && { kind: r.kind === "nap" ? "nap" : "sit", place: r.place, seat: r.item },
         spot: spotOf(p, v),
+        crown: birthday(p, v.now) > 0,
+        hat: hats.has(p.id),
       };
     }),
+    hugs: hugs(v.things, v.now, v.arrived).map((h) => ({ by: h.by, people: h.people })),
     dishes: counter(v.things, v.now).map((t) => ({
       key: t.item,
       fresh: isNew(t, v),
@@ -286,6 +295,38 @@ function scene(v: Visit, focus?: string, did?: string): Scene {
   };
 }
 
+/* ---------- hugs ---------- */
+
+// Who you can hug from where you're drawn: friends who are here now,
+// standing (not asleep, not sat down), within reach. `place` and `spot` are
+// where you are, so a hug can say where it happened and get you up first.
+export function hugFrom(v: Visit): { near: Person[]; place: string; spot?: [number, number]; resting: boolean } {
+  const spots = standingSpots(scene(v));
+  const mine = spots.get(v.me.id);
+  const near = !mine ? [] : PEOPLE.filter((p) => {
+    if (p.id === v.me.id || !homeNow(p, v) || sleeping(p, v) || restOf(p, v)) return false;
+    const at = spots.get(p.id);
+    return at !== undefined && Math.hypot(at[0] - mine[0], at[1] - mine[1]) <= HUG_REACH;
+  });
+  return { near, place: placeOf(v.me, v), spot: mine, resting: restOf(v.me, v) !== undefined };
+}
+
+// "Hug Neha", or "Group hug with Neha and Aswathy".
+export const hugLabel = (people: Person[]): string =>
+  people.length === 1 ? `Hug ${people[0].name}` : `Group hug with ${names(people.map((p) => p.name))}`;
+
+// The same hugs, as buttons on the page of the room you're in.
+function hugButtons(v: Visit): string {
+  const near = hugFrom(v).near;
+  if (!near.length) return "";
+  const button = (people: Person[]): string =>
+    `<form method="post" action="/hug" class="inline"><input type="hidden" name="with" value="${esc(people.map((p) => p.id).join(","))}"><button class="soft">${emoji("hug")} ${esc(hugLabel(people))}</button></form>`;
+  const all = near.length > 1 ? [button(near)] : [];
+  return `<div class="doings hugs">${[...all, ...near.map((p) => button([p]))].join("")}</div>`;
+}
+
+const pageOf = (place: string): string => (place.startsWith("room:") ? `/room/${place.slice("room:".length)}` : `/${place}`);
+
 /* ---------- the door ---------- */
 
 export function doorPage(seen: Map<string, number>, now: number): string {
@@ -296,7 +337,7 @@ export function doorPage(seen: Map<string, number>, now: number): string {
     const zz = asleep(p, c) && !recent;
     const when = last === undefined ? "hasn't been home yet" : recent ? "home now" : `home ${ago(last, now)}`;
     return `<li><button class="person" name="who" value="${esc(p.id)}" style="--accent:${p.color}">
-      ${pane(p, phase(c), zz)}
+      ${pane(p, phase(c), zz, now)}
       <span class="name">${nameHtml(p)}</span>
       <span class="where">${esc(p.city)}</span>
       <span class="where"><span class="clock" data-tz="${esc(p.tz)}">${esc(c.label)}</span>${zz ? ", asleep" : ""}</span>
@@ -385,6 +426,25 @@ function happening(t: Thing, me: Person, all: Thing[]): Happening | undefined {
       return { text: `${by} petted ${DOG}`, href: "/garden", forYou: false, at };
     case "treat":
       return { text: `${by} gave ${DOG} a treat`, href: "/garden", forYou: false, at };
+    case "hug": {
+      const others = t.item.split(",").filter(Boolean);
+      const href = pageOf(t.place);
+      const one = others.length === 1;
+      if (others.includes(me.id)) {
+        const rest = others.filter((o) => o !== me.id).map(nameOf);
+        return { text: one ? `${by} hugged you` : `${by} pulled ${names(["you", ...rest])} into a group hug`, href, forYou: true, at };
+      }
+      const who = names(others.map(nameOf));
+      return { text: one ? `${by} hugged ${who}` : `${by} pulled ${who} into a group hug`, href, forYou: false, at };
+    }
+    case "wish": {
+      const owner = ownerOf(t.place);
+      if (!owner) return undefined;
+      const href = `/room/${owner.id}`;
+      if (owner.id === t.author) return { text: `${by} celebrated ${mine ? "your" : "her"} birthday`, href, forYou: false, at };
+      if (owner.id === me.id) return { text: `${by} wished you a happy birthday`, href, forYou: true, at };
+      return { text: `${by} wished ${owner.name} a happy birthday`, href, forYou: false, at };
+    }
     case "nap": {
       const owner = ownerOf(t.place);
       if (!owner) return undefined;
@@ -488,7 +548,7 @@ function everyone(v: Visit, full: boolean): string {
       ? `<form method="post" action="/me" class="be"><button class="soft" name="who" value="${esc(p.id)}">Come in as ${esc(p.name)}</button></form>`
       : "";
     return `<li style="--accent:${p.color}"><a href="/room/${esc(p.id)}">
-      ${pane(p, phase(c), sleeping(p, v))}
+      ${pane(p, phase(c), sleeping(p, v), v.now)}
       <span class="who"><span class="name">${nameHtml(p)}</span><span class="where">${esc(c.weekday)}, <span class="clock" data-tz="${esc(p.tz)}">${esc(c.label)}</span> in ${esc(p.city)}</span><span class="status">${esc(status(p, v))}</span>${full ? `<span class="about">${esc(p.about)}</span>` : ""}</span>
     </a>${be}</li>`;
   }).join("\n");
@@ -651,6 +711,41 @@ function kettleCard(owner: Person, v: Visit): string {
   </form>`;
 }
 
+// All through her birthday month, her room says so, says when the day is in
+// her own calendar, and keeps who's wished her this month.
+function birthdayCard(owner: Person, v: Visit): string {
+  const when = birthday(owner, v.now);
+  if (!when) return "";
+  const mine = owner.id === v.me.id;
+  const [year, month] = ymd(owner.tz, v.now);
+  const wishers = wishes(v.things, owner.id)
+    .filter((t) => t.author !== owner.id)
+    .filter((t) => {
+      const [y, m] = ymd(owner.tz, t.createdAt);
+      return y === year && m === month;
+    })
+    .map((t) => t.author)
+    .filter((a, i, all) => all.indexOf(a) === i)
+    .map((a) => (a === v.me.id ? "you" : nameOf(a)));
+  const day = birthdayLabel(owner, v.now);
+  const head = when === 2
+    ? (mine ? "Happy birthday!" : `It's ${owner.name}'s birthday today!`)
+    : (mine ? "It's your birthday month" : `It's ${owner.name}'s birthday month`);
+  const line = when === 2
+    ? (mine ? "Today's the day. Everyone who comes by finds the cake on your desk." : `Today's the day in ${owner.city}. There's cake on her desk.`)
+    : (mine ? `Your birthday is ${day}. The bunting stays up all month.` : `Her birthday is ${day}, in ${owner.city}. The bunting stays up all month.`);
+  const wished = wishers.length
+    ? `Wished ${mine ? "you" : "her"} a happy birthday this month: ${names(wishers)}.`
+    : mine ? "Your friends' wishes will show up here." : "Be the first to wish her a happy birthday.";
+  const label = mine ? "Celebrate your birthday" : `Wish ${owner.name} a happy birthday`;
+  return `<section class="card birthday-card" aria-labelledby="birthday-heading" style="--accent:${owner.color}">
+    <h2 id="birthday-heading">${emoji("wish")} ${esc(head)}</h2>
+    <p>${esc(line)}</p>
+    <p class="small">${esc(wished)}</p>
+    <form method="post" action="/room/${esc(owner.id)}/wish" class="inline"><button class="soft">${emoji("wish")} ${esc(label)}</button></form>
+  </section>`;
+}
+
 export function bedroomPage(owner: Person, v: Visit, did?: Done): string {
   const mine = owner.id === v.me.id;
   const c = clock(owner.tz, v.now);
@@ -691,8 +786,10 @@ export function bedroomPage(owner: Person, v: Visit, did?: Done): string {
   return roomPage(v, roomPlace(owner.id), title, `
   ${roomHead(title, line, owner.about, owner.color)}
   ${done(did)}
+  ${birthdayCard(owner, v)}
   <p class="status">${esc(messLine)} ${esc(tidyLine)}</p>
   ${restingIn(roomPlace(owner.id), v)}
+  ${hugButtons(v)}
   <div class="doings">
     <form method="post" action="/room/${esc(owner.id)}/tidy" class="inline"><button class="soft">${emoji("tidy")} ${mine ? "Tidy your room" : `Tidy up ${esc(owner.name)}'s room`}</button></form>
     <form method="post" action="/room/${esc(owner.id)}/nap" class="inline"><button class="soft">${emoji("nap")} Sleep in ${mine ? "your" : `${esc(owner.name)}'s`} bed</button></form>
@@ -729,6 +826,7 @@ export function livingPage(v: Visit, did?: Done): string {
   ${done(did)}
   <p class="sofa"><a href="/movies">${night ? esc(`Movie night on these sofas: “${night.movie.title}”, ${dayLabel(v.me.tz, night.at)}`) : "Movie night happens on these sofas"} ›</a></p>
   ${restingIn("living", v)}
+  ${hugButtons(v)}
   <div class="doings">${sitButton("sofa", "Sit on the sofa")}</div>
   ${laddooCard("living", v)}
   <form method="post" action="/wall" class="card compose" id="write">
@@ -759,6 +857,7 @@ export function kitchenPage(v: Visit, did?: Done): string {
   return roomPage(v, "kitchen", "The kitchen", `
   ${roomHead("The kitchen", "Cook something and leave it out for everyone. Food stays on the counter for three days, or until someone eats it.", undefined, "#c4553c")}
   ${done(did)}
+  ${hugButtons(v)}
   ${laddooCard("kitchen", v)}
   <section class="card" aria-labelledby="counter-heading">
     <h2 id="counter-heading">On the counter</h2>
@@ -800,6 +899,7 @@ export function gardenPage(v: Visit, did?: Done): string {
   return roomPage(v, "garden", "The garden", `
   ${roomHead("The garden", "Everyone has a patch. Anyone can water the lot, and the plants grow whether or not you're here.", undefined, "#4f8f3e")}
   ${done(did)}
+  ${hugButtons(v)}
   <p class="status">${esc(waterLine)}</p>
   <form method="post" action="/garden/water" class="inline"><button class="soft">${emoji("water")} Water the garden</button></form>
   <section class="card" aria-labelledby="patches-heading">

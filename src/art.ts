@@ -99,6 +99,72 @@ export function patchesSvg(plots: Plot[], thirsty: boolean, did?: string, me?: s
   return `<svg class="patches-svg" viewBox="0 0 570 140" role="img" aria-label="The five patches up close"><rect width="570" height="140" rx="10" fill="#9cc77a"/>${beds}</svg>`;
 }
 
+/* ---------- birthdays ---------- */
+
+// A gold crown, its band's middle at (0, 0), for the top of a head.
+export const CROWN = `<g class="crown"><path d="M-13 0L-14.5 -14L-7 -6.5L0 -17L7 -6.5L14.5 -14L13 0Z" fill="#f6c63b" stroke="#a8740e" stroke-width="1.6" stroke-linejoin="round"/><rect x="-13.5" y="-3.5" width="27" height="5" rx="1.5" fill="#e9a91e" stroke="#a8740e" stroke-width="1.2"/><circle cy="-17" r="2.4" fill="#e0405a" stroke="#a8740e" stroke-width=".8"/><circle cx="-14.5" cy="-14" r="2" fill="#4aa3df"/><circle cx="14.5" cy="-14" r="2" fill="#4aa3df"/><circle cy="-1" r="1.8" fill="#e0405a"/><circle cx="-7.5" cy="-1" r="1.4" fill="#5fb8a5"/><circle cx="7.5" cy="-1" r="1.4" fill="#5fb8a5"/></g>`;
+
+// The crown on its own, for a window pane at the door or on Everyone.
+export const crownSvg = (): string => `<svg class="crown" viewBox="-17 -21 34 24" aria-hidden="true">${CROWN}</svg>`;
+
+// A striped party hat with a pompom, its brim's middle at (0, 0).
+export const PARTY_HAT = `<g class="party-hat"><path d="M-9.5 0L0 -24L9.5 0Z" fill="#8ec5ff" stroke="#3d6fb0" stroke-width="1.3" stroke-linejoin="round"/><path d="M-6.5 -7L5.5 -8.5M-3.6 -14.5L3 -15.5" stroke="#ff7aa8" stroke-width="2.6" stroke-linecap="round"/><circle cy="-25" r="3.4" fill="#ffd34d" stroke="#c99a12" stroke-width="1"/></g>`;
+
+const FLAGS = ["#f2685b", "#f6c63b", "#5fb8a5", "#8e7cc3", "#f29ac0", "#5b9bd5"];
+
+// A string of little flags sagging from `a` to `b`, with "Happy birthday" on
+// a card hanging from the middle.
+export function bunting([ax, ay]: [number, number], [bx, by]: [number, number], sag: number, name: string): string {
+  const [cx, cy] = [(ax + bx) / 2, (ay + by) / 2 + sag * 2];
+  const at = (t: number): [number, number] => [
+    (1 - t) ** 2 * ax + 2 * (1 - t) * t * cx + t ** 2 * bx,
+    (1 - t) ** 2 * ay + 2 * (1 - t) * t * cy + t ** 2 * by,
+  ];
+  const n = Math.max(5, Math.round(Math.hypot(bx - ax, by - ay) / 24));
+  const flags = Array.from({ length: n }, (_, i) => {
+    const t = (i + 0.5) / n;
+    const [x, y] = at(t);
+    const [x2, y2] = at(Math.min(1, t + 0.01));
+    const angle = (Math.atan2(y2 - y, x2 - x) * 180) / Math.PI;
+    return `<path d="M-7 0H7L0 15Z" transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${angle.toFixed(1)})" fill="${FLAGS[i % FLAGS.length]}" stroke="rgba(80,50,30,.45)" stroke-width=".8"/>`;
+  }).join("");
+  const [mx, my] = at(0.5);
+  const words = `Happy birthday, ${name}!`;
+  const w = Math.round(words.length * 6.4 + 18);
+  const card = `<g class="banner" transform="translate(${mx.toFixed(1)} ${(my + 12).toFixed(1)})"><path d="M0 -12V2" stroke="#8a5a3c" stroke-width="1"/><rect x="${-w / 2}" y="2" width="${w}" height="21" rx="4" fill="#fff8ea" stroke="#e07a5f" stroke-width="1.5"/><text class="banner-words" y="17.5">${esc(words)}</text></g>`;
+  return `<path d="M${ax} ${ay}Q${cx} ${cy} ${bx} ${by}" fill="none" stroke="#8a5a3c" stroke-width="1.6"/>${flags}${card}`;
+}
+
+const BALLOONS: [number, number, string][] = [
+  [-17, -86, "#f2685b"],
+  [7, -104, "#f6c63b"],
+  [23, -80, "#5b9bd5"],
+  [-3, -70, "#f29ac0"],
+];
+
+// A bunch of balloons tied down at (x, y), floating up above it.
+export function balloons(x: number, y: number): string {
+  const each = BALLOONS.map(([dx, dy, fill], i) =>
+    `<g class="balloon" style="animation-delay:${(-i * 0.7).toFixed(1)}s"><path d="M0 0Q${dx / 2 - 6} ${dy / 2} ${dx} ${dy + 15}" fill="none" stroke="#7a6a5a" stroke-width="1"/><path d="M${dx - 3} ${dy + 16}L${dx} ${dy + 12}L${dx + 3} ${dy + 16}Z" fill="${fill}"/><ellipse cx="${dx}" cy="${dy}" rx="11" ry="13.5" fill="${fill}" stroke="rgba(60,30,20,.35)" stroke-width="1"/><ellipse cx="${dx - 4}" cy="${dy - 5}" rx="3" ry="4.5" fill="#fff" opacity=".55"/></g>`).join("");
+  return `<g class="balloons" transform="translate(${x} ${y})">${each}<circle r="2.5" fill="#7a6a5a"/></g>`;
+}
+
+// On the day itself: a cake on her desk with a candle lit, and confetti.
+export function cake(x: number, y: number): string {
+  return `<g class="cake" transform="translate(${x} ${y})"><ellipse cy="9" rx="17" ry="4.5" fill="#fff" stroke="#d8cfc2"/><rect x="-13" y="-4" width="26" height="12" rx="3" fill="#f6d9a8" stroke="#c9945a"/><rect x="-13" y="-4" width="26" height="4" rx="2" fill="#f29ac0"/><circle cx="-7" cy="3" r="1.5" fill="#e0405a"/><circle cx="0" cy="4" r="1.5" fill="#5fb8a5"/><circle cx="7" cy="3" r="1.5" fill="#5b9bd5"/><rect x="-1.3" y="-14" width="2.6" height="10" rx="1" fill="#8ec5ff"/><path class="flame" d="M0 -22Q4 -17 0 -14Q-4 -17 0 -22Z" fill="#ffb02e"/></g>`;
+}
+
+export function confetti(around: [number, number][]): string {
+  const bits = around.flatMap(([x, y], i) =>
+    Array.from({ length: 7 }, (_, j) => {
+      const k = i * 7 + j;
+      const dx = ((k * 37) % 70) - 35;
+      const dy = ((k * 53) % 44) - 22;
+      return `<rect x="${x + dx}" y="${y + dy}" width="5" height="3" rx="1" fill="${FLAGS[k % FLAGS.length]}" transform="rotate(${(k * 41) % 180} ${x + dx} ${y + dy})"/>`;
+    }));
+  return `<g class="confetti">${bits.join("")}</g>`;
+}
+
 /* ---------- a little emoji for everything you do ---------- */
 
 // On the button for each thing you can do, in the house and on the pages.
