@@ -99,6 +99,58 @@ export function patchesSvg(plots: Plot[], thirsty: boolean, did?: string, me?: s
   return `<svg class="patches-svg" viewBox="0 0 570 140" role="img" aria-label="The five patches up close"><rect width="570" height="140" rx="10" fill="#9cc77a"/>${beds}</svg>`;
 }
 
+/* ---------- Shinzo, up and about ---------- */
+
+// His picture (public/art/laddoo.png) is him curled up on his blanket, so
+// when he's up he's drawn here: the same golden fur and dark outline, side
+// on, facing left, feet on (0, 0). Legs, tail, ears and head are their own
+// groups so style.css can walk him.
+const FUR = "#f2b66e";
+const FUR_LIGHT = "#fbd197";
+const FUR_DARK = "#d9965a";
+const LINE = `stroke="#4a3426" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"`;
+// A leg from the hip down, narrowing to a round paw a little forward.
+const leg = (x: number, fill: string, cls: string): string =>
+  `<g class="leg ${cls}"><path d="M${x} -26q5 -3 11 0l-2 21h-7z" fill="${fill}" ${LINE}/><ellipse cx="${x + 3.5}" cy="-2.6" rx="6" ry="3.4" fill="${fill}" ${LINE}/></g>`;
+
+export const DOG_STANDING = `<g class="dog-up">
+<ellipse class="dog-shadow" cx="0" cy="0" rx="34" ry="6"/>
+<g class="tail"><path d="M24 -31c10 -5 15 -14 13 -27c8 6 11 18 6 26c-4 6 -11 8 -18 6z" fill="${FUR}" ${LINE}/><path d="M31 -40q4 -5 4 -11M36 -34q4 -3 5 -8" fill="none" stroke="${FUR_DARK}" stroke-width="1.2" stroke-linecap="round"/></g>
+${leg(21, FUR_DARK, "far b")}${leg(-20, FUR_DARK, "far a")}
+<path class="dog-body" d="M-29 -35c4 -9 18 -10 32 -9c14 1 27 2 30 13c3 11 -4 18 -15 18h-31c-12 0 -20 -8 -16 -22z" fill="${FUR}" ${LINE}/>
+<path d="M-22 -16q18 5 40 2" fill="none" stroke="${FUR_DARK}" stroke-width="2.2" stroke-linecap="round" opacity=".55"/>
+<path d="M2 -40q12 -2 22 2" fill="none" stroke="${FUR_LIGHT}" stroke-width="3" stroke-linecap="round"/>
+<path d="M-26 -33q-5 8 0 16q6 1 9 -4q-1 -8 -9 -12z" fill="${FUR_LIGHT}"/>
+${leg(13, FUR, "near a")}${leg(-27, FUR, "near b")}
+<g class="dog-head">
+<circle cx="-31" cy="-50" r="17" fill="${FUR}" ${LINE}/>
+<path d="M-38 -63q6 -5 13 -3" fill="none" stroke="${FUR_LIGHT}" stroke-width="2.4" stroke-linecap="round"/>
+<ellipse cx="-45" cy="-43.5" rx="10.5" ry="8" fill="${FUR_LIGHT}" ${LINE}/>
+<path d="M-47 -37.5q1 4.5 4.5 3.5q1.5 -2 .5 -4.5" fill="#e98a8a" stroke="#4a3426" stroke-width="1"/>
+<path d="M-51 -38.5q4 3 9 0" fill="none" stroke="#4a3426" stroke-width="1.3" stroke-linecap="round"/>
+<ellipse cx="-54.5" cy="-46" rx="3.8" ry="3" fill="#3a2a20"/><circle cx="-55.5" cy="-47" r=".9" fill="#fff" opacity=".8"/>
+<circle cx="-36.5" cy="-54" r="2.5" fill="#3a2a20"/><circle cx="-37.3" cy="-54.9" r=".8" fill="#fff"/>
+<g class="ear"><path d="M-31 -65c10 -4 15 6 14 16c-1 8 -4 12 -8 12c-6 -4 -8 -12 -7 -20c0 -4 0 -6 1 -8z" fill="${FUR_DARK}" ${LINE}/></g>
+</g>
+</g>`;
+
+// His blanket, which stays under the tree while he's off wandering: the
+// plaid of his picture, laid out where the picture had it. The square's
+// stripes are stretched over the blanket's own slant.
+const plaid = (at: number, w: number, fill: string, opacity: number, across: boolean): string =>
+  across
+    ? `<rect x="${at}" width="${w}" height="1" fill="${fill}" opacity="${opacity}"/>`
+    : `<rect y="${at}" width="1" height="${w}" fill="${fill}" opacity="${opacity}"/>`;
+
+export const BLANKET = `<polygon points="-72,-9 11,-33 79,14 -4,38" fill="#2f4a1e" opacity=".22"/>
+<g transform="matrix(83 -24 67 47 -75 -14)">
+<rect width="1" height="1" fill="#a68c87"/>
+${[0.08, 0.56].map((a) => plaid(a, 0.17, "#f3e3cf", 0.6, true) + plaid(a, 0.17, "#f3e3cf", 0.5, false)).join("")}
+${[0.3, 0.8].map((a) => plaid(a, 0.08, "#c29386", 0.75, true) + plaid(a, 0.08, "#c29386", 0.65, false)).join("")}
+${[0.41, 0.91].map((a) => plaid(a, 0.025, "#7e625c", 0.55, true) + plaid(a, 0.025, "#7e625c", 0.45, false)).join("")}
+</g>
+<polygon points="-75,-14 8,-38 75,9 -8,33" fill="none" stroke="#5e4741" stroke-width="1.2" stroke-linejoin="round" opacity=".8"/>`;
+
 /* ---------- a little emoji for everything you do ---------- */
 
 // On the button for each thing you can do, in the house and on the pages.

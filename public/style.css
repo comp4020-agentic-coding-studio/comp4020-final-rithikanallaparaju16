@@ -1912,3 +1912,87 @@ button .emoji,
     font-size: 0.9rem;
   }
 }
+
+/* ---------- Shinzo, up and about ---------- */
+
+/* He's his picture, curled up on his blanket, only while he's napping.
+   Otherwise he's up (src/art.ts DOG_STANDING), and his blanket stays under
+   the tree. */
+g.laddoo .lying,
+g.laddoo.napping .standing,
+g.blanket.covered {
+  display: none;
+}
+
+g.laddoo.napping .lying {
+  display: inline;
+}
+
+.dog-shadow {
+  fill: rgba(40, 25, 15, 0.25);
+}
+
+g.laddoo .leg,
+g.laddoo .tail,
+g.laddoo .dog-head {
+  transform-box: fill-box;
+}
+
+g.laddoo .leg {
+  transform-origin: 50% 0;
+}
+
+g.laddoo .tail {
+  transform-origin: 0 100%;
+}
+
+/* a slow wag whenever he's up */
+g.laddoo.awake .tail {
+  animation: wag 0.9s ease-in-out infinite alternate;
+}
+
+/* walking (or trotting after you): legs in diagonal pairs, a quick wag and a
+   little nod */
+g.laddoo.walking .leg,
+g.laddoo.trotting .leg {
+  animation: dog-step 0.34s ease-in-out infinite alternate;
+}
+
+g.laddoo.walking .leg.b,
+g.laddoo.trotting .leg.b {
+  animation-direction: alternate-reverse;
+}
+
+g.laddoo.walking .tail,
+g.laddoo.trotting .tail {
+  animation-duration: 0.3s;
+}
+
+g.laddoo.walking .dog-head,
+g.laddoo.trotting .dog-head {
+  animation: dog-nod 0.34s ease-in-out infinite alternate;
+}
+
+@keyframes dog-step {
+  from {
+    transform: rotate(-18deg);
+  }
+  to {
+    transform: rotate(18deg);
+  }
+}
+
+@keyframes wag {
+  from {
+    transform: rotate(-12deg);
+  }
+  to {
+    transform: rotate(16deg);
+  }
+}
+
+@keyframes dog-nod {
+  to {
+    transform: translateY(-2px);
+  }
+}

@@ -112,9 +112,9 @@ function line(did: string | null, owner?: Person): string | undefined {
     case "plant":
       return "Planted. Come back in a few days to see it grow.";
     case "play":
-      return `${DOG} loved that. He's coming with you wherever you go.`;
+      return `${DOG} loved that. He's coming with you wherever you go, for a while.`;
     case "treat":
-      return `Gone in one crunch. ${DOG}'s coming with you wherever you go.`;
+      return `Gone in one crunch. ${DOG}'s coming with you wherever you go, for a while.`;
     case "nap":
       return "Tucked in. Anyone who comes by finds you asleep here, until you get up and go somewhere else.";
     case "sit":
