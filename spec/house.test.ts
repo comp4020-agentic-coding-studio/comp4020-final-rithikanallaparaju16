@@ -1,5 +1,5 @@
 import { JSDOM } from "jsdom";
-import { describe, expect, inject, it } from "vitest";
+import { afterAll, describe, expect, inject, it } from "vitest";
 
 // The house's promises, checked against the running app over HTTP.
 const baseUrl = inject("baseUrl");
@@ -14,18 +14,58 @@ type Person = { id: string; name: string };
 
 const parse = (html: string): Document => new JSDOM(html).window.document;
 
+// Coming in at the door as one of the five, the way a browser does: the house
+// answers with a who= cookie, which every later request carries.
+function signIn(id: string, cookie?: string): Promise<Response> {
+  return fetch(new URL("/me", baseUrl), {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded", ...(cookie ? { cookie } : {}) },
+    body: new URLSearchParams({ who: id }),
+    redirect: "manual",
+  });
+}
+
+const sessionOf = (res: Response): string | undefined =>
+  res.headers.getSetCookie().find((c) => c.startsWith("who="))?.split(";")[0];
+
+// One session per friend for the whole run (only one of us can be each friend
+// at a time), let go of at the end so the next run can come in. Anyone who
+// isn't one of the five just sends what she claims to be.
+const sessions = new Map<string, string>();
+
+async function cookieFor(who: string): Promise<string> {
+  const known = sessions.get(who);
+  if (known) return known;
+  const res = await signIn(who);
+  if (res.status === 409) throw new Error(`someone else is in the house as ${who}; their window opens two minutes after they leave`);
+  const cookie = sessionOf(res);
+  if (!cookie) return `who=${who}`;
+  sessions.set(who, cookie);
+  return cookie;
+}
+
+async function signOut(who: string): Promise<void> {
+  const cookie = sessions.get(who);
+  sessions.delete(who);
+  if (cookie) await fetch(new URL("/leave", baseUrl), { method: "POST", headers: { cookie }, redirect: "manual" });
+}
+
+afterAll(async () => {
+  for (const who of [...sessions.keys()]) await signOut(who);
+});
+
 async function page(path: string, who?: string): Promise<Document> {
-  const res = await fetch(new URL(path, baseUrl), { headers: who ? { cookie: `who=${who}` } : {} });
+  const res = await fetch(new URL(path, baseUrl), { headers: who ? { cookie: await cookieFor(who) } : {} });
   expect(res.status, `GET ${path}`).toBe(200);
   return parse(await res.text());
 }
 
-function post(path: string, fields: Record<string, string>, who?: string): Promise<Response> {
+async function post(path: string, fields: Record<string, string>, who?: string): Promise<Response> {
   return fetch(new URL(path, baseUrl), {
     method: "POST",
     headers: {
       "content-type": "application/x-www-form-urlencoded",
-      ...(who ? { cookie: `who=${who}` } : {}),
+      ...(who ? { cookie: await cookieFor(who) } : {}),
     },
     body: new URLSearchParams(fields),
     redirect: "manual",
@@ -87,12 +127,15 @@ it("shows each friend's own time, wherever they live", async () => {
 describe.skipIf(!throwaway)("living in the house", () => {
   it("remembers who you are", async () => {
     const [me] = await people();
-    const res = await post("/me", { who: me.id });
+    await signOut(me.id);
+    const res = await signIn(me.id);
     expect(res.status).toBe(303);
-    const cookie = res.headers.getSetCookie().find((c) => c.startsWith("who="));
+    const cookie = sessionOf(res);
     expect(cookie, "picking who you are set no who= cookie").toBeDefined();
+    sessions.set(me.id, cookie!);
 
-    const home = await page("/", cookie!.split(";")[0].slice("who=".length));
+    const res2 = await fetch(new URL("/", baseUrl), { headers: { cookie: cookie! } });
+    const home = parse(await res2.text());
     expect(text(home.querySelector(".greeting"))).toContain(me.name);
     expect(home.querySelectorAll("a[href^='/room/']").length).toBeGreaterThanOrEqual(5);
   });
@@ -366,5 +409,76 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect((await post("/movies/night", { movie: "999999", when: "2030-01-05T20:00" }, a.id)).status).toBe(400);
     expect((await post("/sit", { seat: "throne" }, a.id)).status).toBe(400);
     expect((await post("/here", { x: "5", y: "5" }, a.id)).status).toBe(400);
+  });
+
+  it("shows a friend's open page what you do, and where you walk, without a refresh", async () => {
+    const [a, b] = await people();
+    // Both already in, so coming in isn't what's heard.
+    await cookieFor(a.id);
+    const stop = new AbortController();
+    const res = await fetch(new URL("/live", baseUrl), { headers: { cookie: await cookieFor(b.id) }, signal: stop.signal });
+    expect(res.headers.get("content-type")).toMatch(/^text\/event-stream/);
+    const reader = res.body!.getReader();
+    const decoder = new TextDecoder();
+    let heard = "";
+    const reading = (async () => {
+      try {
+        for (;;) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          heard += decoder.decode(value, { stream: true });
+        }
+      } catch {
+        // the page closed
+      }
+    })();
+    const until = async (needle: string): Promise<void> => {
+      for (let i = 0; i < 50 && !heard.includes(needle); i++) await new Promise((r) => setTimeout(r, 100));
+    };
+    // Whatever opening the page set off has been and gone.
+    await new Promise((r) => setTimeout(r, 500));
+
+    heard = "";
+    const note = unique("live from the wall");
+    await post("/wall", { body: note }, a.id);
+    await until("event: changed");
+    expect(heard, `${b.name}'s open page never heard that ${a.name} wrote on the wall`).toContain("event: changed");
+
+    heard = "";
+    await post("/here", { x: "1250", y: "300" }, a.id);
+    await until("event: moved");
+    stop.abort();
+    await reading;
+    const step = heard.split("\n\n").find((e) => e.startsWith("event: moved"));
+    expect(step, `${b.name} never saw ${a.name} walk`).toBeDefined();
+    expect(JSON.parse(step!.split("data: ")[1])).toEqual({ person: a.id, place: "garden", x: 1250, y: 300 });
+
+    // What her page fetches when it hears: the note's there.
+    expect(withText(await page("/living", b.id), ".note", note)).toBeDefined();
+  });
+
+  it("lets only one person be each of us at a time", async () => {
+    const five = await people();
+    const her = five[4];
+    const door = async (cookie?: string): Promise<Document> =>
+      parse(await (await fetch(new URL("/", baseUrl), { headers: cookie ? { cookie } : {} })).text());
+    const pane = (d: Document): HTMLButtonElement | null => d.querySelector(`button[name=who][value="${her.id}"]`);
+    await signOut(her.id);
+
+    const first = sessionOf(await signIn(her.id));
+    expect(first, `nobody could come in as ${her.name}`).toBeDefined();
+    const second = await signIn(her.id);
+    expect(second.status, `a second person got in as ${her.name}`).toBe(409);
+    expect(sessionOf(second)).toBeUndefined();
+    expect(pane(await door())?.disabled, `${her.name}'s window can still be picked at the door`).toBe(true);
+    // A cookie that only says who it is doesn't get in either.
+    expect((await door(`who=${her.id}`)).querySelector("form[action='/me']"), "a made-up cookie got into the house").not.toBeNull();
+
+    await fetch(new URL("/leave", baseUrl), { method: "POST", headers: { cookie: first! }, redirect: "manual" });
+    expect(pane(await door())?.disabled, `${her.name}'s window didn't open again once she left`).toBe(false);
+    const third = await signIn(her.id);
+    expect(third.status).toBe(303);
+    sessions.set(her.id, sessionOf(third)!);
+    expect((await door(first)).querySelector("form[action='/me']"), "the first device is still in after leaving").not.toBeNull();
   });
 });

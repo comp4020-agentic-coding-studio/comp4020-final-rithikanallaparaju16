@@ -35,7 +35,11 @@ if (!db.prepare("SELECT 1 FROM pragma_table_info('visits') WHERE name = 'place'"
 // only until she gets up; and the spot she walked to (`x`, `y`, in the
 // picture's pixels), so she's still there when she comes back. No spot means
 // the room's own first spot.
-for (const [column, type] of [["arrived", "INTEGER NOT NULL DEFAULT 0"], ["x", "REAL"], ["y", "REAL"]]) {
+// Added in session 8: the token of whoever is in the house as this friend
+// (ADR 0011), which her `who` cookie has to carry, empty when nobody is; and
+// when she came in at the door (`claimed`), which holds her window shut before
+// her first page load.
+for (const [column, type] of [["arrived", "INTEGER NOT NULL DEFAULT 0"], ["x", "REAL"], ["y", "REAL"], ["token", "TEXT NOT NULL DEFAULT ''"], ["claimed", "INTEGER NOT NULL DEFAULT 0"]]) {
   if (!db.prepare("SELECT 1 FROM pragma_table_info('visits') WHERE name = ?").get(column)) {
     db.exec(`ALTER TABLE visits ADD COLUMN ${column} ${type}`);
   }
@@ -77,13 +81,30 @@ export type Thing = {
   createdAt: number;
 };
 
+// Every write tells whoever's listening (src/live.ts passes it on to open
+// pages): `changed` when something in the house is different, `moved` when a
+// friend walked somewhere.
+export type Change = { type: "changed" } | { type: "moved"; person: string; place: string; x: number; y: number };
+const listeners: ((c: Change) => void)[] = [];
+export const onChange = (fn: (c: Change) => void): void => void listeners.push(fn);
+export const changed = (c: Change = { type: "changed" }): void => listeners.forEach((fn) => fn(c));
+
 const insertThing = db.prepare(
   "INSERT INTO things (author, kind, place, body, item, created_at) VALUES (?, ?, ?, ?, ?, ?)",
 );
 const selectThings = db.prepare(
   "SELECT id, author, kind, place, body, item, created_at FROM things ORDER BY created_at DESC, id DESC",
 );
-const selectVisit = db.prepare("SELECT last_seen, seen_until FROM visits WHERE person = ?");
+const selectVisit = db.prepare("SELECT last_seen, seen_until, place FROM visits WHERE person = ?");
+const selectToken = db.prepare("SELECT token, MAX(last_seen, claimed) AS active FROM visits WHERE person = ?");
+// Signing in before ever loading a page makes the row with no visit in it yet:
+// last_seen 0 still counts as a first visit (recordVisit). Signing in doesn't
+// touch last_seen, which says when your last visit ended.
+const claimToken = db.prepare(`
+  INSERT INTO visits (person, last_seen, seen_until, token, claimed) VALUES (?, 0, 0, ?, ?)
+  ON CONFLICT (person) DO UPDATE SET token = excluded.token, claimed = excluded.claimed
+`);
+const releaseToken = db.prepare("UPDATE visits SET token = '' WHERE person = ? AND token = ?");
 const selectVisits = db.prepare("SELECT person, last_seen, place, arrived, x, y FROM visits");
 // An empty place (the whole house, Updates) keeps wherever you last were, and
 // staying in the same place keeps when you got there and where you stood.
@@ -100,6 +121,7 @@ const updateSpot = db.prepare("UPDATE visits SET x = ?, y = ?, arrived = ? WHERE
 
 export function leave(t: { author: string; kind: Kind; place: string; body?: string; item?: string }): void {
   insertThing.run(t.author, t.kind, t.place, t.body ?? "", t.item ?? "", Date.now());
+  changed();
 }
 
 // Newest first. Five people leave few enough things that the house can be
@@ -116,8 +138,9 @@ export function things(): Thing[] {
   }));
 }
 
+// Only friends who've loaded a page; signing in alone isn't a visit.
 export function lastSeen(): Map<string, number> {
-  return new Map(selectVisits.all().map((r) => [String(r.person), Number(r.last_seen)]));
+  return new Map(selectVisits.all().filter((r) => Number(r.last_seen) > 0).map((r) => [String(r.person), Number(r.last_seen)]));
 }
 
 // The place each friend was on their last page load, or nothing if they've
@@ -141,14 +164,21 @@ export function spots(): Map<string, [number, number]> {
 export function walkTo(person: string, place: string, x: number, y: number): void {
   recordVisit(person, place);
   updateSpot.run(x, y, Date.now(), person);
+  changed({ type: "moved", person, place, x, y });
 }
 
 // A visit is a run of page loads with no 30-minute gap, so "new" marks survive
 // a refresh or leaving something, and reset only when you come back another time.
 const VISIT_GAP = 30 * 60 * 1000;
+// The same ten minutes as "home now" in src/pages.ts.
+const HOME_NOW = 10 * 60 * 1000;
 
 // Records that `person` is here now, in `place` if they're in a room; returns
 // the moment before which everything counts as already seen (0 on a first visit).
+// Friends only hear about it when it shows: she's come home, or gone somewhere
+// else in the house. Another page load in the same place changes nothing they
+// can see, which is what keeps live pages fetching themselves from setting
+// each other off.
 export function recordVisit(person: string, place = ""): number {
   const now = Date.now();
   const prev = selectVisit.get(person);
@@ -158,7 +188,29 @@ export function recordVisit(person: string, place = ""): number {
       ? Number(prev.last_seen)
       : Number(prev.seen_until);
   upsertVisit.run(person, now, seenUntil, place, place ? now : 0);
+  const cameHome = !prev || now - Number(prev.last_seen) >= HOME_NOW;
+  const moved = place !== "" && place !== String(prev?.place ?? "");
+  if (cameHome || moved) changed();
   return seenUntil;
+}
+
+/* ---------- one of us at a time (ADR 0011) ---------- */
+
+// The token whoever's in the house as `person` carries, and when she last
+// came in or loaded a page ("" and 0 if nobody is).
+export function holder(person: string): { token: string; active: number } {
+  const r = selectToken.get(person);
+  return { token: String(r?.token ?? ""), active: Number(r?.active ?? 0) };
+}
+
+export function claim(person: string, token: string): void {
+  claimToken.run(person, token, Date.now());
+  changed();
+}
+
+// Only the one holding her can let her go.
+export function release(person: string, token: string): void {
+  if (Number(releaseToken.run(person, token).changes) > 0) changed();
 }
 
 export function close(): void {
