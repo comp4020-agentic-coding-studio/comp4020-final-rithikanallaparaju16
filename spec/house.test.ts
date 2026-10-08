@@ -124,6 +124,34 @@ it("shows each friend's own time, wherever they live", async () => {
   }
 });
 
+// Each of us sleeps at night where she lives, from bedtime to waking.
+const SLEEP: Record<string, [number, number]> = {
+  Rithika: [23, 7],
+  Neha: [22, 8],
+  Amirdhavarshini: [23, 7],
+  Rithanya: [23.5, 9.5],
+  Aswathy: [23, 7],
+};
+
+it("puts each friend to bed at her own bedtime", async () => {
+  const at = Date.now();
+  const door = await page("/");
+  for (const button of door.querySelectorAll("button[name=who]")) {
+    const name = text(button.querySelector(".name"));
+    // Whoever's in the house right now is up, whatever the time.
+    if (text(button.querySelector(".when")).includes("home now") || button.hasAttribute("disabled")) continue;
+    const parts = Object.fromEntries(
+      new Intl.DateTimeFormat("en-AU", { timeZone: ZONES[name], hour: "numeric", minute: "numeric", hourCycle: "h23" })
+        .formatToParts(at)
+        .map((p) => [p.type, p.value]),
+    );
+    const hour = (Number(parts.hour) % 24) + Number(parts.minute) / 60;
+    const [from, to] = SLEEP[name];
+    const asleep = from > to ? hour >= from || hour < to : hour >= from && hour < to;
+    expect(text(button).includes(", asleep"), `${name} at ${parts.hour}:${parts.minute} her time`).toBe(asleep);
+  }
+});
+
 describe.skipIf(!throwaway)("living in the house", () => {
   it("remembers who you are", async () => {
     const [me] = await people();
@@ -565,5 +593,55 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect(dog.classList.contains("walking"), "he's walking while standing still, or still while walking").toBe(mine[0][3] === "walk");
     expect(dog.querySelector(".standing .leg"), "he has no legs to get up on").not.toBeNull();
     expect(dog.querySelector(".lying image"), "his curled-up picture is gone").not.toBeNull();
+  });
+
+  it("lets friends who are close hug, up to all five of you", async () => {
+    const [a, b, c, d, e] = await people();
+    const offline = !text(withText(await page("/"), "button[name=who]", e.name)?.querySelector(".when")).includes("home now");
+    // a, b and c are home and stand together in the garden; d is home too,
+    // but over by the tree.
+    for (const p of [a, b, c, d]) await page("/garden", p.id);
+    await post("/here", { x: "1200", y: "300" }, a.id);
+    await post("/here", { x: "1260", y: "330" }, b.id);
+    await post("/here", { x: "1230", y: "280" }, c.id);
+    await post("/here", { x: "1320", y: "180" }, d.id);
+
+    expect((await post("/hug", { with: d.id }, a.id)).status, `${a.name} hugged ${d.name} from across the garden`).toBe(400);
+    if (offline) {
+      // Standing right where e is drawn, in her own room, while she's away.
+      expect((await post("/hug", { with: e.id, x: "985", y: "668" }, a.id)).status, `${a.name} hugged ${e.name}, who isn't here`).toBe(400);
+      await post("/here", { x: "1200", y: "300" }, a.id);
+    }
+
+    expect((await post("/hug", { with: `${b.id},${c.id}` }, a.id)).headers.get("location")).toBe("/garden?did=hug");
+    const house = await page("/", d.id);
+    for (const p of [a, b, c]) {
+      expect(house.querySelector(`.walker.hugging[data-person="${p.id}"]`), `${p.name} isn't in the hug`).not.toBeNull();
+    }
+    expect(house.querySelector(`.walker.hugging[data-person="${d.id}"]`), `${d.name} got pulled in from over by the tree`).toBeNull();
+    expect(text((await page("/updates", b.id)).querySelector(".away"))).toContain(`${a.name} pulled you and ${c.name} into a group hug`);
+  });
+
+  it("celebrates a friend's birthday all month, with bunting and a crown", async () => {
+    const five = await people();
+    const MONTHS: Record<string, number> = { Rithika: 10, Neha: 6, Amirdhavarshini: 5, Rithanya: 1, Aswathy: 11 };
+    const now = Date.now();
+    const month = (tz: string): number => Number(new Intl.DateTimeFormat("en-AU", { timeZone: tz, month: "numeric" }).format(now));
+    // Around the turn of a month, two of us can be in our birthday months at once.
+    const girls = five.filter((p) => MONTHS[p.name] === month(ZONES[p.name]));
+    const others = five.filter((p) => !girls.includes(p));
+    const [visitor, notHers] = others;
+
+    const house = await page("/", visitor.id);
+    const crowned = [...house.querySelectorAll(".house-svg [data-person]")].filter((g) => g.querySelector(".crown")).map((g) => g.getAttribute("data-person"));
+    expect(crowned.sort(), "the wrong people are wearing crowns").toEqual(girls.map((p) => p.id).sort());
+    expect([...house.querySelectorAll(".house-svg .party")].map((g) => g.getAttribute("data-place")).sort()).toEqual(girls.map((p) => `room:${p.id}`).sort());
+    expect((await post(`/room/${notHers.id}/wish`, {}, visitor.id)).status, `wished ${notHers.name} a happy birthday outside her month`).toBe(404);
+
+    for (const girl of girls) {
+      expect((await post(`/room/${girl.id}/wish`, {}, visitor.id)).headers.get("location")).toBe(`/room/${girl.id}?did=wish`);
+      expect(text((await page("/updates", girl.id)).querySelector(".away"))).toContain(`${visitor.name} wished you a happy birthday`);
+      expect(text((await page(`/room/${girl.id}`, girl.id)).querySelector(".birthday-card")), "her room doesn't keep who wished her").toContain(visitor.name);
+    }
   });
 });

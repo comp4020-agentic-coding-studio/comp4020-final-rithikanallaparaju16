@@ -11,6 +11,7 @@ import {
   everyonePage,
   gardenPage,
   housePage,
+  hugFrom,
   kitchenPage,
   livingPage,
   MAX_DISH_NOTE,
@@ -27,7 +28,7 @@ import {
 import { PEOPLE, personById, type Person } from "./people.ts";
 import { isPlace, placeAt } from "./scene.ts";
 import * as store from "./store.ts";
-import { fromLocal } from "./time.ts";
+import { birthday, fromLocal } from "./time.ts";
 import { dealFor, gameOf, isWild, play, replay } from "./uno.ts";
 
 const MAX_FORM = 8 * 1024;
@@ -121,13 +122,20 @@ function visit(me: Person, place = ""): Visit {
 // Confirmations after leaving something, with what you did so the house can
 // pop its emoji up where you did it. Only these fixed lines are ever shown,
 // whatever ?did= says.
-function confirmation(did: string | null, owner?: Person): Done | undefined {
-  const text = line(did, owner);
+function confirmation(did: string | null, owner?: Person, me?: Person): Done | undefined {
+  const text = line(did, owner, me);
   return did && text ? { key: did, text } : undefined;
 }
 
-function line(did: string | null, owner?: Person): string | undefined {
+function line(did: string | null, owner?: Person, me?: Person): string | undefined {
   switch (did) {
+    case "hug":
+      return "A big, warm hug. Everyone in it hears it was you.";
+    case "wish":
+      if (!owner) return undefined;
+      return owner.id === me?.id
+        ? "Happy birthday to you! Everyone who comes by sees the party."
+        : `Happy birthday, ${owner.name}! Your wish is in her room for her to find.`;
     case "desk":
       return owner && `Left on ${owner.name}'s desk. It'll be waiting whenever ${owner.name} is next home.`;
     case "tidy":
@@ -226,7 +234,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     return send(res, 200, pathname === "/updates" ? updatesPage(v) : pathname === "/everyone" ? everyonePage(v) : moviesPage(v, confirmation(did)));
   }
 
-  const roomMatch = pathname.match(/^\/room\/([^/]+)(\/leave|\/tidy|\/mask|\/kettle|\/nap)?$/);
+  const roomMatch = pathname.match(/^\/room\/([^/]+)(\/leave|\/tidy|\/mask|\/kettle|\/nap|\/wish)?$/);
   const owner = roomMatch ? personById(roomMatch[1]) : undefined;
   if (roomMatch && !owner) return send(res, 404, messagePage("No such room", "There are five rooms in this house, and that isn't one of them."));
   // The face mask powder is in Rithanya's room, and the kettle in Amirdhavarshini's.
@@ -245,12 +253,12 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     // visit, not going into the room again.
     const place = req.headers["x-live"] ? "" : owner ? roomPlace(owner.id) : pathname.slice(1);
     const v = visit(me, place);
-    return send(res, 200, owner ? bedroomPage(owner, v, confirmation(did, owner)) : pages[pathname](v));
+    return send(res, 200, owner ? bedroomPage(owner, v, confirmation(did, owner, me)) : pages[pathname](v));
   }
 
   if (method !== "POST") return send(res, 404, messagePage("Nothing here", "There's no room by that name in this house."));
 
-  const writes = ["/wall", "/kitchen", "/kitchen/eat", "/garden/water", "/garden/plant", "/garden/dog", "/garden/treat", "/sit", "/here", "/movies", "/movies/watched", "/movies/night", "/uno", "/uno/move"];
+  const writes = ["/wall", "/kitchen", "/kitchen/eat", "/garden/water", "/garden/plant", "/garden/dog", "/garden/treat", "/sit", "/here", "/movies", "/movies/watched", "/movies/night", "/uno", "/uno/move", "/hug"];
   if (!writes.includes(pathname) && !roomMatch?.[2]) {
     return send(res, 404, messagePage("Nothing here", "There's no room by that name in this house."));
   }
@@ -288,6 +296,15 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   if (owner && roomMatch?.[2] === "/mask") {
     store.leave({ author: me.id, kind: "mask", place: roomPlace(owner.id) });
     return redirect(res, `/room/${owner.id}?did=mask`);
+  }
+
+  // A birthday wish, all through her birthday month (by her own clock).
+  if (owner && roomMatch?.[2] === "/wish") {
+    if (!birthday(owner, Date.now())) {
+      return send(res, 404, messagePage("It's not her birthday month", "Her room gets bunting and balloons all through her birthday month. Come back then.", `/room/${owner.id}`));
+    }
+    store.leave({ author: me.id, kind: "wish", place: roomPlace(owner.id) });
+    return redirect(res, `/room/${owner.id}?did=wish`);
   }
 
   if (owner && roomMatch?.[2] === "/kettle") {
@@ -387,6 +404,25 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   }
 
   const pageOf = (place: string): string => (place.startsWith("room:") ? `/room/${place.slice("room:".length)}` : `/${place}`);
+
+  // A hug for whoever you asked for (`with`, ids joined by commas; everyone
+  // close when it's missing) who's here now, standing, and within reach.
+  // public/house.js sends where you're standing (`x`, `y`), so that counts
+  // first. If you were sitting or lying down, you get up for it.
+  if (pathname === "/hug") {
+    const spot: [number, number] = [Number(form.get("x")), Number(form.get("y"))];
+    const walked = form.has("x") && spot.every(Number.isFinite) ? placeAt(spot) : undefined;
+    if (walked) store.walkTo(me.id, walked, Math.round(spot[0]), Math.round(spot[1]));
+    const from = hugFrom(visit(me));
+    const asked = form.has("with") ? text(form, "with").split(",") : undefined;
+    const group = from.near.filter((p) => !asked || asked.includes(p.id));
+    if (!group.length) {
+      return send(res, 400, messagePage("Nobody's close enough to hug", "Walk up to a friend who's here right now, then hug her.", pageOf(from.place)));
+    }
+    if (from.resting && from.spot) store.walkTo(me.id, from.place, Math.round(from.spot[0]), Math.round(from.spot[1]));
+    store.leave({ author: me.id, kind: "hug", place: from.place, item: group.map((p) => p.id).sort().join(",") });
+    return redirect(res, `${pageOf(from.place)}?did=hug`);
+  }
 
   // Sitting down, like lying down, puts you in that room first.
   if (pathname === "/sit") {

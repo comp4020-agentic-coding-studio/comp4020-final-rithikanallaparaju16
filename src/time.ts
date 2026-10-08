@@ -94,6 +94,33 @@ export function dayLabel(tz: string, at: number): string {
   return `${p.weekday} ${p.day} ${p.month}`;
 }
 
+const dates = new Map<string, Intl.DateTimeFormat>();
+
+// The year, month (1-12) and day in `tz` at `at`.
+export function ymd(tz: string, at: number): [number, number, number] {
+  let f = dates.get(tz);
+  if (!f) {
+    f = new Intl.DateTimeFormat("en-AU", { timeZone: tz, year: "numeric", month: "numeric", day: "numeric" });
+    dates.set(tz, f);
+  }
+  const p = Object.fromEntries(f.formatToParts(at).map((x) => [x.type, x.value]));
+  return [Number(p.year), Number(p.month), Number(p.day)];
+}
+
+// Her birthday month, by her own clock: 0 if it isn't, 1 all month, 2 on
+// the day itself.
+export function birthday(p: Person, now: number): 0 | 1 | 2 {
+  const [, month, day] = ymd(p.tz, now);
+  if (month !== p.birthday[0]) return 0;
+  return day === p.birthday[1] ? 2 : 1;
+}
+
+// "Friday 16 October": her birthday this year, in her own calendar.
+export function birthdayLabel(p: Person, now: number): string {
+  const [year] = ymd(p.tz, now);
+  return dayLabel("UTC", Date.UTC(year, p.birthday[0] - 1, p.birthday[1], 12));
+}
+
 const DAY = 24 * 60 * 60 * 1000;
 
 export function ago(then: number, now: number): string {

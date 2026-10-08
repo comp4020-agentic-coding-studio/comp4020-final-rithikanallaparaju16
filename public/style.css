@@ -2356,3 +2356,98 @@ g.laddoo.trotting .dog-head {
     transform: translateY(-2px);
   }
 }
+
+/* ---------- hugs and birthdays ---------- */
+
+/* In a hug, everyone leans in toward its middle, with hearts rising over
+   them and their names together underneath (src/scene.ts figures()). */
+.walker.hugging .lean {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  transform: rotate(var(--lean, 0deg));
+}
+
+.walker.hugging .who {
+  display: none;
+}
+
+g.hug .hug-names {
+  font-size: 14px;
+}
+
+g.hug .heart {
+  fill: #ff6f91;
+  stroke: #fff;
+  stroke-width: 1.5;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: hug-heart 2.6s ease-in-out infinite;
+}
+
+@keyframes hug-heart {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.6);
+  }
+  25% {
+    opacity: 1;
+    transform: translateY(0) scale(1.1);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.9);
+  }
+}
+
+/* Her birthday month: bunting, balloons, and on the day a cake. */
+.banner-words {
+  font: 700 13px var(--hand);
+  fill: #8a3c2c;
+  text-anchor: middle;
+}
+
+g.party .balloon {
+  animation: sway 3.2s ease-in-out infinite alternate;
+}
+
+@keyframes sway {
+  from {
+    transform: translate(-1.5px, 0);
+  }
+  to {
+    transform: translate(1.5px, -3px);
+  }
+}
+
+g.party .flame {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: flicker 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes flicker {
+  to {
+    transform: scale(0.8, 1.15);
+  }
+}
+
+/* Her crown in her window at the door and on Everyone. */
+.pane .crown {
+  position: absolute;
+  left: 50%;
+  top: 1%;
+  width: 36%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.birthday-card {
+  border-left: 5px solid var(--accent);
+}
+
+.birthday-card h2 .emoji {
+  margin-right: 0.15em;
+}
