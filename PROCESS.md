@@ -142,3 +142,4 @@ Every prompt I gave the agent from 8 October, word for word, with the commit it 
 - "continue and open the live after", "continue and ship it when done and open it live" and "continue": the same work, shipped as [`cd89e32`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/cd89e32)
 - "why is the living room dark": a question, no code change. It's night by my clock, and the shared rooms follow the visitor's clock.
 - "the living room cant be dark, make it have light everything": [`e81ef0d`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/e81ef0d)
+- "the uno game is lagging, pls fix it": [`fdd9f94`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/fdd9f94)

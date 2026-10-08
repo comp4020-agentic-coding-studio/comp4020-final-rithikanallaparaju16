@@ -1581,3 +1581,53 @@ prompt in `PROCESS.md`.
 4. Open the live site.
 
 The results go in the next entry.
+
+### 26. "the uno game is lagging, pls fix it" (8 Oct 2026)
+
+**What happened to entry 25's ship:**
+- `e92ca39` was pushed, and CI run 37766045529 passed `check` and `deploy`.
+- The live `/` and `/readme/` answered 200, and `/readme/` had the living
+  room line.
+- The read-only spec passed 5 and skipped 32.
+- `crit-9` moved to `e92ca39`; only that tag was force-pushed.
+- The live site was opened.
+
+**Asked:** "the uno game is lagging, pls fix it"
+
+**Agent:** measured before changing anything. The server wasn't slow: on a
+scratch house, `/uno` rendered in about 1 ms and a move took under 3 ms. The
+lag was the page:
+- **The UNO page had no `data-live` part.** It was built in parallel with
+  the live house, so when a friend played, an open `/uno` fetched itself and
+  had nothing to swap. You only saw her move after a reload. The game is now
+  one live part (`display: contents`, so the page's grid is unchanged).
+- **Every card was a whole page load.** A post, a redirect and a reload,
+  each a round trip to Sydney, then reconnecting the live line. The hand is
+  now a `data-quick` form: `public/live.js` posts it with `fetch` and swaps
+  the answer in. The card you pressed lifts while it goes. A refused move
+  posts again the ordinary way to show why, and a win still goes to the page
+  that pops 🎉.
+- **A pressed button counted as busy**, so a card you'd just clicked could
+  stop your own hand updating. Now only typing does.
+- Live fetches start 150 ms after a change instead of 250.
+
+A new spec test checks that the table and the quick hand are inside the
+live part, and that a friend's draw shows in it. `pnpm check` passed 38/38.
+
+In headless Chrome, with two sessions on `/uno` at 390px:
+- Rithika clicked the yellow 8 for real (it was under the finger), and her
+  own page showed "You played the yellow 8." after 34 ms, with no reload.
+- Neha's open page showed "Rithika played the yellow 8." and "It's your
+  turn." after 172 ms, also with no reload.
+
+The 390px screenshot kept its layout.
+
+**Correction:** none.
+
+**Commits:** [`fdd9f94`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/fdd9f94)
+(the fix, the test, ADR 0010's note, README and `CLAUDE.md`), then this
+entry with the prompt in `PROCESS.md`.
+
+**Ship (after this commit):** push and watch CI, check the live door,
+`/readme/` and the read-only spec, move `crit-9`, and open the live site.
+The results go in the next entry.
