@@ -205,6 +205,9 @@ export type Scene = {
   // What you just did (a `did` from src/server.ts), which pops up where you
   // did it.
   did?: string;
+  // UNO on Amirdhavarshini's mat: what you can do while sitting on it with
+  // friends (`seated`), and what the mat offers when you walk up (`mat`).
+  uno?: { seated: Doing[]; mat: Doing[] };
 };
 
 export const isPlace = (place: string): boolean => Object.hasOwn(ROOMS, place);
@@ -368,7 +371,7 @@ function pops(s: Scene, standing: Map<string, Pt>): string {
 // walk up to it (public/house.js). Every one of these is also a button or a
 // form on its room's page, so nothing needs the script.
 function hotspots(s: Scene): string {
-  const spots: { place: string; area: Pt[]; doings: Doing[] }[] = [];
+  const spots: { place: string; area: Pt[]; doings: Doing[]; seated?: boolean }[] = [];
   for (const b of s.bedrooms) {
     const { id, name } = b.owner;
     const place = `room:${id}`;
@@ -387,7 +390,7 @@ function hotspots(s: Scene): string {
     }
   }
   spots.push(
-    { place: `room:${KETTLE_ROOM}`, area: MAT, doings: [{ label: "Sit on your cushion", emoji: EMOJI.sit, post: "/sit", fields: { seat: "mat" } }, { label: "Make kettle Maggi", emoji: EMOJI.kettle, post: `/room/${KETTLE_ROOM}/kettle` }] },
+    { place: `room:${KETTLE_ROOM}`, area: MAT, doings: [{ label: "Sit on your cushion", emoji: EMOJI.sit, post: "/sit", fields: { seat: "mat" } }, { label: "Make kettle Maggi", emoji: EMOJI.kettle, post: `/room/${KETTLE_ROOM}/kettle` }, ...(s.uno?.mat ?? [])] },
     { place: `room:${MASK_ROOM}`, area: MIRROR, doings: [{ label: "Do a face mask", emoji: EMOJI.mask, post: `/room/${MASK_ROOM}/mask` }] },
     { place: `room:${YOGA_ROOM}`, area: YOGA, doings: [{ label: "Meditate on the yoga mat", emoji: EMOJI.yoga, post: "/sit", fields: { seat: "yoga" } }] },
     { place: "living", area: WALL_BOARD, doings: [{ label: "Write on the wall", emoji: EMOJI.write, href: "/living#write" }, { label: "Read the wall", emoji: EMOJI.read, href: "/living#wall" }] },
@@ -399,7 +402,10 @@ function hotspots(s: Scene): string {
     ] },
     { place: "garden", area: PATCHES, doings: [{ label: "Water the garden", emoji: EMOJI.water, post: "/garden/water" }, { label: "Plant something", emoji: EMOJI.plant, href: "/garden#plant" }] },
   );
-  const svg = spots.map((h) => `<g class="act" data-place="${h.place}" data-do="${esc(JSON.stringify(h.doings))}"><polygon class="halo" points="${pts(h.area)}"/><polygon class="edge" points="${pts(h.area)}"/></g>`);
+  // Sitting on the mat with friends, there's UNO. Only someone sitting down
+  // is offered these (public/house.js); standing, the mat's own spot is there.
+  if (s.uno?.seated.length) spots.push({ place: `room:${KETTLE_ROOM}`, area: MAT, doings: s.uno.seated, seated: true });
+  const svg = spots.map((h) => `<g class="act${h.seated ? " seated" : ""}" data-place="${h.place}" data-do="${esc(JSON.stringify(h.doings))}"><polygon class="halo" points="${pts(h.area)}"/><polygon class="edge" points="${pts(h.area)}"/></g>`);
   return `<g class="acts" aria-hidden="true">${svg.join("")}</g>`;
 }
 

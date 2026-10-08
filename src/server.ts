@@ -1,8 +1,8 @@
-import { randomUUID } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { ART, ART_TYPES, isArt } from "./assets.ts";
-import { counter, DOG, find, FOOD, GIFTS, KETTLE_ROOM, MASK_ROOM, movies, PLANTS, roomPlace, SEATS } from "./house.ts";
+import { counter, DOG, find, FOOD, GIFTS, KETTLE_ROOM, MASK_ROOM, movies, PLANTS, resting, roomPlace, SEATS } from "./house.ts";
 import * as live from "./live.ts";
 import { markdown } from "./markdown.ts";
 import {
@@ -19,6 +19,7 @@ import {
   messagePage,
   moviesPage,
   readmePage,
+  unoPage,
   updatesPage,
   type Done,
   type Visit,
@@ -27,6 +28,7 @@ import { PEOPLE, personById, type Person } from "./people.ts";
 import { isPlace, placeAt } from "./scene.ts";
 import * as store from "./store.ts";
 import { fromLocal } from "./time.ts";
+import { dealFor, gameOf, isWild, play, replay } from "./uno.ts";
 
 const MAX_FORM = 8 * 1024;
 const YEAR = 365 * 24 * 60 * 60;
@@ -158,6 +160,10 @@ function line(did: string | null, owner?: Person): string | undefined {
       return "Marked as watched.";
     case "night":
       return "Movie night's planned. Everyone sees it in her own time.";
+    case "uno":
+      return "Dealt: seven cards each. The game waits for whoever's turn it is, however long she's away.";
+    case "unowon":
+      return "You won UNO! Back to the mat for another round whenever you like.";
     default:
       return undefined;
   }
@@ -213,9 +219,10 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     return void res.end(readFileSync(new URL(art, ART)));
   }
 
-  if (route === "GET /updates" || route === "GET /everyone" || route === "GET /movies") {
+  if (route === "GET /updates" || route === "GET /everyone" || route === "GET /movies" || route === "GET /uno") {
     if (!me) return redirect(res, "/");
     const v = visit(me);
+    if (pathname === "/uno") return send(res, 200, unoPage(v, confirmation(did)));
     return send(res, 200, pathname === "/updates" ? updatesPage(v) : pathname === "/everyone" ? everyonePage(v) : moviesPage(v, confirmation(did)));
   }
 
@@ -243,7 +250,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
 
   if (method !== "POST") return send(res, 404, messagePage("Nothing here", "There's no room by that name in this house."));
 
-  const writes = ["/wall", "/kitchen", "/kitchen/eat", "/garden/water", "/garden/plant", "/garden/dog", "/garden/treat", "/sit", "/here", "/movies", "/movies/watched", "/movies/night"];
+  const writes = ["/wall", "/kitchen", "/kitchen/eat", "/garden/water", "/garden/plant", "/garden/dog", "/garden/treat", "/sit", "/here", "/movies", "/movies/watched", "/movies/night", "/uno", "/uno/move"];
   if (!writes.includes(pathname) && !roomMatch?.[2]) {
     return send(res, 404, messagePage("Nothing here", "There's no room by that name in this house."));
   }
@@ -320,6 +327,29 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     if (!dish) return send(res, 400, messagePage("All gone", "Someone's already eaten that, or it was out too long.", "/kitchen"));
     store.leave({ author: me.id, kind: "eat", place: `dish:${dish.id}` });
     return redirect(res, "/kitchen?did=eat");
+  }
+
+  // UNO on Amirdhavarshini's mat: deal for everyone sitting on it, as long as
+  // you're one of them and not alone.
+  if (pathname === "/uno") {
+    const who = dealFor(me.id, resting(store.things(), Date.now(), store.whereabouts(), store.arrivals()));
+    if (!who) return send(res, 400, messagePage("Not yet", "Sit on Amirdhavarshini's mat with a friend first, then deal.", `/room/${KETTLE_ROOM}`));
+    store.leave({ author: me.id, kind: "uno", place: roomPlace(KETTLE_ROOM), item: who.join(","), body: String(randomInt(1, 2 ** 31)) });
+    return redirect(res, "/uno?did=uno");
+  }
+
+  // A move in your own latest game, which the engine checks first: your turn,
+  // in your hand, and it fits. A wild comes as "W:r", with its colour.
+  if (pathname === "/uno/move") {
+    const all = store.things();
+    const start = gameOf(all, me.id);
+    if (!start || String(start.id) !== form.get("game")) return send(res, 400, messagePage("Which game?", "That game's been put away. Your latest one is on the mat.", "/uno"));
+    const [card, color = ""] = text(form, "card").split(":");
+    const game = replay(start, all, true);
+    const why = play(game, { author: me.id, item: card, body: color });
+    if (why) return send(res, 400, messagePage("Not that one", why, "/uno"));
+    store.leave({ author: me.id, kind: "unomove", place: `uno:${start.id}`, item: card, body: isWild(card) ? color : "" });
+    return redirect(res, game.winner === me.id ? "/uno?did=unowon" : "/uno#hand");
   }
 
   if (pathname === "/movies") {
