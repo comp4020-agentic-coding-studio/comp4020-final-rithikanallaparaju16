@@ -1631,3 +1631,70 @@ entry with the prompt in `PROCESS.md`.
 **Ship (after this commit):** push and watch CI, check the live door,
 `/readme/` and the read-only spec, move `crit-9`, and open the live site.
 The results go in the next entry.
+
+### 27. "no common area should be dim … every player gets 10 sec for their turn" (8 Oct 2026)
+
+**What happened to entry 26's ship:**
+- `08d8c9b` was pushed, and CI run 37767236185 passed `check` and `deploy`.
+- The live `/` and `/readme/` answered 200, and the live `live.js` had the
+  quick form.
+- The read-only spec passed 5 and skipped 33.
+- `crit-9` moved to `08d8c9b`, and `/uno` was opened.
+
+**Asked:** "no common area should be dim, let it always have light, only
+rooms dim up in that particular persons timezone. and if somebody leaves the
+house, they quit from the game, dont make the others wait for their turn.
+and best way to check if someone is away is by a 10 sec timer. every player
+gets 10 sec for their turn"
+
+**Agent:**
+- **Always-lit common areas** (ADR 0015, superseding 0014 and that part of
+  0006): the visitor's shade over everything but the bedrooms, its
+  `not-bedrooms` mask and 0014's lamps went. The fireplace still glows
+  after dark. The test now checks that the light layer only ever shades
+  bedrooms, on `/` and the living room, kitchen and garden pages.
+- **Ten-second UNO turns** (ADR 0016), worked out from timestamps with no
+  timer:
+  - A turn starts at the deal or the move before it. Replay plays out every
+    turn that ran out, between moves and up to now.
+  - Whoever runs out is out; her cards go under the draw pile and the next
+    player gets a fresh ten seconds. Someone who'd just drawn only passes.
+    The last one left wins.
+  - Leaving the house, or coming in as someone else, writes a `quit` move.
+  - Stored moves get half a second of grace, so a move the server took at
+    the buzzer still counts.
+  - The table counts down from `data-deadline`, and `live.js` fetches the
+    page when time's up, since nothing is written then.
+  - The page's "the game waits for whoever's turn it is" lines were
+    rewritten.
+- **Flagged in the reply and the ADR:** the timer is a deliberate exception
+  to the house's rule that it never punishes absence. `CLAUDE.md` now says
+  not to spread it without asking.
+
+**Checks:**
+- Two new spec tests: one waits out a real turn (play moves on, and the late
+  player's move is refused); the other has a player leave the house and
+  checks she's out. `pnpm check` passed 40/40.
+- In headless Chrome, with two sessions on `/uno`, nobody played on
+  Rithika's turn. Neha's page counted 8 → 1, then showed "It's your turn.
+  10s" and "Rithika's ten seconds ran out, so she's out and play moved on",
+  without a reload. Rithika's page caught up to "Your ten seconds ran out".
+- A 390px screenshot showed the countdown pill. A 1280px screenshot as
+  Rithanya had only Rithika's room dim (10:21 pm in Canberra).
+- **What went wrong:** the first screenshot setup signed its players out at
+  the end, which now quits them from the game. It was redone with the
+  players left in.
+
+**Decisions to redirect:**
+- A missed turn puts you out (not just a pass), unless you'd drawn.
+- The last one left wins.
+- Ten seconds counts from the move before yours.
+
+**Correction:** none.
+
+**Commits:** [`d0bcf63`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/d0bcf63),
+then this entry with the prompt in `PROCESS.md`.
+
+**Ship (after this commit):** push and watch CI, check the live door,
+`/readme/` and the read-only spec, move `crit-9`, and open the live site.
+The results go in the next entry.
