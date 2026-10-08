@@ -38,8 +38,10 @@ session 8, friends who are here (`.walker.here`) within `HUG_REACH` are
 hotspots too, built by `public/house.js`: "Hug Neha" or a group hug, up to
 all five (`hug`, the others' ids in `item`). Someone sitting is offered only
 `.act.seated` hotspots (UNO on the mat). Each bedroom keeps
-its owner's local time and personal details (listed in README.md). Shared
-rooms follow the visitor's clock. Laptop: the house with updates beside it. Phone: the house
+its owner's local time and personal details (listed in README.md). The
+kitchen and garden follow the visitor's clock; the living room's lights are
+always on, so it's never dark (ADR 0014, Rithika: "the living room cant be
+dark"). Laptop: the house with updates beside it. Phone: the house
 fills the screen, with Home, Updates, Movies and Everyone tabs at the bottom.
 
 Since session 4, two rooms have an activity of their own: face masks in

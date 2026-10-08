@@ -644,4 +644,15 @@ describe.skipIf(!throwaway)("living in the house", () => {
       expect(text((await page(`/room/${girl.id}`, girl.id)).querySelector(".birthday-card")), "her room doesn't keep who wished her").toContain(visitor.name);
     }
   });
+
+  it("keeps the living room's lights on, whatever the time", async () => {
+    const [a] = await people();
+    for (const path of ["/", "/living"]) {
+      const house = await page(path, a.id);
+      const living = house.querySelector(".house-svg a.room-link[data-place='living'] polygon")?.getAttribute("points");
+      const unshaded = [...house.querySelectorAll(".house-svg #not-bedrooms polygon")].map((p) => p.getAttribute("points"));
+      expect(living, "there's no living room to light").toBeTruthy();
+      expect(unshaded, `the night can reach the living room on ${path}`).toContain(living);
+    }
+  });
 });

@@ -48,7 +48,7 @@ Your sticker sits in the corner of the top bar ("Not Rithanya?", or whoever you 
 
 ## Every room keeps its owner's time
 
-A bedroom runs on its owner's clock. If it's late afternoon in Canberra and 3 am in New Jersey, Rithika's room is in evening light and Neha's is dark, with Neha asleep in bed and a lamp on in Rithika's, whoever is looking. Each room's name tag shows its owner's time. The living room, kitchen and garden follow your own clock.
+A bedroom runs on its owner's clock. If it's late afternoon in Canberra and 3 am in New Jersey, Rithika's room is in evening light and Neha's is dark, with Neha asleep in bed and a lamp on in Rithika's, whoever is looking. Each room's name tag shows its owner's time. The kitchen and garden follow your own clock. The living room's lights are always on, so it's never dark: after dark its lamps and the fire light it up.
 
 Characters sleep at night where they live: Neha from 10 pm to 8 am, Rithanya from 11:30 pm to 9:30 am, and everyone else from 11 pm to 7 am. Anyone who's been in the house in the last ten minutes is shown awake and "home now", so being there at the same time shows.
 
@@ -93,7 +93,7 @@ It's kept as small as the problem: one Node process, no framework and no runtime
 - `src/people.ts` lists the five, with their cities, time zones, sleep hours and birthdays.
 - `scripts/cut-art.py` cuts the Stitch exports into the house picture (with one desk in each room), Shinzo and the five stickers in `public/art/`. It runs by hand, not on the server.
 
-The big decisions (the stack, the storage, who counts as a person, the illustrated house, the log of things, the clocks, walking yourself around, the house keeping where you stopped, the live house, one of us at a time, Shinzo's own day, and UNO) are written up as decision records in `doc/adr/` in the repository.
+The big decisions (the stack, the storage, who counts as a person, the illustrated house, the log of things, the clocks, walking yourself around, the house keeping where you stopped, the live house, one of us at a time, Shinzo's own day, UNO, and the living room's lights) are written up as decision records in `doc/adr/` in the repository.
 
 Run it locally with `pnpm start` (it keeps its data in `./data`), then run `pnpm check` in another terminal to check it against the spec.
 
@@ -128,6 +128,7 @@ Run it locally with `pnpm start` (it keeps its data in `./data`), then run `pnpm
 - kettle Maggi stays out in Amirdhavarshini's room
 - a suggested movie and who watched it are there for everyone
 - a movie night shows at the right time in each friend's own clock
+- the living room's lights are on whatever the time
 - friends who are close can hug, one or a group, up to all five
 - a friend's birthday month brings bunting and a crown, and her friends' wishes reach her
 - friends sitting together on Amirdhavarshini's mat can deal UNO, seven cards each, up to all five

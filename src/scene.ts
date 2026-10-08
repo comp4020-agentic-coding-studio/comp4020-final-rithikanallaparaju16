@@ -145,6 +145,9 @@ const MAT_TABLE: Pt = [292, 300];
 // Shinzo's blanket in the garden, where the illustration had him.
 export const KENNEL: Pt = [1249, 122];
 const FIREPLACE: Pt = [835, 205];
+// The living room's lights are always on (ADR 0014): the visitor's night
+// never reaches it, and after dark its lamps warm it, over the sofas.
+const LIVING_LAMP: Pt = [815, 310];
 
 // Where Shinzo stops for a sniff or a sit when he's off on his own, besides
 // the rooms' own spots for him: by his bowls, on the stepping stones, the
@@ -299,7 +302,8 @@ function light(s: Scene): string {
   }).join("");
   const rest = outside ? `<rect width="${W}" height="${H}" fill="${outside[0]}" opacity="${outside[1]}" mask="url(#not-bedrooms)"/>` : "";
   const fire = dark(s.light) ? `<circle cx="${FIREPLACE[0]}" cy="${FIREPLACE[1]}" r="140" fill="url(#glow)"/>` : "";
-  return `<g class="light" aria-hidden="true">${rest}${bedrooms}${fire}</g>`;
+  const lamps = dark(s.light) ? `<polygon points="${pts(ROOMS.living.outline)}" fill="#ffd9a0" opacity=".12"/><circle cx="${LIVING_LAMP[0]}" cy="${LIVING_LAMP[1]}" r="190" fill="url(#glow)"/>` : "";
+  return `<g class="light" aria-hidden="true">${rest}${bedrooms}${lamps}${fire}</g>`;
 }
 
 function left(spot: Spot, [x, y]: Pt, scale: number): string {
@@ -671,7 +675,10 @@ function tags(s: Scene): string {
 export function houseSvg(s: Scene): string {
   const [x, y, w, h] = s.focus ? ROOMS[s.focus].view : [0, 0, W, H];
   const people = figures(s);
-  const bedrooms = s.bedrooms.map((b) => `<polygon points="${pts(ROOMS[`room:${b.owner.id}`].outline)}" fill="#000"/>`).join("");
+  // What the visitor's own time of day doesn't shade: each bedroom has its
+  // owner's light, and the living room's lights are always on.
+  const bedrooms = [...s.bedrooms.map((b) => ROOMS[`room:${b.owner.id}`].outline), ROOMS.living.outline]
+    .map((outline) => `<polygon points="${pts(outline)}" fill="#000"/>`).join("");
   return `<svg class="house-svg" viewBox="${x} ${y} ${w} ${h}" role="group" aria-label="${s.focus ? "The room, and the house around it" : "The house. Tap a room to go in."}">
 <defs>
 <clipPath id="head" clipPathUnits="objectBoundingBox"><ellipse cx=".5" cy=".32" rx=".36" ry=".27"/></clipPath>
