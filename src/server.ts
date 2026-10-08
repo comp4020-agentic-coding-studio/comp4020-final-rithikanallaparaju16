@@ -1,7 +1,9 @@
+import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { ART, ART_TYPES, isArt } from "./assets.ts";
 import { counter, DOG, find, FOOD, GIFTS, KETTLE_ROOM, MASK_ROOM, movies, PLANTS, roomPlace, SEATS } from "./house.ts";
+import * as live from "./live.ts";
 import { markdown } from "./markdown.ts";
 import {
   bedroomPage,
@@ -21,7 +23,7 @@ import {
   type Done,
   type Visit,
 } from "./pages.ts";
-import { personById, type Person } from "./people.ts";
+import { PEOPLE, personById, type Person } from "./people.ts";
 import { isPlace, placeAt } from "./scene.ts";
 import * as store from "./store.ts";
 import { fromLocal } from "./time.ts";
@@ -32,6 +34,9 @@ const YEAR = 365 * 24 * 60 * 60;
 const README = new URL("../README.md", import.meta.url);
 const STYLE = new URL("../public/style.css", import.meta.url);
 const SCRIPT = new URL("../public/house.js", import.meta.url);
+const LIVE = new URL("../public/live.js", import.meta.url);
+
+store.onChange(live.broadcast);
 
 type Headers = Record<string, string>;
 
@@ -53,11 +58,35 @@ function cookie(req: IncomingMessage, name: string): string | undefined {
   return undefined;
 }
 
-function whoCookie(req: IncomingMessage, id: string, maxAge: number): string {
+function whoCookie(req: IncomingMessage, value: string, maxAge: number): string {
   // Fly terminates TLS in front of the app, so https only shows up in this header.
   const secure = req.headers["x-forwarded-proto"] === "https" ? "; Secure" : "";
-  return `who=${id}; Path=/; Max-Age=${maxAge}; SameSite=Lax; HttpOnly${secure}`;
+  return `who=${value}; Path=/; Max-Age=${maxAge}; SameSite=Lax; HttpOnly${secure}`;
 }
+
+// Who this browser came in as: `who=<id>.<token>`, and only while the token is
+// still the one the house has for her (ADR 0011). Anything else, like an old
+// `who=<id>` cookie or someone who's since been let in as her elsewhere, is
+// back at the door.
+type Session = { me: Person; token: string };
+
+function session(req: IncomingMessage): Session | undefined {
+  const [id, token] = (cookie(req, "who") ?? "").split(".");
+  const me = personById(id);
+  return me && token && store.holder(me.id).token === token ? { me, token } : undefined;
+}
+
+// Long enough to go from one page to the next with the script off.
+const GRACE = 2 * 60 * 1000;
+
+// Someone's in the house as `person`: she has it open right now, or came in
+// or loaded a page in the last couple of minutes.
+function held(person: string): boolean {
+  const h = store.holder(person);
+  return h.token !== "" && (live.connected(person, h.token) || Date.now() - h.active < GRACE);
+}
+
+const taken = (): Set<string> => new Set(PEOPLE.filter((p) => held(p.id)).map((p) => p.id));
 
 async function readForm(req: IncomingMessage): Promise<URLSearchParams | undefined> {
   let raw = "";
@@ -141,25 +170,42 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   // A HEAD is answered like a GET; node leaves the body off by itself.
   const method = req.method === "HEAD" ? "GET" : req.method;
   const route = `${method} ${pathname}`;
-  const me = personById(cookie(req, "who"));
+  const mine = session(req);
+  const me = mine?.me;
 
   if (route === "GET /") {
-    if (!me) return send(res, 200, doorPage(store.lastSeen(), Date.now()));
+    if (!me) return send(res, 200, doorPage(store.lastSeen(), Date.now(), taken()));
     return send(res, 200, housePage(visit(me)));
   }
 
+  // Coming in as one of the five, if nobody else is in the house as her right
+  // now. Coming in as someone else lets go of whoever you were.
   if (route === "POST /me") {
     const who = personById((await readForm(req))?.get("who") ?? undefined);
     if (!who) return send(res, 400, messagePage("Who's that?", "That isn't one of the five of us."));
-    return redirect(res, "/", { "set-cookie": whoCookie(req, who.id, YEAR) });
+    if (mine?.me.id === who.id) return redirect(res, "/");
+    if (held(who.id)) {
+      return send(res, 409, messagePage(`${who.name}'s already home`, `Someone's in the house as ${who.name} right now. Her window opens again once they leave.`));
+    }
+    if (mine) store.release(mine.me.id, mine.token);
+    const token = randomUUID();
+    store.claim(who.id, token);
+    return redirect(res, "/", { "set-cookie": whoCookie(req, `${who.id}.${token}`, YEAR) });
   }
 
-  if (route === "POST /leave") return redirect(res, "/", { "set-cookie": whoCookie(req, "", 0) });
+  if (route === "POST /leave") {
+    if (mine) store.release(mine.me.id, mine.token);
+    return redirect(res, "/", { "set-cookie": whoCookie(req, "", 0) });
+  }
+
+  // Open pages listen here for what friends do (src/live.ts).
+  if (route === "GET /live") return live.subscribe(res, mine && { person: mine.me.id, token: mine.token });
 
   if (route === "GET /readme") return redirect(res, "/readme/");
   if (route === "GET /readme/") return send(res, 200, readmePage(markdown(readFileSync(README, "utf8"))));
   if (route === "GET /style.css") return send(res, 200, readFileSync(STYLE), "text/css; charset=utf-8");
   if (route === "GET /house.js") return send(res, 200, readFileSync(SCRIPT), "text/javascript; charset=utf-8");
+  if (route === "GET /live.js") return send(res, 200, readFileSync(LIVE), "text/javascript; charset=utf-8");
   const art = method === "GET" && pathname.startsWith("/art/") ? pathname.slice("/art/".length) : undefined;
   if (art !== undefined) {
     if (!isArt(art)) return send(res, 404, messagePage("Nothing here", "There's no picture by that name."));
@@ -188,7 +234,10 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   };
   if (method === "GET" && (pages[pathname] || (owner && !roomMatch?.[2]))) {
     if (!me) return redirect(res, "/");
-    const v = visit(me, owner ? roomPlace(owner.id) : pathname.slice(1));
+    // A page fetching itself to keep up (public/live.js) is still the same
+    // visit, not going into the room again.
+    const place = req.headers["x-live"] ? "" : owner ? roomPlace(owner.id) : pathname.slice(1);
+    const v = visit(me, place);
     return send(res, 200, owner ? bedroomPage(owner, v, confirmation(did, owner)) : pages[pathname](v));
   }
 

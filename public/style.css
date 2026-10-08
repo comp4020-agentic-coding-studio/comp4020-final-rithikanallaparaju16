@@ -1912,3 +1912,24 @@ button .emoji,
     font-size: 0.9rem;
   }
 }
+
+/* ---------- one of us at a time (ADR 0011) ---------- */
+
+/* the door: a friend who's in the house right now can't be picked until she
+   leaves, so her window stays lit but doesn't lift */
+.person.taken {
+  cursor: default;
+}
+
+.person.taken .pane {
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.18), 0 0 0 3px var(--accent), 0 0 18px var(--accent);
+}
+
+.person.taken:hover .pane {
+  transform: none;
+}
+
+.person.taken .when {
+  opacity: 1;
+  font-weight: 600;
+}

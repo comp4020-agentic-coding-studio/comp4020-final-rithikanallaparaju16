@@ -139,6 +139,16 @@ function restingIn(place: string, v: Visit): string {
   return lines.length ? `<p class="status resting">${esc(lines.join(" "))}</p>` : "";
 }
 
+// A part of the page public/live.js swaps for its new version when a friend
+// changes something, by `key`. Something that isn't there right now (Shinzo's
+// in another room) leaves an empty placeholder, so it can turn up.
+function slot(key: string, html: string): string {
+  const at = html.indexOf("<");
+  if (!html.trim() || at < 0) return `<div hidden data-live="${key}"></div>`;
+  const end = html.slice(at).search(/[\s>]/) + at;
+  return `${html.slice(0, end)} data-live="${key}"${html.slice(end)}`;
+}
+
 /* ---------- the frame every page shares ---------- */
 
 function shell(title: string, body: string, light: Phase, kind: string): string {
@@ -154,6 +164,7 @@ function shell(title: string, body: string, light: Phase, kind: string): string 
 <link rel="stylesheet" href="/style.css">
 <style>:root { --house: url("${art("house.jpg")}"); }</style>
 <script src="/house.js" defer></script>
+<script src="/live.js" defer></script>
 </head>
 <body class="light-${light} ${kind}">
 ${body}
@@ -174,7 +185,7 @@ function tabs(current: Tab, v: Visit): string {
   const somethingNew = v.things.some((t) => isNew(t, v));
   const tab = (key: Tab, href: string, label: string): string =>
     `<a href="${href}"${key === current ? ` aria-current="page"` : ""}><svg viewBox="0 0 24 24" aria-hidden="true">${TAB_ICON[key]}</svg><span>${label}</span>${key === "updates" && somethingNew ? `<span class="dot" title="Something new since you were last here"></span>` : ""}</a>`;
-  return `<nav class="tabs" aria-label="Around the house">${tab("home", "/", "Home")}${tab("updates", "/updates", "Updates")}${tab("movies", "/movies", "Movies")}${tab("everyone", "/everyone", "Everyone")}</nav>`;
+  return `<nav class="tabs" aria-label="Around the house" data-live="tabs">${tab("home", "/", "Home")}${tab("updates", "/updates", "Updates")}${tab("movies", "/movies", "Movies")}${tab("everyone", "/everyone", "Everyone")}</nav>`;
 }
 
 // Your own sticker in the corner: tap it to go back to the door and come in
@@ -288,14 +299,18 @@ function scene(v: Visit, focus?: string, did?: string): Scene {
 
 /* ---------- the door ---------- */
 
-export function doorPage(seen: Map<string, number>, now: number): string {
+// `taken` is who's in the house right now (src/server.ts): only one of us can
+// be each friend at a time, so her window can't be picked until she leaves.
+export function doorPage(seen: Map<string, number>, now: number, taken: Set<string> = new Set()): string {
   const people = PEOPLE.map((p) => {
     const c = clock(p.tz, now);
     const last = seen.get(p.id);
-    const recent = last !== undefined && now - last < HOME_NOW;
+    const held = taken.has(p.id);
+    const recent = held || (last !== undefined && now - last < HOME_NOW);
     const zz = asleep(p, c) && !recent;
-    const when = last === undefined ? "hasn't been home yet" : recent ? "home now" : `home ${ago(last, now)}`;
-    return `<li><button class="person" name="who" value="${esc(p.id)}" style="--accent:${p.color}">
+    const when = held ? "in the house right now" : last === undefined ? "hasn't been home yet" : recent ? "home now" : `home ${ago(last, now)}`;
+    const lock = held ? ` disabled title="${esc(p.name)} is in the house right now"` : "";
+    return `<li><button class="person${held ? " taken" : ""}" name="who" value="${esc(p.id)}" style="--accent:${p.color}"${lock}>
       ${pane(p, phase(c), zz)}
       <span class="name">${nameHtml(p)}</span>
       <span class="where">${esc(p.city)}</span>
@@ -312,7 +327,7 @@ export function doorPage(seen: Map<string, number>, now: number): string {
   </header>
   <form method="post" action="/me">
     <h2 class="ask">Who's coming home?</h2>
-    <ul class="people">
+    <ul class="people" data-live="door">
 ${people}
     </ul>
   </form>
@@ -437,7 +452,7 @@ function away(v: Visit, limit: number): string {
       : "Nobody's been by since you were last here. The house kept your place.";
   const more = list.length > limit ? `<p class="more"><a href="/updates">There's more since you were last here.</a></p>` : "";
 
-  return `<section class="away" aria-labelledby="away-heading">
+  return `<section class="away" aria-labelledby="away-heading" data-live="away">
     <h2 id="away-heading">${firstVisit ? "Make yourself at home" : "While you were away"}</h2>
     <p>${esc(intro)}</p>
     ${list.length ? `<ul class="happenings">\n${list.slice(0, limit).map((h) => happeningItem(h, v)).join("\n")}\n</ul>${more}` : ""}
@@ -461,7 +476,7 @@ function news(v: Visit): string {
     : list.length
       ? `${list[0].text}${list.length > 1 ? ", and more" : ""}`
       : "Nobody's been by since you were last here. Tap a room to go in.";
-  return `<a class="news" href="/updates"><svg viewBox="-11 -11 22 22" aria-hidden="true"><path d="M0 -10L2.6 -2.6L10 0L2.6 2.6L0 10L-2.6 2.6L-10 0L-2.6 -2.6Z"/></svg><span>${esc(text)}</span></a>`;
+  return `<a class="news" href="/updates" data-live="news"><svg viewBox="-11 -11 22 22" aria-hidden="true"><path d="M0 -10L2.6 -2.6L10 0L2.6 2.6L0 10L-2.6 2.6L-10 0L-2.6 -2.6Z"/></svg><span>${esc(text)}</span></a>`;
 }
 
 /* ---------- everyone ---------- */
@@ -492,7 +507,7 @@ function everyone(v: Visit, full: boolean): string {
       <span class="who"><span class="name">${nameHtml(p)}</span><span class="where">${esc(c.weekday)}, <span class="clock" data-tz="${esc(p.tz)}">${esc(c.label)}</span> in ${esc(p.city)}</span><span class="status">${esc(status(p, v))}</span>${full ? `<span class="about">${esc(p.about)}</span>` : ""}</span>
     </a>${be}</li>`;
   }).join("\n");
-  return `<section class="clocks${full ? " full" : ""}" aria-labelledby="clocks-heading">
+  return `<section class="clocks${full ? " full" : ""}" aria-labelledby="clocks-heading" data-live="clocks">
     <h2 id="clocks-heading">Everyone, right now</h2>
     <ul>\n${rows}\n</ul>
   </section>`;
@@ -522,7 +537,7 @@ export function updatesPage(v: Visit): string {
 ${bar(v, "updates")}
 <main class="list">
   ${away(v, 40)}
-  ${earlier(v)}
+  ${slot("earlier", earlier(v))}
 </main>`, phase(clock(v.me.tz, v.now)), "page-list");
 }
 
@@ -689,19 +704,19 @@ export function bedroomPage(owner: Person, v: Visit, did?: Done): string {
 
   const title = mine ? "Your room" : `${owner.name}'s room`;
   return roomPage(v, roomPlace(owner.id), title, `
-  ${roomHead(title, line, owner.about, owner.color)}
+  ${slot("head", roomHead(title, line, owner.about, owner.color))}
   ${done(did)}
-  <p class="status">${esc(messLine)} ${esc(tidyLine)}</p>
-  ${restingIn(roomPlace(owner.id), v)}
+  <p class="status" data-live="mess">${esc(messLine)} ${esc(tidyLine)}</p>
+  ${slot("resting", restingIn(roomPlace(owner.id), v))}
   <div class="doings">
     <form method="post" action="/room/${esc(owner.id)}/tidy" class="inline"><button class="soft">${emoji("tidy")} ${mine ? "Tidy your room" : `Tidy up ${esc(owner.name)}'s room`}</button></form>
     <form method="post" action="/room/${esc(owner.id)}/nap" class="inline"><button class="soft">${emoji("nap")} Sleep in ${mine ? "your" : `${esc(owner.name)}'s`} bed</button></form>
     ${seat}
   </div>
-  ${laddooCard(roomPlace(owner.id), v)}
-  ${owner.id === MASK_ROOM ? maskCard(owner, v) : ""}
-  ${owner.id === KETTLE_ROOM ? kettleCard(owner, v) : ""}
-  <section class="card" id="desk" aria-labelledby="desk-heading">
+  ${slot("dog", laddooCard(roomPlace(owner.id), v))}
+  ${owner.id === MASK_ROOM ? slot("mask", maskCard(owner, v)) : ""}
+  ${owner.id === KETTLE_ROOM ? slot("kettle", kettleCard(owner, v)) : ""}
+  <section class="card" id="desk" aria-labelledby="desk-heading" data-live="desk">
     <h2 id="desk-heading">${mine ? "On your desk" : `On ${esc(owner.name)}'s desk`}</h2>
     ${left.length ? `<ul class="desk-list">\n${shown}\n</ul>${drawer}` : `<p class="empty">${mine ? "Nothing yet. When a friend leaves you something, it'll be here." : "Nothing yet."}</p>`}
   </section>
@@ -727,17 +742,17 @@ export function livingPage(v: Visit, did?: Done): string {
   return roomPage(v, "living", "The living room", `
   ${roomHead("The living room", "Everyone's room. The wall is for all five of you: something funny from today, a good-luck wish, big news.", undefined, "#8a5a3c")}
   ${done(did)}
-  <p class="sofa"><a href="/movies">${night ? esc(`Movie night on these sofas: “${night.movie.title}”, ${dayLabel(v.me.tz, night.at)}`) : "Movie night happens on these sofas"} ›</a></p>
-  ${restingIn("living", v)}
+  <p class="sofa" data-live="sofa"><a href="/movies">${night ? esc(`Movie night on these sofas: “${night.movie.title}”, ${dayLabel(v.me.tz, night.at)}`) : "Movie night happens on these sofas"} ›</a></p>
+  ${slot("resting", restingIn("living", v))}
   <div class="doings">${sitButton("sofa", "Sit on the sofa")}</div>
-  ${laddooCard("living", v)}
+  ${slot("dog", laddooCard("living", v))}
   <form method="post" action="/wall" class="card compose" id="write">
     <label for="body">Write on the wall</label>
     <textarea id="body" name="body" rows="3" maxlength="${MAX_NOTE}" required placeholder="the funniest thing happened today…"></textarea>
     <label class="check"><input type="checkbox" name="big" value="1"> This is big news. Keep it pinned at the top.</label>
     <button>${emoji("wall")} Pin it to the wall</button>
   </form>
-  <section class="wall" id="wall" aria-labelledby="wall-heading">
+  <section class="wall" id="wall" aria-labelledby="wall-heading" data-live="wall">
     <h2 id="wall-heading">The wall</h2>
     ${big.length ? `<h3 class="pinned">Big news</h3><ul class="notes">\n${big.map((t) => wallNote(t, v)).join("\n")}\n</ul>` : ""}
     ${everyday.length ? `<ul class="notes">\n${everyday.slice(0, WALL_SHOWN).map((t) => wallNote(t, v)).join("\n")}\n</ul>` : big.length ? "" : `<p class="empty">The wall is bare. Be the first to pin something up.</p>`}
@@ -759,8 +774,8 @@ export function kitchenPage(v: Visit, did?: Done): string {
   return roomPage(v, "kitchen", "The kitchen", `
   ${roomHead("The kitchen", "Cook something and leave it out for everyone. Food stays on the counter for three days, or until someone eats it.", undefined, "#c4553c")}
   ${done(did)}
-  ${laddooCard("kitchen", v)}
-  <section class="card" aria-labelledby="counter-heading">
+  ${slot("dog", laddooCard("kitchen", v))}
+  <section class="card" aria-labelledby="counter-heading" data-live="counter">
     <h2 id="counter-heading">On the counter</h2>
     ${dishes.length ? `<ul class="desk-list">\n${list}\n</ul>` : `<p class="empty">The counter's clean. Nobody has cooked in the last few days.</p>`}
   </section>
@@ -800,9 +815,9 @@ export function gardenPage(v: Visit, did?: Done): string {
   return roomPage(v, "garden", "The garden", `
   ${roomHead("The garden", "Everyone has a patch. Anyone can water the lot, and the plants grow whether or not you're here.", undefined, "#4f8f3e")}
   ${done(did)}
-  <p class="status">${esc(waterLine)}</p>
+  <p class="status" data-live="water">${esc(waterLine)}</p>
   <form method="post" action="/garden/water" class="inline"><button class="soft">${emoji("water")} Water the garden</button></form>
-  <section class="card" aria-labelledby="patches-heading">
+  <section class="card" aria-labelledby="patches-heading" data-live="patches">
     <h2 id="patches-heading">The patches</h2>
     <figure class="close">${patchesSvg(plots, dry, did?.key, v.me.id)}</figure>
     <ul class="patches">\n${patches}\n</ul>
@@ -813,7 +828,7 @@ export function gardenPage(v: Visit, did?: Done): string {
     ${replaces ? `<p class="small">This replaces your ${esc(replaces.label)}.</p>` : ""}
     <button>${emoji("plant")} Plant it</button>
   </form>
-  ${laddooCard("garden", v)}`, did);
+  ${slot("dog", laddooCard("garden", v))}`, did);
 }
 
 /* ---------- movies ---------- */
@@ -823,7 +838,7 @@ export const MAX_TITLE = 80;
 // Movie night in each friend's own time, and whether that's in her sleep.
 function nightCard(v: Visit): string {
   const night = movieNight(v.things, v.now);
-  if (!night) return `<section class="card night" aria-labelledby="night-heading"><h2 id="night-heading">Movie night</h2><p class="empty">No movie night planned yet.</p></section>`;
+  if (!night) return `<section class="card night" aria-labelledby="night-heading" data-live="night"><h2 id="night-heading">Movie night</h2><p class="empty">No movie night planned yet.</p></section>`;
   const rows = PEOPLE.map((p) => {
     const c = clock(p.tz, night.at);
     const you = p.id === v.me.id;
@@ -831,7 +846,7 @@ function nightCard(v: Visit): string {
     return `<li data-person="${esc(p.id)}" style="--accent:${p.color}"><span class="name">${you ? "You" : esc(p.name)}</span> <span>${esc(dayLabel(p.tz, night.at))}, <span class="clock">${esc(c.label)}</span> in ${esc(p.city)}.${esc(late)}</span></li>`;
   }).join("\n");
   const pick = night.movie.thing.author === MOVIE_LOVER ? ` <span class="pick">${esc(nameOf(MOVIE_LOVER))}'s pick</span>` : "";
-  return `<section class="card night" aria-labelledby="night-heading">
+  return `<section class="card night" aria-labelledby="night-heading" data-live="night">
     <h2 id="night-heading">Movie night: “${esc(night.movie.title)}”${pick}</h2>
     <p class="small">Planned by ${esc(by(night.plan, v))}, ${esc(ago(night.plan.createdAt, v.now))}. Here's when it is for each of you:</p>
     <ul class="times">\n${rows}\n</ul>
@@ -883,7 +898,7 @@ ${bar(v, "movies")}
     <textarea id="movie-why" name="why" rows="2" maxlength="${MAX_DISH_NOTE}" placeholder="for a crying-on-the-sofa kind of night"></textarea>
     <button>${emoji("movie")} Suggest it</button>
   </form>
-  <section class="card" aria-labelledby="list-heading">
+  <section class="card" aria-labelledby="list-heading" data-live="movies">
     <h2 id="list-heading">Suggestions</h2>
     ${list.length ? `<ul class="movie-list">\n${list.map((m) => movieItem(m, v)).join("\n")}\n</ul>` : `<p class="empty">Nothing yet. ${esc(nameOf(MOVIE_LOVER))} will have opinions.</p>`}
   </section>
