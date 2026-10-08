@@ -4,7 +4,9 @@ A shared house for five friends who live apart: Rithika (Canberra), Neha (New
 Jersey), Amirdhavarshini (Tamil Nadu), Rithanya and Aswathy (Bangalore). The
 one principle: **connection must not require being online at the same time.**
 Someone comes by for 30 seconds, leaves something and goes; someone else finds
-it hours or days later. Real-time is a later bonus, never a prerequisite.
+it hours or days later. Real-time is a bonus (the house is live since session
+8, ADR 0010), never a prerequisite: everything still waits for whoever comes
+by later.
 
 The core loop every change protects: enter → pick who you are → leave something
 somewhere in the house → it persists → come back → "while you were away" shows
@@ -18,7 +20,10 @@ shared wall, a kitchen, a garden, and Shinzo the dog (Laddoo until session
 on their own: you walk yourself (keys, or a thumb stick on touch screens),
 and friends stand where they last were (ADR 0008). Since session 7 the
 house keeps where everyone stopped (ADR 0009). Don't bring back automatic
-wandering.
+wandering for the five. Shinzo is the exception: since session 8 he has his
+own day, worked out from the clock alone and the same for every viewer, and
+lies down only to nap (ADR 0012). A pet or a treat has him follow that
+friend for 30 minutes.
 
 Since session 7, whatever you walk up to that you can use (beds, desks, the
 mat, mirror, yoga mat, sofas, wall, stove, garden patches, Shinzo) lights up,
@@ -28,7 +33,11 @@ page already has. Anyone can sleep in any bed (`nap`) or sit on a seat in
 `SEATS` (`sit`). Every action has an emoji (`EMOJI` in `src/art.ts`) on its
 button. After a form posts, the `?did=` it redirects with pops `POP`'s emoji
 up where it happened (`pops()` in `src/scene.ts`, `g.pops`); the script
-pops the button's emoji as you press it. A new action gets both. Each bedroom keeps
+pops the button's emoji as you press it. A new action gets both. Since
+session 8, friends who are here (`.walker.here`) within `HUG_REACH` are
+hotspots too, built by `public/house.js`: "Hug Neha" or a group hug, up to
+all five (`hug`, the others' ids in `item`). Someone sitting is offered only
+`.act.seated` hotspots (UNO on the mat). Each bedroom keeps
 its owner's local time and personal details (listed in README.md). Shared
 rooms follow the visitor's clock. Laptop: the house with updates beside it. Phone: the house
 fills the screen, with Home, Updates, Movies and Everyone tabs at the bottom.
@@ -36,9 +45,16 @@ fills the screen, with Home, Updates, Movies and Everyone tabs at the bottom.
 Since session 4, two rooms have an activity of their own: face masks in
 Rithanya's (`MASK_ROOM`) and kettle Maggi in Amirdhavarshini's (`KETTLE_ROOM`),
 both in `src/house.ts`. Movie time (`/movies`) is its own tab because Rithanya
-loves movies. These details come from Rithika; ask her before inventing new
-ones for the friends. (The agent once read the Stitch art's boxes as cats; they
-were KitKats.)
+loves movies. Since session 8, UNO is played on Amirdhavarshini's mat: two to
+five friends sitting on it can deal (seven cards each), and the game is
+replayed from `uno`/`unomove` rows by `src/uno.ts` (ADR 0013), waiting for
+whoever's turn it is. Each friend's birthday is in `src/people.ts`: all
+through her birthday month (her own clock) her room has bunting and balloons
+and she wears a crown; friends can wish her (`wish`). Neha sleeps 10 pm to
+8 am ("make nehas sleeping hours to be 10", read as both bedtime and length;
+she can redirect it). These details come from Rithika; ask her before
+inventing new ones for the friends. (The agent once read the Stitch art's
+boxes as cats; they were KitKats.)
 
 ## What good means
 
@@ -88,12 +104,29 @@ accepted record.
   reason written in PROCESS.md, and the Dockerfile must then install it.
 - All state lives in SQLite at `$DATA_DIR/house.db` (`/data` on Fly, the only
   storage that survives a redeploy; `./data` locally). Nothing friends must see
-  lives in memory or the browser.
+  lives in memory or the browser. The only thing in memory is who has a page
+  open right now (`src/live.ts`), which is presence, not state.
 - Everything people leave is a row in the append-only `things` table. Mess,
-  thirst, growth, Shinzo's spot, who's asleep or sitting where, and the
-  counter are worked out from timestamps in `src/house.ts`, with no timers
-  (ADR 0005). Add new `kind` and `item` values; never rename one, since
-  stored rows use them.
+  thirst, growth, Shinzo's day, who's asleep, sitting or hugging where, UNO
+  hands, and the counter are worked out from timestamps in `src/house.ts`
+  and `src/uno.ts`, with no timers (ADR 0005). Add new `kind` and `item`
+  values; never rename one, since stored rows use them.
+- The house is live (ADR 0010). Every open page holds `GET /live`
+  (server-sent events, a heartbeat every 25 s). `src/store.ts` reports every
+  write: `leave()` is `changed`, `walkTo()` is `moved`, and a page load only
+  counts when someone comes home or changes place, so pages fetching
+  themselves never set each other off. `public/live.js` re-fetches the page
+  on `changed` (with an `x-live` header, which keeps your place) and swaps
+  every `data-live` region (pages.ts `slot()`), skipping one you're typing
+  in; then it fires `house:fresh`, and `public/house.js` swaps the SVG's
+  groups, keeping your own walker. `moved` becomes `house:moved`, which
+  walks that friend. A new card or list on a page needs a `data-live` key,
+  or it won't update live.
+- One of us at a time (ADR 0011). The cookie is `who=<id>.<token>`, and the
+  token must match `visits.token`. A friend is held while a page with her
+  token is open, or for 2 minutes after her last page load; the door shows
+  her window as a disabled `button.person.taken`, and `POST /me` answers 409.
+  `POST /leave` lets go.
 - Pages are server-rendered HTML forms that post and redirect. Every
   user-written string goes through `esc()` in `src/html.ts`.
 - The house is `public/art/house.jpg` with an SVG layer from `src/scene.ts`
@@ -113,12 +146,14 @@ accepted record.
 - Client JavaScript is enhancement only: `public/house.js` builds the walking
   controls (arrow keys/WASD, the thumb stick, the Go in button), walks you to
   a tapped room, keeps a phone's view on you, zooms in going into a room and
-  out leaving one, walks Shinzo after whoever petted or fed him, and lights
-  up the hotspot you're next to. Where you stepped out of a room, and where
+  out leaving one, walks Shinzo along his day (`data-path`) and after
+  whoever petted or fed him, lights up the hotspot you're next to, offers
+  hugs, and moves friends as they walk. Where you stepped out of a room, and where
   Shinzo was when you petted or fed him (so he gets up and comes over on the
-  page you land on), ride in `sessionStorage` for one page load only. Where you stopped goes to the
-  server with `sendBeacon` to `POST /here` (204, no page), the one write
-  that needs the script, since only the script walks. It reads the room
+  page you land on), ride in `sessionStorage` for one page load only. Where you are goes to the
+  server with `sendBeacon` to `POST /here` (204, no page) a few times a
+  second while you walk and when you stop, the one write that needs the
+  script, since only the script walks. It reads the room
   outlines and hotspots from the page, so `ROOMS` and `hotspots()` stay the
   one source of coordinates. Every link and form must work without it, and
   the spec never relies on it. Automatic animations stop under
@@ -127,10 +162,12 @@ accepted record.
 - `visits` keeps each friend's last page load, the start of their current
   visit, the place they were last in (`place`), when they came into it or
   last walked (`arrived`), and the spot they stopped at (`x`, `y`, NULL for
-  the place's first spot) (ADR 0009). Everyone is drawn there, except in
-  their own bed during their sleep hours. Friends seen in the last ten
-  minutes are "home now" and glow.
-- The five are fixed in `src/people.ts`, with city, IANA zone and sleep hours.
+  the place's first spot) (ADR 0009), plus the session token and when it was
+  claimed (ADR 0011). Everyone is drawn there, except in their own bed
+  during their sleep hours. Friends seen in the last ten minutes (an open
+  page keeps it fresh) are "home now" and glow.
+- The five are fixed in `src/people.ts`, with city, IANA zone, sleep hours
+  and birthday.
   Ids are window numbers; never change an id, since everything left
   references it. Rename by changing `name`.
 - `/readme/` renders README.md with `src/markdown.ts`, which supports headings,
@@ -161,6 +198,15 @@ accepted record.
 - The server doesn't reload code. Use `node --watch src/server.ts` while
   iterating, or restart it before screenshots, or you'll be looking at the
   old code.
+- Parallel agents (session 8) each get a git worktree under
+  `.claude/worktrees/<name>` on its own branch, their own `PORT`,
+  `DATA_DIR=/tmp/<name>` and `SHOT_PORT` (so two `scripts/shot.ts` runs don't
+  share a browser), with `node_modules` symlinked from the main checkout.
+  Don't run `pnpm` in such a worktree: it tries to reinstall through the
+  symlink, which would empty the main checkout's `node_modules`. Run
+  `node_modules/.bin/tsc` and `node_modules/.bin/vitest` instead, and stage
+  files by name (the symlink shows as untracked). One agent owns
+  `public/house.js` at a time; the lead merges the branches.
 
 ## Testing rules
 
@@ -170,10 +216,15 @@ accepted record.
 - Spec tests that write notes or record visits stay inside the `throwaway`
   gate in `spec/house.test.ts`. They must never write into the real house on
   Fly.
+- The spec's `page()`/`post()` take a friend's id and sign in through
+  `POST /me` once, caching the session; `afterAll` signs everyone out. A run
+  that crashes holds its friends for 2 minutes, and so does a
+  `scripts/shot.ts` run (it signs in through the door too), so a second run
+  straight after gets 409s. Wait, or use a fresh `DATA_DIR`.
 - Look at UI changes at phone width (390px) and desktop before calling them
   done: `node scripts/shot.ts <url> <out.png> 390 <who>`, then read the PNG.
   It uses headless Chrome's device emulation, which goes below the ~500px
-  window minimum and can set the `who` cookie. The old 390px-iframe trick can't
+  window minimum and can carry a signed-in cookie. The old 390px-iframe trick can't
   send the cookie, so it only ever shows the door. Phone widths are emulated
   as touch screens (so the thumb stick shows); `TOUCH=1` makes a wider one
   touch too. Check an iPad as well (`TOUCH=1`, 820px): the 700–999px range
@@ -209,7 +260,12 @@ call a deploy working without that check.
   900–1100 words and is rewritten, not appended to, at each crit. Every claim
   cites a commit as a link whose text is the hash, and `pnpm check:evidence`
   checks they resolve. Don't add to it unless she asks. The brief advises
-  she drafts it herself.
+  she drafts it herself. One standing request (8 Oct 2026): every prompt goes
+  into the "Prompts" section at the bottom of `PROCESS.md`, word for word,
+  with a link to the commit it led to, "so i can change it later". Add only
+  to that section, and never commit her uncommitted draft with it: stage
+  `git show HEAD:PROCESS.md` plus the new section (`git hash-object -w`,
+  `git update-index --cacheinfo`), so only the prompt lines are committed.
 - Record corrections and interruptions as they happened. Don't invent
   interactions or guess at motives.
 - Never read or print `mise.local.toml`; it holds the Fly token.

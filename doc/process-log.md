@@ -325,6 +325,86 @@ calls:
     dosa".
   - 😋✨ pops over whoever ate it.
 
+### Session 8: live, one of us at a time, hugs, birthdays, UNO, and Shinzo's own day
+
+On 8 October I asked for one big batch:
+- live updates without refreshing
+- nobody else can pick a friend who's already in, so at most five people
+- hugs and group hugs with online friends who are close
+- birthdays, celebrated all month with decorations and a crown
+- Shinzo getting up and wandering, instead of moving while asleep on his
+  blanket
+- Neha's sleeping hours "to be 10"
+- UNO for friends sitting together in Amirdhavarshini's room, seven cards
+  each, up to five players
+
+I also asked for every prompt to go into `PROCESS.md` with its hash, and
+encouraged fanning the work out to agents that work together.
+
+How it was split:
+- The agent laid a small shared base itself: birthdays and Neha's hours in
+  `src/people.ts`, the new kinds, the emoji, and a `SHOT_PORT` for
+  screenshots.
+- Four agents then worked in parallel, each in its own git worktree, port and
+  scratch house:
+  - live updates and one of us at a time
+  - hugs and birthdays
+  - Shinzo
+  - UNO
+- None of them touched `public/house.js`. A fifth agent took it on once the
+  others' markup existed, so the walking script had one owner.
+- The lead agent merged each branch into `main`, resolved the conflicts (the
+  same functions, the end of `style.css`, the end of the spec), and ran the
+  whole spec after each merge.
+
+The calls, each one mine to redirect:
+
+- **The house is live** (ADR 0010):
+  - Every open page holds a server-sent events line to `GET /live`.
+  - A write anywhere makes open pages fetch themselves and swap in what
+    changed, without touching a note you're typing.
+  - Friends who are in at the same time walk on your screen, a step every
+    300 ms or so.
+  - Nothing needs it: everything still waits for whoever comes later.
+- **One of us at a time** (ADR 0011):
+  - Picking a friend gives your browser a token, and only that token is her
+    from then on.
+  - While her page is open, or for 2 minutes after her last page, her window
+    at the door is shut and says she's in the house.
+  - That includes her own second device. Leaving opens it again.
+- **Hugs:**
+  - Walk up to friends who are here (within 120 picture px) and hug one, or
+    all of you who are close, up to five.
+  - You stay huddled with hearts over you for up to 5 minutes, or until
+    someone walks off.
+  - Whoever you hugged hears about it.
+- **Birthdays:**
+  - Rithanya 12 January, Amirdhavarshini 19 May, Neha 2 June, Rithika 16
+    October, Aswathy 8 November.
+  - All month, by her own clock, her room has bunting, balloons and a
+    banner, and she wears a crown on every drawing of her.
+  - Friends can wish her from the balloons, and get a party hat for two
+    hours.
+  - On the day itself there's cake on her desk and confetti.
+- **Shinzo's own day** (ADR 0012):
+  - He wanders on a plan worked out from the clock alone, so everyone sees
+    him in the same place.
+  - In 10-minute slots he either walks between spots at 60–90 px/s, stopping
+    to sniff, or naps.
+  - He's drawn standing, and is his curled-up picture only while napping.
+    His blanket stays under the tree when he's off it.
+  - A pet or a treat has him follow you for 30 minutes (it was half a day).
+    Napping by the visitor's clock is gone.
+- **Neha sleeps 10 pm to 8 am.** "10" was read as both her bedtime and her
+  hours of sleep. Her room no longer says she sleeps the longest; it says
+  she's first to bed, at 10.
+- **UNO on the mat** (ADR 0013):
+  - Two to five friends sitting on Amirdhavarshini's mat can deal.
+  - The full 108-card deck, seven cards each; the game is replayed from its
+    moves in the log.
+  - Once dealt it waits for whoever's turn it is, with no timeouts or
+    penalties.
+
 ## What went wrong, and what we found
 
 - The agent's shell didn't have node on its PATH, because mise wasn't active.
@@ -430,13 +510,36 @@ calls:
   using a scratch copy of the script. The first one showed Shinzo's hearts
   over the sticker of the person he was beside, so they moved onto his
   back and got a little smaller.
+- Session 8: the lead agent ran `lsof` to see whether ports 8080–8095 were
+  taken, and I rejected it. It went on with its own port and a scratch copy
+  of the data instead, which never needed a port scan.
+- Session 8: each worktree had `node_modules` symlinked from the main
+  checkout. In a worktree, `pnpm check` tried to reinstall through the
+  symlink, which would have emptied the main checkout's copy. It stopped
+  only because there was no terminal to confirm in. The agents switched to
+  `node_modules/.bin/tsc` and `vitest`, and `CLAUDE.md` now says so.
+- Session 8: every merge after the first conflicted, because the branches
+  all added to the same places: `server.ts`'s route list, `pages.ts`'s
+  imports and room pages, `scene.ts`'s `figures()` and Shinzo's code, and
+  the ends of `style.css` and the spec. Each was resolved by keeping both
+  sides. The live agent's `data-live` slots also went round the hug buttons
+  and birthday card, so those update live too. The full spec ran after
+  every merge: 32, 33, then 36 tests.
+- Session 8, left open:
+  - A hug's shared name label, and a birthday crown on someone standing on
+    a room's first spot, can hide under a room's name tag, the way names
+    already could.
+  - A friend who walks out of a hug stays drawn at her hug spot on other
+    screens until the next live update.
+  - Shinzo's standing drawing is simpler than the Stitch art; a Stitch
+    picture of him standing would match better.
 
 ## Deliberately left out
 
-Photos, drawings, prompts, real-time presence, notifications, editing or
-deleting what you left, and real authentication. Rooms came in during session
-2, because I asked for them. Each of the rest has to show it makes five people
-feel closer before it goes in.
+Photos, drawings, prompts, notifications, editing or deleting what you left,
+and real authentication. Rooms came in during session 2, and real-time
+presence in session 8, because I asked for them. Each of the rest has to show
+it makes five people feel closer before it goes in.
 
 ## How the harness has evolved
 
@@ -505,6 +608,21 @@ feel closer before it goes in.
   Later that day, `CLAUDE.md`'s Tooling section changed: CI deploys every
   push now that the repo is public, so hand deploys with `flyctl` stopped,
   and crit cutoffs get a `crit-<n>` tag on the deployed commit.
+- **Session 8:**
+  - The leftover manual deploy steps left `CLAUDE.md`.
+  - `CLAUDE.md` now describes the live house (ADR 0010), one of us at a time
+    (ADR 0011), Shinzo's own day (ADR 0012, and that "no automatic
+    wandering" means the five), hugs, birthdays, UNO (ADR 0013) and Neha's
+    bedtime.
+  - A new Tooling rule covers parallel agents: one worktree, port, data
+    folder and `SHOT_PORT` each; never `pnpm` in a worktree with symlinked
+    `node_modules`; one agent owns `house.js` at a time.
+  - New testing notes: the spec signs in through the door, and a crashed run
+    or a screenshot holds a friend for 2 minutes.
+  - The process rules gained my standing request: every prompt goes into
+    `PROCESS.md`'s Prompts section with its commit, without committing my
+    own draft.
+  - `scripts/shot.ts` takes `SHOT_PORT` and signs in through the door.
 
 ## Project log
 
@@ -1293,3 +1411,103 @@ push, CI's `check` and `deploy`, the live checks, and then `crit-8` moves
 to this commit. The results go in the next entry.
 
 **Commits:** this log entry, with the `PROCESS.md` count.
+
+### 21. "update claude.md, remove the lines that are chnaged later" (8 Oct 2026)
+
+**Asked:** "update claude.md, remove the lines that are chnaged later"
+
+**Agent:** looked for instructions in `CLAUDE.md` that a later line
+overrides. Only one was found: the old manual `flyctl deploy` command and
+its token note, kept after "Don't `flyctl deploy` by hand any more". It
+went, and "`flyctl status` and `flyctl logs` are still fine for reading"
+stayed. The ADR 0008/0009 history and the Laddoo naming note were left in,
+because they still explain why the code looks the way it does.
+
+**Correction:** none.
+
+**What happened to entry 20's ship** (from GitHub, read on 8 Oct): `d22650a`
+was pushed, CI run 37432453927 passed `check` and `deploy`, and `crit-8`
+points at `d22650a`.
+
+**Commits:** [`4dd46d7`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/4dd46d7).
+
+### 22. "you can remember the laddoo part" (8 Oct 2026)
+
+**Asked:** Rithika pasted the `CLAUDE.md` lines about Shinzo having been
+Laddoo until session 7, with "you can remember the laddoo part".
+
+**Agent:** saved it to the agent's own memory, outside the repo. The note
+says Shinzo is the name people see, but code, CSS, the picture and stored
+rows keep `laddoo` and `play`, and must never be renamed.
+
+**Correction:** none.
+
+**Commits:** none (memory lives outside the repo).
+
+### 23. Live view, one of us at a time, hugs, birthdays, Shinzo wandering, Neha's hours and UNO (8 Oct 2026)
+
+**Asked:** "i want you to use liveview for viewing all the updates live, i
+should not need to refresh my page everytime to see what is going on. and if
+one person is logged in as one of us, nobody else can choose that person. so
+max of 5 users can only use my website. i want the avatars to be able to hug
+eachother. there can be a group hugs of 1,2,3,4 or evan and at max 5 people.
+the option should show if im close to any user that is online. i also wanna
+add birthdays and the avatars should be able to celebrate in the whole
+birthday month. the whole month there should be some decorations in the
+birthday girls room and a crown on her head. the dog, shinzo can wander
+whenever he wants. i want him to get up and wander, rn he wanders while
+sleeping on the mat.Fanning work out to subagents is encouraged for complex
+tasks. make sure they work together.make nehas sleeping hours to be 10. and
+give option of the avatars to play uno wheneber they sit togther in amirdhas
+room. make a uno game w 7 cards to each player. max of 5 players can play
+this game. so now i will add the birthdays rithika 16th october neha 2nd june
+aswathy 8th november rithanya january 12th Amirdha may 19th", then on a new
+line, "in process.md add this prompt and its hash. do this for every prompt
+so i can change it later"
+
+**Agent:** built everything under "Session 8" above:
+- read the code first, then laid the shared base itself
+- ran four agents in parallel worktrees (live and sessions, hugs and
+  birthdays, Shinzo, UNO), each with its own port, scratch house and
+  `SHOT_PORT`, plus a fifth for `public/house.js` once the markup existed
+- merged each branch, resolving every conflict, and ran the full spec after
+  each merge
+- read the house at 390px and 1280px, and tapped Rithanya's window at the
+  door for real
+- updated README, `CLAUDE.md` and this log, and wrote ADRs 0010–0013
+
+`pnpm check` passed 36/36 on the merged code against a scratch house in
+`/tmp`.
+
+**Interruptions and corrections:**
+- Rithika rejected the agent's `lsof` port check, with no reason given, and
+  then said "continue and open the live after". The agent used its own port
+  and a scratch house instead of checking.
+- After the progress update she said "continue and ship it when done and
+  open it live", and later "continue".
+
+**Decisions to redirect:**
+- Neha 10 pm–8 am.
+- A friend's own second device waits too.
+- Shinzo follows for 30 minutes, on one plan for everyone.
+- UNO starts only while two or more sit on the mat, then plays in anyone's
+  own time.
+
+**Commits:**
+- [`2627210`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/2627210): the shared base
+- [`a305895`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/a305895): live and one of us at a time, merged in [`a6c47bb`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/a6c47bb)
+- [`f6e6f02`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/f6e6f02): UNO, merged in [`d148152`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/d148152)
+- [`c8b7b02`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/c8b7b02): Shinzo, merged in [`27faf1b`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/27faf1b)
+- [`1b47e2c`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/1b47e2c): hugs and birthdays, merged in [`9be0483`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/9be0483)
+- [`f8f3ecd`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/f8f3ecd) and [`e11cc6e`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/e11cc6e): the walking script, merged in [`cd89e32`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/cd89e32)
+- this log entry, with README and `CLAUDE.md`
+- then the prompt in `PROCESS.md`
+
+**Ship (after these commits):**
+1. Push to `main` for CI to check and deploy.
+2. Check the live door and `/readme/`, and run the read-only spec.
+3. Tag the deployed commit `crit-9`, since crit 9's cutoff (14 October,
+   1:30 pm) is ahead.
+4. Open the live site for Rithika.
+
+The results go in the next entry.
