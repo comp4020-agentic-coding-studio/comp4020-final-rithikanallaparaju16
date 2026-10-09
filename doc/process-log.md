@@ -1729,3 +1729,28 @@ uncommitted `PROCESS.md` draft is still left alone.
 **Ship (after this commit):** push and watch CI, check the live door,
 `/readme/` and the read-only spec, move `crit-9`, and open the live site.
 The results go in the next entry.
+
+### 29. "so for the new update in the game-uno, i asked my friends to try it and 10 sec was too less so i chnaged it to 20sec. add this with the commit hash of prev prompt" (9 Oct 2026)
+
+**What happened to entry 28's ship:**
+- `2f61693` was pushed, and CI run 37864138233 passed `check` and `deploy`.
+- The live `/` and `/readme/` answered 200, and the README said "twenty
+  seconds a turn".
+- The read-only spec passed 5 and skipped 35.
+- `crit-9` moved to `2f61693`, and the site was opened.
+
+**Asked:** the sentence above, for `PROCESS.md`, with the previous
+prompt's commit.
+
+**What it records:** Rithika had her friends try UNO, and ten seconds a turn
+was too short for them. That's why entry 28 changed it to twenty.
+
+**Agent:** the sentence was in Rithika's editor but not saved in the file.
+It went in under the "make it 20 seconds" prompt in `PROCESS.md`, word for
+word, linked to [`0095db4`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/0095db4).
+Only that line was committed; the rest of her draft is still uncommitted.
+
+**Correction:** none.
+
+**Commits:** this entry, with the line in `PROCESS.md`. They're committed
+locally, not pushed: this prompt didn't say to push.
