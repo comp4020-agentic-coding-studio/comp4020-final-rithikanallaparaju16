@@ -1698,3 +1698,34 @@ then this entry with the prompt in `PROCESS.md`.
 **Ship (after this commit):** push and watch CI, check the live door,
 `/readme/` and the read-only spec, move `crit-9`, and open the live site.
 The results go in the next entry.
+
+### 28. "make it 20 seconds and push. i added reflections as well" (9 Oct 2026)
+
+**What happened to entry 27's ship:**
+- `f3ea663` was pushed, and CI run 37769810881 passed `check` and `deploy`.
+- The live `/` and `/readme/` answered 200, and the README had the lit
+  common areas and the turn timer.
+- The read-only spec passed 5 and skipped 35.
+- `crit-9` moved to `f3ea663`, and the site was opened.
+
+**Asked:** "make it 20 seconds and push. i added reflections as well"
+
+**Agent:** changed `TURN` in `src/uno.ts` to 20 seconds, and every "ten
+seconds" in the pages, README and `CLAUDE.md` to twenty. ADR 0016 got a
+dated note, and the spec now waits out a real 20-second turn. `pnpm check`
+passed 40/40.
+
+`reflections/crit-9.md` is Rithika's own writing. The agent only scanned it
+for anything secret-looking (nothing) and committed it as it was. Her
+uncommitted `PROCESS.md` draft is still left alone.
+
+**Correction:** none.
+
+**Commits:**
+- [`0095db4`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/0095db4): twenty seconds
+- [`8c66048`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/8c66048): her reflection
+- then this entry with the prompt in `PROCESS.md`
+
+**Ship (after this commit):** push and watch CI, check the live door,
+`/readme/` and the read-only spec, move `crit-9`, and open the live site.
+The results go in the next entry.
