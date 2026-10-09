@@ -8,7 +8,7 @@ import type { Thing } from "./store.ts";
 // house), with the colour picked for a wild in its body. Replaying the moves
 // in order gives the table.
 //
-// Each turn lasts ten seconds (ADR 0016), counted from the move before it,
+// Each turn lasts twenty seconds (ADR 0016), counted from the move before it,
 // with no timer anywhere: whoever's turn runs out is taken to have gone, and
 // play moves on without her. Someone who'd just drawn was there, so for her
 // running out only passes.
@@ -23,7 +23,7 @@ export type Card = string;
 
 export const MAX_PLAYERS = 5;
 const HAND = 7;
-export const TURN = 10_000;
+export const TURN = 20_000;
 
 export const isCard = (c: string): boolean => /^([rygb][0-9SRD]|W4?)$/.test(c);
 export const isWild = (c: Card): boolean => c.startsWith("W");
@@ -92,7 +92,7 @@ export type Game = {
   // The move that emptied the winner's hand.
   won?: Thing;
   // The last thing that happened, for the table to say. `move` is a card,
-  // "draw", "pass", "time" (her ten seconds ran out) or "quit".
+  // "draw", "pass", "time" (her twenty seconds ran out) or "quit".
   last?: { by: string; move: string; color?: Color };
   rand: () => number;
 };
@@ -190,7 +190,7 @@ export type Move = { author: string; item: string; body: string };
 export function play(g: Game, m: Move, row?: Thing, at = row?.createdAt ?? Date.now()): string | undefined {
   if (g.winner) return "This game's already over.";
   const gone = g.left.find((l) => l.who === m.author);
-  if (gone) return gone.why === "time" ? "Your ten seconds ran out, so you've left this game." : "You left the house, so you're out of this game.";
+  if (gone) return gone.why === "time" ? "Your twenty seconds ran out, so you've left this game." : "You left the house, so you're out of this game.";
   if (!g.players.includes(m.author)) return "You're not in this game.";
   if (m.item === "quit") {
     goes(g, m.author, "quit", at);

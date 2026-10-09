@@ -147,7 +147,7 @@
   // its own: a friend getting up from a seat, or Shinzo's hour running out.
   document.addEventListener("house:refresh", soon);
 
-  // UNO turns last ten seconds (ADR 0016). The page counts the turn in play
+  // UNO turns last twenty seconds (ADR 0016). The page counts the turn in play
   // down by the house's clock (data-now is when the house drew the page), and
   // when it runs out asks for the page again: the house has played it out by
   // then, and the turn has moved on, without whoever wasn't there. Nothing is

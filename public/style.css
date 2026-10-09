@@ -2091,7 +2091,7 @@ button .emoji,
   background: #fff1d6;
 }
 
-/* ten seconds a turn (ADR 0016), counted down by public/live.js */
+/* twenty seconds a turn (ADR 0016), counted down by public/live.js */
 .uno-turn .countdown {
   display: inline-block;
   min-width: 2.4em;

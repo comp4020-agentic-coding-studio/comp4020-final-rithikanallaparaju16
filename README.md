@@ -64,7 +64,7 @@ Characters sleep at night where they live: Neha from 10 pm to 8 am, Rithanya fro
 - **Pet Shinzo, or give him a treat.** Walk up to him wherever he's got to. He wakes if he was napping, comes over, and follows a step behind you for half an hour, facing the way he's going. Then he goes back to his own day.
 - **Hug.** Walk up to friends who are here right now and hug one of them, or pull everyone close into a group hug, up to all five of you. You stay huddled together, hearts floating over you, until someone walks off, and whoever you hugged hears about it.
 - **Birthdays.** Rithanya's is in January, Amirdhavarshini's in May, Neha's in June, Rithika's in October and Aswathy's in November. All through a friend's birthday month (by her own clock) her room has bunting and balloons, and she wears a crown wherever she is. Walk up to the balloons to wish her a happy birthday: you get a party hat for a couple of hours, and she finds out who wished her. On the day itself there's cake on her desk.
-- **UNO on the mat.** Sit on Amirdhavarshini's mat with friends and deal UNO: seven cards each, up to five of you. Everyone gets ten seconds a turn, counted down on the table. Whoever lets her time run out, or leaves the house, is out of the game, and the rest play on without waiting; the last one left wins. Updates says who dealt and who won.
+- **UNO on the mat.** Sit on Amirdhavarshini's mat with friends and deal UNO: seven cards each, up to five of you. Everyone gets twenty seconds a turn, counted down on the table. Whoever lets her time run out, or leaves the house, is out of the game, and the rest play on without waiting; the last one left wins. Updates says who dealt and who won.
 - **Do a face mask in Rithanya's room.** She always has the powder. Your sticker wears a green mask with cucumber slices for two hours, so a friend who comes by catches you in it, and Rithanya hears whose face used her powder.
 - **Make kettle Maggi in Amirdhavarshini's room.** Like in the hostel. The kettle and two bowls sit out on her mat, steaming, for the night (twelve hours), with a note if you leave one.
 - **Movie time.** Rithanya loves movies, so the Movies tab is hers. Suggest a movie and say why, tick off the ones you've watched, or plan a movie night on the living room sofas. You pick the time in your own clock, and everyone sees it in theirs, with a note if it falls while someone's usually asleep. A new plan replaces the old one. Rithanya's suggestions are marked as her picks.
@@ -73,7 +73,7 @@ When you come home, **While you were away** lists what's new since your last vis
 
 ## What isn't here yet, on purpose
 
-Photos, drawings, notifications, and editing or deleting things you left. Each one has to show it makes five people feel closer first. Being in at the same time is a bonus, never a need: you see friends walk and what they do as it happens, but everything waits for whoever comes by later. UNO, with its ten-second turns, is the one thing that needs you there.
+Photos, drawings, notifications, and editing or deleting things you left. Each one has to show it makes five people feel closer first. Being in at the same time is a bonus, never a need: you see friends walk and what they do as it happens, but everything waits for whoever comes by later. UNO, with its twenty-second turns, is the one thing that needs you there.
 
 Only one person can be each of us at a time. A friend's window at the door stays shut while someone's in the house as her, and opens again two minutes after they leave, even for her own second device. Anyone with the link can still pick a window that's free. That's fine for a prototype that strangers at a crit need to walk into, but it isn't a password, so a private desk note is a courtesy, not a lock. A shared front-door key is the likely next step before the real five move in.
 
@@ -93,7 +93,7 @@ It's kept as small as the problem: one Node process, no framework and no runtime
 - `src/people.ts` lists the five, with their cities, time zones, sleep hours and birthdays.
 - `scripts/cut-art.py` cuts the Stitch exports into the house picture (with one desk in each room), Shinzo and the five stickers in `public/art/`. It runs by hand, not on the server.
 
-The big decisions (the stack, the storage, who counts as a person, the illustrated house, the log of things, the clocks, walking yourself around, the house keeping where you stopped, the live house, one of us at a time, Shinzo's own day, UNO and its ten-second turns, and always-lit common areas) are written up as decision records in `doc/adr/` in the repository.
+The big decisions (the stack, the storage, who counts as a person, the illustrated house, the log of things, the clocks, walking yourself around, the house keeping where you stopped, the live house, one of us at a time, Shinzo's own day, UNO and its twenty-second turns, and always-lit common areas) are written up as decision records in `doc/adr/` in the repository.
 
 Run it locally with `pnpm start` (it keeps its data in `./data`), then run `pnpm check` in another terminal to check it against the spec.
 
@@ -134,7 +134,7 @@ Run it locally with `pnpm start` (it keeps its data in `./data`), then run `pnpm
 - friends sitting together on Amirdhavarshini's mat can deal UNO, seven cards each, up to all five
 - only whoever's turn it is can play UNO
 - an open UNO table keeps up with friends' moves, and a card goes down without leaving the page
-- each UNO player gets ten seconds a turn, then the others play on without her
+- each UNO player gets twenty seconds a turn, then the others play on without her
 - leaving the house takes you out of your UNO game
 - the house only takes things it has
 

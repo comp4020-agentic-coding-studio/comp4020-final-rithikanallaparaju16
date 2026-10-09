@@ -6,7 +6,7 @@ one principle: **connection must not require being online at the same time.**
 Someone comes by for 30 seconds, leaves something and goes; someone else finds
 it hours or days later. Real-time is a bonus (the house is live since session
 8, ADR 0010), never a prerequisite: everything still waits for whoever comes
-by later. The one exception, at Rithika's asking, is UNO's ten-second turns
+by later. The one exception, at Rithika's asking, is UNO's twenty-second turns
 (ADR 0016).
 
 The core loop every change protects: enter → pick who you are → leave something
@@ -51,7 +51,7 @@ both in `src/house.ts`. Movie time (`/movies`) is its own tab because Rithanya
 loves movies. Since session 8, UNO is played on Amirdhavarshini's mat: two to
 five friends sitting on it can deal (seven cards each), and the game is
 replayed from `uno`/`unomove` rows by `src/uno.ts` (ADR 0013). Each turn
-lasts ten seconds, worked out from timestamps: whoever runs out, or leaves
+lasts twenty seconds (it was ten until 9 Oct), worked out from timestamps: whoever runs out, or leaves
 the house (a `quit` move), is out, and the rest play on (ADR 0016). Each friend's birthday is in `src/people.ts`: all
 through her birthday month (her own clock) her room has bunting and balloons
 and she wears a crown; friends can wish her (`wish`). Neha sleeps 10 pm to
@@ -90,7 +90,7 @@ Rithika first.
 
 Rules in the house never punish absence: plants get thirsty but never die,
 rooms get lived-in but never gross, Shinzo naps but is never sad. Coming back
-should feel like being missed, not like being behind. UNO's ten-second turns
+should feel like being missed, not like being behind. UNO's twenty-second turns
 are the one deliberate exception, because Rithika asked for them (ADR 0016);
 don't spread it to anything else without asking her.
 

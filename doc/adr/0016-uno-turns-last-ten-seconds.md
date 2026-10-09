@@ -65,5 +65,9 @@ only the latest game is shown.
 The spec waits out a real ten-second turn, which adds about eleven seconds
 to a run.
 
-Revisit if ten seconds feels too short, or if the five want a missed turn to
+Changed on 9 October 2026, when Rithika said "make it 20 seconds": `TURN` is
+now twenty seconds, everything else above stands, and the spec's wait is
+about twenty-one seconds.
+
+Revisit if twenty seconds feels too short, or if the five want a missed turn to
 pass instead of putting them out.

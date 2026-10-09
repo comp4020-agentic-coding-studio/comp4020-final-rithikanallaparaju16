@@ -564,20 +564,20 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect(text((await page("/uno", b.id)).querySelector("[data-live='uno-game'] .uno-table"))).toContain(`${a.name} drew a card`);
   });
 
-  it("gives each UNO player ten seconds a turn, then plays on without her", async () => {
+  it("gives each UNO player twenty seconds a turn, then plays on without her", async () => {
     const five = await people();
     const [a, b, c] = five;
     await onlyOnTheMat([a, b, c], five);
     expect((await post("/uno", {}, a.id)).status).toBe(303);
     const game = (await page("/uno", a.id)).querySelector("input[name=game]")!.getAttribute("value")!;
-    // The dealer goes first, and lets her whole ten seconds go by.
-    await new Promise((r) => setTimeout(r, 10_600));
+    // The dealer goes first, and lets her whole twenty seconds go by.
+    await new Promise((r) => setTimeout(r, 20_600));
 
     const table = await page("/uno", b.id);
     expect(text(table.querySelector(".uno-turn")), "play didn't move on without her").toContain("your turn");
     expect(table.querySelector(`.uno-player.left[data-person="${a.id}"]`), `${a.name} is still in the game`).not.toBeNull();
     expect((await post("/uno/move", { game, card: "draw" }, a.id)).status, `${a.name} played after her time ran out`).toBe(400);
-  }, 20_000);
+  }, 30_000);
 
   it("takes whoever leaves the house out of her UNO game, so nobody waits on her", async () => {
     const five = await people();

@@ -801,7 +801,7 @@ const turnLine = (g: Game, v: Visit): string =>
 // Why you're no longer in a game that's still going.
 const outLine = (g: Game, v: Visit): string =>
   g.left.find((l) => l.who === v.me.id)?.why === "time"
-    ? "Your ten seconds ran out, so the others played on without you."
+    ? "Your twenty seconds ran out, so the others played on without you."
     : "You left the house, so you're out of this game.";
 
 // Sitting on the mat with a friend, anyone can deal. A game, once dealt, waits
@@ -820,7 +820,7 @@ function unoCard(v: Visit): string {
     : `<p class="small">${esc(outLine(g, v))} <a href="/uno">See how it's going</a>.</p>`;
   const deal = dealt
     ? `<form method="post" action="/uno" class="inline"><button class="soft">${emoji("uno")} ${playing ? "Deal a new game" : "Deal UNO"} for you and ${esc(others(dealt))}</button></form>
-    <p class="small">Seven cards each, and ten seconds a turn. Whoever lets her time run out, or leaves the house, is out, and the rest play on.</p>`
+    <p class="small">Seven cards each, and twenty seconds a turn. Whoever lets her time run out, or leaves the house, is out, and the rest play on.</p>`
     : playing ? "" : `<p class="empty">Sit on the mat with a friend to play.${mat.length ? ` ${esc(cap(names(mat.map((p) => whoName(p, v)))))} ${mat.length === 1 && mat[0] !== v.me.id ? "is" : "are"} on the mat right now.` : ""}</p>`;
   return `<section class="card uno-card-room" aria-labelledby="uno-heading">
     <h2 id="uno-heading">UNO on the mat</h2>
@@ -857,7 +857,7 @@ function lastLine(g: Game, v: Visit): string {
   const you = g.last.by === v.me.id;
   if (g.last.move === "draw") return `${who} drew a card.`;
   if (g.last.move === "pass") return `${who} kept the card and passed.`;
-  if (g.last.move === "time") return `${you ? "Your" : `${who}'s`} ten seconds ran out, so ${you ? "you're" : "she's"} out${g.winner ? "" : " and play moved on"}.`;
+  if (g.last.move === "time") return `${you ? "Your" : `${who}'s`} twenty seconds ran out, so ${you ? "you're" : "she's"} out${g.winner ? "" : " and play moved on"}.`;
   if (g.last.move === "quit") return `${who} left the house, so ${you ? "you're" : "she's"} out of the game.`;
   return `${who} played ${isWild(g.last.move) ? "a" : "the"} ${cardName(g.last.move)}${g.last.color ? ` and picked ${COLOR_NAME[g.last.color]}` : ""}.`;
 }
@@ -905,7 +905,7 @@ function unoTable(g: Game, v: Visit): string {
       <div class="uno-pile" title="The draw pile">${back}<span class="count">${g.pile.length} to draw</span></div>
       <div class="uno-discard">${unoFace(top(g), true)}<span class="in-play c-${g.color}">${esc(cap(COLOR_NAME[g.color]))}</span></div>
     </div>
-    <p class="uno-turn${!g.winner && whoseTurn(g) === v.me.id ? " yours" : ""}"${g.winner ? "" : ` data-deadline="${deadline(g)}" data-now="${v.now}"`}>${esc(turnLine(g, v))}${g.winner ? " 🎉" : ` <span class="countdown" title="Ten seconds a turn">${Math.max(0, Math.ceil((deadline(g) - v.now) / 1000))}s</span>`}</p>
+    <p class="uno-turn${!g.winner && whoseTurn(g) === v.me.id ? " yours" : ""}"${g.winner ? "" : ` data-deadline="${deadline(g)}" data-now="${v.now}"`}>${esc(turnLine(g, v))}${g.winner ? " 🎉" : ` <span class="countdown" title="Twenty seconds a turn">${Math.max(0, Math.ceil((deadline(g) - v.now) / 1000))}s</span>`}</p>
     <p class="small">${esc(lastLine(g, v))}</p>
   </section>`;
 }
@@ -929,7 +929,7 @@ function unoPlayers(g: Game, v: Visit): string {
 ${rows}
 ${gone}
     </ol>
-    <p class="small">Ten seconds a turn. Play goes ${esc(order.map((p) => (p === v.me.id ? "you" : nameOf(p))).join(" → "))}, and round again.</p>
+    <p class="small">Twenty seconds a turn. Play goes ${esc(order.map((p) => (p === v.me.id ? "you" : nameOf(p))).join(" → "))}, and round again.</p>
   </section>`;
 }
 
@@ -951,7 +951,7 @@ ${bar(v, "home")}
 <main class="list uno">
   <header class="room-head" style="--accent:${owner.color}">
     <h1>UNO on the mat</h1>
-    <p class="local">On ${esc(owner.name)}'s mat, like old times. Seven cards each, and ten seconds a turn: whoever's away is out, and the rest play on.</p>
+    <p class="local">On ${esc(owner.name)}'s mat, like old times. Seven cards each, and twenty seconds a turn: whoever's away is out, and the rest play on.</p>
   </header>
   ${done(did)}
   <div class="uno-game" data-live="uno-game">
