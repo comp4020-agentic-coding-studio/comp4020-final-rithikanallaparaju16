@@ -1752,5 +1752,27 @@ Only that line was committed; the rest of her draft is still uncommitted.
 
 **Correction:** none.
 
-**Commits:** this entry, with the line in `PROCESS.md`. They're committed
-locally, not pushed: this prompt didn't say to push.
+**Commits:** [`e1c6183`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/e1c6183)
+(this entry, with the line in `PROCESS.md`). It was committed locally and
+not pushed, because this prompt didn't say to push.
+
+### 30. "push and ship it" (11 Oct 2026)
+
+**Asked:** "push and ship it"
+
+**Agent:**
+- Found Rithika had changed one line of `reflections/crit-9.md` since it
+  was committed. It's her writing and it was in her working copy, so it
+  ships too: committed exactly as she left it, after a scan for anything
+  secret-looking (nothing).
+- Her `PROCESS.md` draft still stays uncommitted, apart from the Prompts
+  lines.
+
+**Correction:** none.
+
+**Commits:** her reflection's edit, then this entry with the prompt in
+`PROCESS.md`, pushed together with `e1c6183`.
+
+**Ship (after this commit):** push and watch CI, check the live door,
+`/readme/` and the read-only spec, move `crit-9` (its cutoff is 14 October,
+1:30 pm), and open the live site. The results go in the next entry.
