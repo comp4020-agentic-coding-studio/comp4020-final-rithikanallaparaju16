@@ -2,7 +2,7 @@ import { randomInt, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { ART, ART_TYPES, isArt } from "./assets.ts";
-import { counter, DOG, find, FOOD, GIFTS, KETTLE_ROOM, MASK_ROOM, movies, PLANTS, resting, roomPlace, SEATS } from "./house.ts";
+import { counter, DOG, find, FOOD, GIFTS, KETTLE_ROOM, MASK_ROOM, movies, PLANTS, resting, roomPlace, SEATS, STICKERS, wall } from "./house.ts";
 import * as live from "./live.ts";
 import { markdown } from "./markdown.ts";
 import {
@@ -154,6 +154,8 @@ function line(did: string | null, owner?: Person, me?: Person): string | undefin
       return owner?.id === "5" ? "All tidy. The banana stays, though. It's Aswathy's." : "All tidy.";
     case "wall":
       return "Pinned to the wall. Whoever comes by next will see it.";
+    case "sticker":
+      return "Stuck on. Whoever wrote it will know you read it, and how you felt.";
     case "dish":
       return "Left out on the counter for everyone.";
     case "eat":
@@ -270,7 +272,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
 
   if (method !== "POST") return send(res, 404, messagePage("Nothing here", "There's no room by that name in this house."));
 
-  const writes = ["/wall", "/kitchen", "/kitchen/eat", "/garden/water", "/garden/plant", "/garden/dog", "/garden/treat", "/sit", "/here", "/movies", "/movies/watched", "/movies/night", "/uno", "/uno/move", "/hug"];
+  const writes = ["/wall", "/kitchen", "/kitchen/eat", "/garden/water", "/garden/plant", "/garden/dog", "/garden/treat", "/sit", "/here", "/movies", "/movies/watched", "/movies/night", "/uno", "/uno/move", "/hug", "/wall/sticker"];
   if (!writes.includes(pathname) && !roomMatch?.[2]) {
     return send(res, 404, messagePage("Nothing here", "There's no room by that name in this house."));
   }
@@ -341,6 +343,18 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     if (body.length > MAX_NOTE) return send(res, 400, messagePage("Too long", `Notes fit up to ${MAX_NOTE} characters.`, "/living"));
     store.leave({ author: me.id, kind: "note", place: "wall", body, item: form.get("big") === "1" ? "big" : "" });
     return redirect(res, "/living?did=wall");
+  }
+
+  // A sticker on a friend's note: one each, and picking "" peels yours off.
+  // Back to the note itself, so the wall doesn't lose your place.
+  if (pathname === "/wall/sticker") {
+    const note = wall(store.things()).find((t) => String(t.id) === form.get("note"));
+    if (!note) return send(res, 400, messagePage("Which note?", "That note isn't on the wall.", "/living#wall"));
+    if (note.author === me.id) return send(res, 400, messagePage("That's your own note", "Stickers are for friends' notes.", "/living#wall"));
+    const sticker = text(form, "sticker");
+    if (sticker && !STICKERS.some((s) => s.key === sticker)) return send(res, 400, messagePage("Not a sticker we have", "Pick one of the stickers on the note.", "/living#wall"));
+    store.leave({ author: me.id, kind: "sticker", place: `note:${note.id}`, item: sticker });
+    return redirect(res, `/living?did=sticker#note-${note.id}`);
   }
 
   if (pathname === "/kitchen") {

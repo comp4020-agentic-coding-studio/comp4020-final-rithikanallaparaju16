@@ -43,7 +43,11 @@
     for (const fresh of doc.querySelectorAll("[data-live]")) {
       const old = document.querySelector(`[data-live="${CSS.escape(fresh.dataset.live)}"]`);
       if (!old || old.closest("svg") || busy(old)) continue;
-      old.replaceWith(document.importNode(fresh, true));
+      // Whatever you'd opened (a note's stickers, the memory box) stays open.
+      const opened = [...old.querySelectorAll("details[open][id]")].map((d) => d.id);
+      const next = document.importNode(fresh, true);
+      for (const id of opened) next.querySelector(`details#${CSS.escape(id)}`)?.setAttribute("open", "");
+      old.replaceWith(next);
     }
     const event = new CustomEvent("house:fresh", { detail: { doc }, cancelable: true });
     if (document.dispatchEvent(event)) {

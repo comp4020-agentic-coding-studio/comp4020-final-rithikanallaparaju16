@@ -245,6 +245,7 @@ export const EMOJI: Record<string, string> = {
   hug: "🤗",
   wish: "🎂",
   uno: "🃏",
+  sticker: "🌟",
 };
 
 // What pops up where you did it, once it's done.
@@ -268,6 +269,7 @@ export const POP: Record<string, string[]> = {
   hug: ["💞", "🤗", "💞"],
   wish: ["🎉", "🎂", "🎈"],
   uno: ["🃏"],
+  sticker: ["💛", "✨"],
 };
 
 export const emoji = (key: string): string => (EMOJI[key] ? `<span class="emoji" aria-hidden="true">${EMOJI[key]}</span>` : "");

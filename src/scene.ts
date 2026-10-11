@@ -436,6 +436,7 @@ function pops(s: Scene, standing: Map<string, Pt>): string {
     desk: above(room?.desk?.[0], 28),
     kettle: above(MAT_TABLE, 44),
     wall: [WALL_MIDDLE],
+    sticker: [WALL_MIDDLE],
     dish: above(COUNTER[1], 30),
     // Over whoever ate it, who's usually standing in front of the counter.
     eat: above(you, 118),

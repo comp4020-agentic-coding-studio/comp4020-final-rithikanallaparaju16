@@ -55,7 +55,7 @@ Characters sleep at night where they live: Neha from 10 pm to 8 am, Rithanya fro
 ## What you can do
 
 - **Leave something on a friend's desk.** Write a note, add something with it (masala chai, filter coffee, dosa, biryani, Maggi, cake, a mango, a flower, chocolate or a KitKat from Rithanya's box), and it waits on their desk. Only they can read the note; anyone who walks in sees that something's been left.
-- **Write on the living room wall.** Something funny from today, a good-luck wish, anything. Tick "big news" and it stays pinned at the top. Older notes go into a memory box rather than disappearing.
+- **Write on the living room wall.** Something funny from today, a good-luck wish, anything. Tick "big news" and it stays pinned at the top. Older notes go into a memory box rather than disappearing. Friends can stick a sticker on any note (❤️ 😂 🥹 🎉 🤗 😮 🙏 👀), one each, with their name on it, so whoever wrote it knows they read it and how they felt. Pick another to swap yours, or the same one to peel it off. Stickers are never counted, and only the writer hears about them.
 - **Cook for everyone, and eat what's out.** Leave a dish out on the kitchen counter. It stays out for three days, or until someone eats it: then the plate's gone from the counter for everyone, and the cook hears who ate it.
 - **Tidy someone's room.** Rooms get a little lived-in after a couple of days, and messier after five. Anyone can tidy any room, and the owner finds out who did.
 - **Look after the garden.** Everyone has a patch to plant in. Plants sprout, grow and bloom over three days. They look thirsty after two days without water, but they never die, and anyone can water the lot.
@@ -110,6 +110,7 @@ Run it locally with `pnpm start` (it keeps its data in `./data`), then run `pnpm
 - a note on the wall is there, marked new and named in "while you were away", when another friend comes by
 - your own notes are marked as yours
 - a note shows exactly as written, even when it looks like HTML
+- friends can stick a sticker on a note, one each and named, and its writer hears how they felt
 - only the five can leave things
 - a note left on a friend's desk reaches that friend, and others only see that it's there
 - food from the kitchen is on the counter for everyone

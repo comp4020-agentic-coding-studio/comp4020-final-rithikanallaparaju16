@@ -69,7 +69,10 @@ export type Kind =
   // Session 8: a hug (the item is the others in it, as ids joined by commas),
   // a birthday wish (the place is her room), and UNO on Amirdhavarshini's mat:
   // a game dealt (`uno`) and each move in it (`unomove`, placed `uno:<id>`).
-  | "hug" | "wish" | "uno" | "unomove";
+  | "hug" | "wish" | "uno" | "unomove"
+  // Later in session 8: a sticker on a note on the wall (the place is
+  // `note:<id>`, the item the sticker, or "" when she peels hers off).
+  | "sticker";
 
 export type Thing = {
   id: number;

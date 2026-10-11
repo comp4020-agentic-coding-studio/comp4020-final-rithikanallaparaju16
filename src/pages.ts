@@ -27,6 +27,8 @@ import {
   roomPlace,
   stage,
   thirsty,
+  STICKERS,
+  stickersOn,
   wall,
   wander,
   wishes,
@@ -276,6 +278,10 @@ function freshPlaces(v: Visit): Set<string> {
   for (const t of v.things) {
     if (!isNew(t, v)) continue;
     if (t.kind === "note") out.add("living");
+    // A sticker on one of your notes is news for you; on anyone else's, it's theirs.
+    else if (t.kind === "sticker") {
+      if (v.things.some((n) => n.kind === "note" && `note:${n.id}` === t.place && n.author === v.me.id)) out.add("living");
+    }
     else if (t.kind === "dish" || t.kind === "eat") out.add("kitchen");
     else if (t.kind === "water" || t.kind === "plant" || t.kind === "play" || t.kind === "treat") out.add("garden");
     else if (t.kind === "kettle" || t.kind === "mask" || t.kind === "uno" || t.kind === "wish") out.add(t.place);
@@ -457,6 +463,15 @@ function happening(t: Thing, me: Person, all: Thing[]): Happening | undefined {
       const start = all.find((g) => g.kind === "uno" && `uno:${g.id}` === t.place);
       if (!start || replay(start, all, Date.now()).won?.id !== t.id) return undefined;
       return { text: `${by} won UNO`, href: "/uno", forYou: !mine && players(start).includes(me.id), at };
+    }
+    // Only whoever wrote the note hears, about each friend's latest sticker.
+    case "sticker": {
+      const note = all.find((n) => n.kind === "note" && `note:${n.id}` === t.place);
+      const sticker = STICKERS.find((s) => s.key === t.item);
+      if (!note || !sticker || note.author !== me.id || mine) return undefined;
+      if (all.find((s) => s.kind === "sticker" && s.place === t.place && s.author === t.author) !== t) return undefined;
+      const snippet = note.body.length > 40 ? `${note.body.slice(0, 40).trimEnd()}…` : note.body;
+      return { text: `${by} stuck ${sticker.emoji} on your note “${snippet}”`, href: `/living#note-${note.id}`, forYou: true, at };
     }
     case "note":
       return { text: t.item === "big" ? `${by} pinned big news on the wall` : `${by} wrote on the wall`, href: "/living", forYou: false, at };
@@ -1060,10 +1075,23 @@ export function bedroomPage(owner: Person, v: Visit, did?: Done): string {
 
 const WALL_SHOWN = 24;
 
+// A note, the stickers friends stuck on it (each with her name), and, on a
+// friend's note, the stickers you can stick on it yourself. Picking the one
+// you already stuck peels it off.
 function wallNote(t: Thing, v: Visit): string {
   const cls = ["note", t.item === "big" ? "big" : "", isNew(t, v) ? "new" : "", t.author === v.me.id ? "mine" : ""].filter(Boolean).join(" ");
   const paper = personById(t.author)?.paper ?? "#fff8e6";
-  return `<li class="${cls}" style="--paper:${paper}">${isNew(t, v) ? `<span class="tag">new</span>` : ""}<p class="body hand">${esc(t.body)}</p><p class="by">${esc(by(t, v))}, ${esc(ago(t.createdAt, v.now))}</p></li>`;
+  const stuck = stickersOn(v.things, t);
+  const chips = stuck.map((s) => {
+    const who = s.author === v.me.id ? "you" : nameOf(s.author);
+    return `<li class="sticker" style="--accent:${personById(s.author)?.color ?? "#8a5a3c"}" title="${esc(`${cap(who)}: ${s.sticker.label}`)}"><span class="emoji" aria-hidden="true">${s.sticker.emoji}</span> <span class="sticker-who">${esc(who)}</span><span class="sticker-label">, ${esc(s.sticker.label)}</span></li>`;
+  }).join("");
+  const mine = stuck.find((s) => s.author === v.me.id)?.sticker.key;
+  const picker = t.author === v.me.id ? "" : `<details class="sticker-pick" id="sticker-pick-${t.id}"><summary>${emoji("sticker")} ${mine ? "Change your sticker" : "Stick a sticker on it"}</summary><form method="post" action="/wall/sticker" class="sticker-picker"><input type="hidden" name="note" value="${t.id}">${STICKERS.map((s) => {
+    const on = s.key === mine;
+    return `<button name="sticker" value="${on ? "" : s.key}" title="${esc(on ? `Peel off your “${s.label}”` : s.label)}" aria-label="${esc(on ? `Peel off your ${s.label} sticker` : `Stick ${s.label} on it`)}"${on ? ` aria-pressed="true"` : ""}>${s.emoji}</button>`;
+  }).join("")}</form></details>`;
+  return `<li class="${cls}" id="note-${t.id}" data-id="${t.id}" style="--paper:${paper}">${isNew(t, v) ? `<span class="tag">new</span>` : ""}<p class="body hand">${esc(t.body)}</p><p class="by">${esc(by(t, v))}, ${esc(ago(t.createdAt, v.now))}</p>${chips ? `<ul class="stickers">${chips}</ul>` : ""}${picker}</li>`;
 }
 
 export function livingPage(v: Visit, did?: Done): string {
@@ -1090,7 +1118,7 @@ export function livingPage(v: Visit, did?: Done): string {
     <h2 id="wall-heading">The wall</h2>
     ${big.length ? `<h3 class="pinned">Big news</h3><ul class="notes">\n${big.map((t) => wallNote(t, v)).join("\n")}\n</ul>` : ""}
     ${everyday.length ? `<ul class="notes">\n${everyday.slice(0, WALL_SHOWN).map((t) => wallNote(t, v)).join("\n")}\n</ul>` : big.length ? "" : `<p class="empty">The wall is bare. Be the first to pin something up.</p>`}
-    ${everyday.length > WALL_SHOWN ? `<details class="drawer"><summary>The memory box: older notes, taken down but kept</summary><ul class="notes">${everyday.slice(WALL_SHOWN).map((t) => wallNote(t, v)).join("\n")}</ul></details>` : ""}
+    ${everyday.length > WALL_SHOWN ? `<details class="drawer" id="memory-box"><summary>The memory box: older notes, taken down but kept</summary><ul class="notes">${everyday.slice(WALL_SHOWN).map((t) => wallNote(t, v)).join("\n")}</ul></details>` : ""}
   </section>`, did);
 }
 

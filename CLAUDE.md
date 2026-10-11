@@ -56,7 +56,10 @@ the house (a `quit` move), is out, and the rest play on (ADR 0016). Each friend'
 through her birthday month (her own clock) her room has bunting and balloons
 and she wears a crown; friends can wish her (`wish`). Neha sleeps 10 pm to
 8 am ("make nehas sleeping hours to be 10", read as both bedtime and length;
-she can redirect it). These details come from Rithika; ask her before
+she can redirect it). Friends can stick one sticker each on a friend's note
+on the wall (`sticker`, placed `note:<id>`, from `STICKERS` in
+`src/house.ts`): each one named, never counted, and only the writer hears.
+These details come from Rithika; ask her before
 inventing new ones for the friends. (The agent once read the Stitch art's
 boxes as cats; they were KitKats.)
 
@@ -252,7 +255,11 @@ accepted record.
   `pointer-events: none` meant for the SVG's `g.people` also matched the
   door's `ul.people`, and the deployed door stopped letting anyone in.
 - Class names are shared between the SVG layer and the HTML around it. Scope
-  SVG-only rules to the element (`g.people`, not `.people`).
+  SVG-only rules to the element (`g.people`, not `.people`). They're shared
+  with the walking controls too: `.stick` is the thumb stick, hidden off
+  touch screens, and a note's sticker toggle named `stick` vanished with it.
+  `.who` is the drawing's name labels. Grep `public/style.css` before naming
+  a new class.
 
 ## Deploying
 

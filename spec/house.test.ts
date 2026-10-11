@@ -201,6 +201,30 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect(found!.querySelector("b, script")).toBeNull();
   });
 
+  it("lets friends stick a sticker on a note, and tells the writer how they felt", async () => {
+    const [a, b, c] = await people();
+    const note = unique("big news from the spec");
+    await post("/wall", { body: note, big: "1" }, a.id);
+    const id = withText(await page("/living", b.id), ".note", note)?.getAttribute("data-id");
+    expect(id, "the note never made it onto the wall").toBeTruthy();
+
+    expect((await post("/wall/sticker", { note: id!, sticker: "haha" }, b.id)).headers.get("location")).toBe(`/living?did=sticker#note-${id}`);
+    await post("/wall/sticker", { note: id!, sticker: "love" }, c.id);
+    // One sticker each: b changes her mind, and 😂 becomes 🥹.
+    await post("/wall/sticker", { note: id!, sticker: "aww" }, b.id);
+
+    const stuck = withText(await page("/living", a.id), ".note", note)!;
+    const chips = [...stuck.querySelectorAll(".sticker")].map((s) => text(s));
+    expect(chips, "the stickers aren't on the note, each with who stuck it").toEqual([`❤️ ${c.name}, love it`, `🥹 ${b.name}, aww`]);
+    const away = text((await page("/updates", a.id)).querySelector(".away"));
+    expect(away).toContain(`${b.name} stuck 🥹 on your note`);
+    expect(away).toContain(`${c.name} stuck ❤️ on your note`);
+    expect(away, "she still hears about the sticker b swapped out").not.toContain(`${b.name} stuck 😂`);
+
+    expect((await post("/wall/sticker", { note: id!, sticker: "love" }, a.id)).status, "she stickered her own note").toBe(400);
+    expect((await post("/wall/sticker", { note: id!, sticker: "thumbsdown" }, b.id)).status).toBe(400);
+  });
+
   it("only lets the five leave things", async () => {
     const note = unique("from a stranger");
     expect((await post("/wall", { body: note })).status).toBe(403);

@@ -67,6 +67,36 @@ export const desk = (things: Thing[], id: string): Thing[] =>
 
 export const wall = (things: Thing[]): Thing[] => things.filter((t) => t.kind === "note" && t.place === "wall");
 
+// Stickers for a note on the wall: how a friend felt about it, and that she
+// read it. Each friend has one sticker on a note at most; picking another
+// swaps it, and peeling it off leaves none. Never counted, always named.
+export type Sticker = { key: string; emoji: string; label: string };
+export const STICKERS: Sticker[] = [
+  { key: "love", emoji: "❤️", label: "love it" },
+  { key: "haha", emoji: "😂", label: "haha" },
+  { key: "aww", emoji: "🥹", label: "aww" },
+  { key: "yay", emoji: "🎉", label: "yay" },
+  { key: "hug", emoji: "🤗", label: "a hug" },
+  { key: "wow", emoji: "😮", label: "wow" },
+  { key: "proud", emoji: "🙏", label: "so proud" },
+  { key: "seen", emoji: "👀", label: "read it" },
+];
+
+// Who's stuck what on a note, in the order they stuck it.
+export function stickersOn(things: Thing[], note: Thing): { author: string; sticker: Sticker; at: number }[] {
+  const place = `note:${note.id}`;
+  const seen = new Set<string>();
+  const out: { author: string; sticker: Sticker; at: number; id: number }[] = [];
+  for (const t of things) {
+    if (t.kind !== "sticker" || t.place !== place || seen.has(t.author)) continue;
+    seen.add(t.author);
+    const sticker = STICKERS.find((s) => s.key === t.item);
+    if (sticker) out.push({ author: t.author, sticker, at: t.createdAt, id: t.id });
+  }
+  // Two stuck in the same millisecond go in the order they were stored.
+  return out.sort((a, b) => a.at - b.at || a.id - b.id);
+}
+
 // A room gets lived-in on its own: a couple of things on the floor after two
 // days, more after five. Anyone can tidy it. A room nobody has tidied yet
 // starts a little lived-in, so there's something to do on the first visit.

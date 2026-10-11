@@ -1501,6 +1501,95 @@ main.list {
   margin: 0;
 }
 
+/* stickers friends stuck on a note: each with her name and colour, never a
+   count */
+.note .stickers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.note .sticker {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 8px 1px 4px;
+  border: 2px solid var(--accent);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 0.8rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  transform: rotate(-3deg);
+}
+
+.note .sticker:nth-child(even) {
+  transform: rotate(2.5deg);
+}
+
+.note .sticker .emoji {
+  font-size: 1.05rem;
+}
+
+/* what the sticker means, for screen readers; the emoji says it on screen */
+.note .sticker-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* not .stick: that's the thumb stick */
+.note .sticker-pick {
+  margin-top: 6px;
+  font-size: 0.85rem;
+}
+
+.note .sticker-pick summary {
+  color: var(--ink-soft);
+  cursor: pointer;
+  list-style: none;
+}
+
+.note .sticker-pick summary::-webkit-details-marker {
+  display: none;
+}
+
+/* all eight in a row on a phone */
+.note .sticker-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 6px;
+}
+
+.note .sticker-picker button {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 50%;
+  background: #fff;
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+
+.note .sticker-picker button:hover,
+.note .sticker-picker button:focus-visible {
+  transform: scale(1.15);
+}
+
+.note .sticker-picker button[aria-pressed="true"] {
+  border: 2px solid #f2b233;
+  background: #fff4d6;
+}
+
 /* the garden */
 
 .patches {
