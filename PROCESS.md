@@ -150,3 +150,4 @@ Every prompt I gave the agent from 8 October, word for word, with the commit it 
 
 - "so for the new update in the game-uno, i asked my friends to try it and 10 sec was too less so i chnaged it to 20sec. add this with the commit hash of prev prompt": [`e1c6183`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/e1c6183)
 - "push and ship it": shipped with my reflection's update in [`75b1794`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/75b1794)
+- "in the big memory wall, make it in a way that we can react to the news posted on it, like the person should know that we read it and how i feel so give everybody options of stickers to put on each news on memory board": [`eecb5f6`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/eecb5f6)

@@ -1776,3 +1776,61 @@ not pushed, because this prompt didn't say to push.
 **Ship (after this commit):** push and watch CI, check the live door,
 `/readme/` and the read-only spec, move `crit-9` (its cutoff is 14 October,
 1:30 pm), and open the live site. The results go in the next entry.
+
+### 31. "in the big memory wall, make it in a way that we can react to the news posted on it" (11 Oct 2026)
+
+**What happened to entry 30's ship:**
+- `d38f5e2` was pushed, and CI run 38096641269 passed `check` and `deploy`.
+- The live `/` and `/readme/` answered 200.
+- The read-only spec passed 5 and skipped 35.
+- `crit-9` moved to `d38f5e2`, and the site was opened.
+
+**Asked:** "in the big memory wall, make it in a way that we can react to
+the news posted on it, like the person should know that we read it and how i
+feel so give everybody options of stickers to put on each news on memory
+board"
+
+**Agent:** built stickers for notes on the living room wall (big news and
+everyday notes, the memory box too):
+- **The stickers:** eight in `STICKERS` in `src/house.ts` (❤️ love it,
+  😂 haha, 🥹 aww, 🎉 yay, 🤗 a hug, 😮 wow, 🙏 so proud, 👀 read it).
+  Each friend sticks one per note on friends' notes. Picking another swaps
+  it, and picking the same one peels it off. A new `sticker` kind is placed
+  `note:<id>`, and the latest per friend counts.
+- **On the note:** each sticker is a little tilted chip in the friend's
+  colour with her name. There are no counts, because the house's own rules
+  forbid likes and counts. A "Stick a sticker on it" toggle opens the eight
+  buttons. A sticker pops 💛✨ over the wall, says "Stuck on…", and comes
+  back to the same note.
+- **Who hears:** only the writer, in "While you were away" ("Neha stuck 🥹
+  on your note “…”"), and only about each friend's latest sticker. Her
+  living room sparkles.
+- **Live updates:** a sticker arrives on everyone's open wall. A picker or
+  the memory box you've opened stays open through the swap.
+
+**What went wrong:**
+- The toggle was first called `stick`, the thumb stick's class, so it was
+  hidden off touch screens. A real tap in `scripts/shot.ts` landed on the
+  header instead of it, which showed something was wrong. It's now
+  `sticker-pick`, and `CLAUDE.md` says to grep the stylesheet before naming
+  a class.
+- The sticker chips' name span first used `.who`, the drawing's label
+  class; it was renamed before anything shipped.
+- The spec failed once when two stickers were stored in the same
+  millisecond, so ties now go by row id. Two runs in a row then passed
+  41/41.
+
+**Checks:** in headless Chrome at 390px as Rithanya, a real tap opened the
+picker, and a real tap on 🎉 posted it. The note then read "❤️
+Amirdhavarshini, love it | 🥹 Neha, aww | 🎉 you, yay", back at
+`#note-4`. All eight buttons fit in one row on a phone after shrinking them
+to 34px.
+
+**Correction:** none.
+
+**Commits:** [`eecb5f6`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/eecb5f6),
+then this entry with the prompt in `PROCESS.md`.
+
+**Ship (after this commit):** push and watch CI, check the live door,
+`/readme/` and the read-only spec, move `crit-9`, and open the live site.
+The results go in the next entry.
