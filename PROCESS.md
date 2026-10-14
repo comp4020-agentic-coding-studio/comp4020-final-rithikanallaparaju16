@@ -17,10 +17,7 @@ I started with a long direction prompt. It covered the product, the feeling
 definition of good, and how I wanted to work. The agent turned it into
 `CLAUDE.md` and built a first slice, notes left on a kitchen table, in
 [`0ed431d`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/0ed431d).
-Twice that session I rejected multi-part environment checks it wanted to
-run first, and then I cut "inspect first, wait for confirmation" from my own
-brief. The harness has said "build it, and keep pre-build assessments short"
-ever since.
+
 
 The agent makes the small calls and names every product decision in its
 reply, so I can redirect it. Details only I know, like the KitKats, the
@@ -33,7 +30,7 @@ had turned down, the agent wrote
 [ADR 0008](doc/adr/0008-you-walk-yourself-and-nobody-else-moves.md) rather
 than editing 0007.
 
-## Why this stack
+## step by step
 
 The stack is Node 24 running TypeScript directly, `node:sqlite` on the Fly
 volume, server-rendered HTML forms, and no runtime dependencies
@@ -55,84 +52,27 @@ something you left, so it lives on your `visits` row instead
 ([ADR 0009](doc/adr/0009-the-house-keeps-where-you-stopped.md),
 [`8c0b81e`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/8c0b81e)).
 
-The house is my Google Stitch illustration with an SVG layer on top. A
-canvas game was the obvious alternative, and it was turned down because it
-needs a client bundle and its pages stop being forms. One small script adds
-walking, glowing hotspots and emoji, but every link and form works without
-it.
+The rooms and people are personlized and apply to my close friends. for now player can take the charater of one of us and comtinue.
 
-The trade-off I'm still carrying is that the house isn't real-time: a
-friend's change shows on your next page load. The brief requires
-real-time. My own definition of good says overlapping should make the house
-more alive without being needed, and that's the test real-time will have to
-pass here.
+Used google stich to come up with the avatars and areas,
 
-## Corrections that ended up in the harness
+need to make the app persistent. right now it works on every refreshing.
 
 The corrections that mattered changed a rule, not just the code.
 
-- **Cats that were KitKats.** The agent read the boxes in Rithanya's room as
-  cats and put them in the README. Since
+  asked claude to personalise my friends room by placing a kitkat box, instead claude added cats, A BOX OF CATS.
   [`df979fe`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/df979fe),
-  `CLAUDE.md` says details about my friends come from me.
-- **A door that let nobody in.** After session 3 went live, tapping a friend
-  at the door did nothing. A `pointer-events: none` meant for the SVG's
-  `g.people` was written as `.people`, which also matched the door's list.
-  The spec posts forms directly, so it missed this. The agent's local check
-  used `element.click()`, which skips hit-testing, so that missed it too. The
-  same commit,
-  [`df979fe`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/df979fe),
-  scoped the rule and taught `scripts/shot.ts` to tap for real. It also
-  added two rules: tap the door after any CSS change, and scope SVG-only CSS
-  to the element.
-- **Widths nobody looked at.** The iPad layout broke unnoticed, so an 820px
-  touch check became a rule
+  
+- **Widths nobody looked at.** fixed the layouts on phone and ipad screens as well
   ([`3e04bde`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/3e04bde)).
-  When a phone screenshot looked off-centre, measuring in the page showed the
-  screenshot script was at fault, not the code. The script was fixed, and
-  the rule now says to measure first
+
   ([`ccf0229`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/ccf0229)).
 - **A migration under a running server.** A new server that failed to bind
   its port had already migrated my local database under the old one.
   `CLAUDE.md` now says to use another port and a copy of the data
   ([`205b1d8`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/205b1d8)).
-- **A test that would pass with nothing saved.** I reported "where i was,
-  where the dog was etc, data is not persisting". The first test for the fix
-  stood you on the garden's own starting spot, so it would have passed
-  either way. It now uses a spot only walking reaches. Browsers were also
-  showing a day-old picture, so art addresses now carry a fingerprint
+ data was not persistent, i tried to fix that.
   ([`8c0b81e`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/8c0b81e)).
-
-## What was thrown away
-
-Three designs went whole:
-- the kitchen table, for the shared house
-  ([`205b1d8`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/205b1d8))
-- the agent's own SVG drawing of the house, for my illustration
-  ([`d6fc9d0`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/d6fc9d0))
-- avatars wandering their rooms on a loop
-  ([`3e04bde`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/3e04bde))
-
-That last one was the literal answer to my asking for avatars that move.
-Then I asked that "movemet should only be there if the user is there". Now
-you walk yourself, and friends stand where they stopped, which is honest
-about a house you mostly visit alone.
-
-## How I know it works
-
-`spec/` has one test per promise the house makes, 24 so far beside the two
-the course ships, run against the app over HTTP. Tests that write only run
-against a throwaway house, so the real one never gets test notes. When the
-agent added the check that nobody wanders, it ran the check against the
-previous commit and watched it fail before trusting it
-([`5739e84`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/5739e84)).
-
-Motion and taps can't be checked by posting forms, so the agent drives
-headless Chrome with real key presses, touch drags and taps at 390px, 820px
-and desktop width. It looks at each screenshot before calling a change
-done. After every deploy it checks the door, `/readme/` and the read-only
-spec, and never anything that writes to the real house. That part is left
-to the five of us.
 
 ## Prompts
 
@@ -152,4 +92,8 @@ Every prompt I gave the agent from 8 October, word for word, with the commit it 
 - "push and ship it": shipped with my reflection's update in [`75b1794`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/75b1794)
 - "in the big memory wall, make it in a way that we can react to the news posted on it, like the person should know that we read it and how i feel so give everybody options of stickers to put on each news on memory board": [`eecb5f6`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/eecb5f6)
 - "can we ship it now": everything was already shipped and tagged `crit-9` at [`ce99177`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/ce99177); I chose to leave my draft of the rest of this file out of the crit 9 snapshot.
+
+
+
+
 - "push it now after adding the commit hash for so for the new update in the game-uno, i asked my friends to try it and 10 sec was too less so i chnaged it to 20sec.": that note was already here with its commit, [`0095db4`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/0095db4), so it went up with the log.
