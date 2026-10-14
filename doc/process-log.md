@@ -1929,3 +1929,30 @@ not move again.
 **Commits:** `3627ef5`, then this entry, committed locally and not pushed.
 A push now would deploy something the tag no longer covers. It goes up with
 the next push after the cutoff, and `crit-9` stays on `3627ef5`.
+
+### 35. "is this the final process.md? cuz i want the ending to have commit hash" (14 Oct 2026, 1:07 pm)
+
+**Asked:** "is this the final process.md? cuz i want the ending to have commit
+hash"
+
+**Agent:** confirmed the shipped `PROCESS.md` (`3627ef5`) was the file on
+disk. It found its ending out of date:
+- the "can we ship it now" line still said Rithika had left her draft out
+  of the snapshot, which "no push everything" reversed
+- the last two prompts had no lines
+
+So, before the 1:30 pm cutoff:
+- That line now says she changed her mind.
+- A line went in for "no push everything" and one for this prompt, each
+  ending on its commit,
+  [`3627ef5`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/3627ef5),
+  so the file ends with a commit hash.
+- `pnpm check:evidence` passed (18 cited commits, all resolve).
+- An editor warning that the file had changed on disk was checked: the only
+  differences from `3627ef5` were these three edits.
+
+**Correction:** none.
+
+**Commits:** this entry with the `PROCESS.md` ending, then the push with the
+earlier unpushed `f5fd555`. If CI deploys before 1:30, `crit-9` moves to it.
+The results go in the next entry.

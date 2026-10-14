@@ -91,9 +91,11 @@ Every prompt I gave the agent from 8 October, word for word, with the commit it 
 - "so for the new update in the game-uno, i asked my friends to try it and 10 sec was too less so i chnaged it to 20sec. add this with the commit hash of prev prompt": [`e1c6183`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/e1c6183)
 - "push and ship it": shipped with my reflection's update in [`75b1794`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/75b1794)
 - "in the big memory wall, make it in a way that we can react to the news posted on it, like the person should know that we read it and how i feel so give everybody options of stickers to put on each news on memory board": [`eecb5f6`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/eecb5f6)
-- "can we ship it now": everything was already shipped and tagged `crit-9` at [`ce99177`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/ce99177); I chose to leave my draft of the rest of this file out of the crit 9 snapshot.
+- "can we ship it now": everything was already shipped and tagged `crit-9` at [`ce99177`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/ce99177). I first chose to leave my draft of the rest of this file out of the snapshot, then changed my mind (below).
 
 
 
 
 - "push it now after adding the commit hash for so for the new update in the game-uno, i asked my friends to try it and 10 sec was too less so i chnaged it to 20sec.": that note was already here with its commit, [`0095db4`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/0095db4), so it went up with the log.
+- "no push everything": my draft of this file went into the crit 9 snapshot, [`3627ef5`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/3627ef5)
+- "is this the final process.md? cuz i want the ending to have commit hash": brought this list up to date, so it ends on a commit, [`3627ef5`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/3627ef5)
