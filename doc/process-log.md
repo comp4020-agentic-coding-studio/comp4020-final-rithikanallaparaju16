@@ -1897,3 +1897,35 @@ chnaged it to 20sec."
 3. Check the live door, `/readme/` and the read-only spec.
 
 The results go in the next entry.
+
+### 34. "no push everything" (14 Oct 2026, 1:01 pm)
+
+**What happened to entry 33's ship:** `1827490` was pushed at 12:56, CI run
+38498430142 passed `check` and `deploy` at 12:58, the live `/` and
+`/readme/` answered 200, the read-only spec passed 5 and skipped 36, and
+`crit-9` moved to `1827490` at 12:59.
+
+**Asked:** Rithika quoted the agent's last reply ("This push also carried the
+log entries for this prompt and the last one. Your own draft of the rest of
+PROCESS.md is still uncommitted, as you chose.") and said "no push
+everything".
+
+**Correction:** this reverses the "Leave it, it's done" she'd picked in entry
+32: her `PROCESS.md` draft goes into the crit 9 snapshot after all.
+
+**Agent:** at 1:01 pm the only uncommitted file was her draft (14 lines
+added, 70 removed). `pnpm check:evidence` passed on it (17 cited commits,
+all resolve), and a scan for anything secret-looking found nothing. It's
+about 1,190 words, over the 900–1,100 `CLAUDE.md` asks for; that's hers to
+judge, so it wasn't edited. It was committed exactly as she left it,
+[`3627ef5`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/3627ef5),
+and pushed at 1:02.
+
+**Ship:** CI run 38498940365 passed `check` and `deploy` at 1:04. The live
+`/` and `/readme/` answered 200, and the read-only spec passed 5 and skipped
+36. `crit-9` moved to `3627ef5` at 1:05, before the 1:30 pm cutoff, and must
+not move again.
+
+**Commits:** `3627ef5`, then this entry, committed locally and not pushed.
+A push now would deploy something the tag no longer covers. It goes up with
+the next push after the cutoff, and `crit-9` stays on `3627ef5`.
