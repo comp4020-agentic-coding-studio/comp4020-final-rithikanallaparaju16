@@ -1834,3 +1834,38 @@ then this entry with the prompt in `PROCESS.md`.
 **Ship (after this commit):** push and watch CI, check the live door,
 `/readme/` and the read-only spec, move `crit-9`, and open the live site.
 The results go in the next entry.
+
+### 32. "can we ship it now" (14 Oct 2026, crit 9 cutoff day)
+
+**What happened to entry 31's ship:**
+- `ce99177` was pushed, and CI run 38097990966 passed `check` and `deploy`.
+- The live `/` and `/readme/` answered 200, the README had the stickers,
+  and the live stylesheet had `sticker-pick`.
+- The read-only spec passed 5 and skipped 36.
+- `crit-9` moved to `ce99177`, and `/living` was opened.
+
+**Asked:** "can we ship it now", at 12:50 pm in Canberra, 40 minutes before
+crit 9's 1:30 pm cutoff.
+
+**Agent:** checked before doing anything:
+- `main` on GitHub was `ce99177`, CI had passed it, and `crit-9` pointed at
+  it, so everything built was already shipped.
+- The live door and `/readme/` answered 200, and the read-only spec passed
+  5 and skipped 36.
+- The only thing not shipped was Rithika's own `PROCESS.md` draft (14 lines
+  added, 70 removed), which the agent never commits. So it asked whether to
+  ship her draft in the crit 9 snapshot. Rithika picked "Leave it, it's
+  done".
+
+**What went wrong:** the first commit for this entry,
+[`3b8cd7f`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/3b8cd7f),
+went in with only the `PROCESS.md` line. The edit adding this entry had
+failed (its anchor text appeared four times in this log), and the commit
+command ran anyway. This entry follows in its own commit.
+
+**Correction:** none.
+
+**Commits:** `3b8cd7f` (the prompt in `PROCESS.md`), then this entry. Both
+are committed locally and not pushed. A push before the cutoff would set off
+a new deploy and the question of moving `crit-9`; after the cutoff the tag
+must stay on `ce99177`.
