@@ -2209,3 +2209,27 @@ Then: "okayokay, ask gender and make the avatras accordingly".
 - Opened the house and `/make` for Rithika.
 
 **Commits:** `17c0351`, `5b5e779`, `003f110`, `8a7f799`, `443b809`, `20e848e`, `0e39059`.
+
+### 42. "continue and open it for me when done" (18 Oct 2026)
+
+**Asked:** "continue and open it for me when done", in reply to the offer to
+push and tag `crit-10`.
+
+**Agent:**
+- Pushed `main` (`a9fe1d1..3da0f14`). CI's `check` and `deploy` both passed.
+- **Checked the live site:**
+  - the door loads, with Rithika's five still on their Stitch stickers;
+  - `/readme/` renders;
+  - `/make` asks each friend's gender;
+  - the read-only spec passes (5 passed, 45 skipped by the `throwaway` gate).
+- GitHub's push reported a high Dependabot alert: `source-map-js` 1.2.1,
+  an event-loop denial of service fixed in 1.2.2. `pnpm why` shows only
+  vitest and jsdom pull it in. Both are dev dependencies, and the Dockerfile
+  installs `--prod`, so it isn't in the live app. Left for Rithika to
+  decide.
+- Pushed this entry, tagged the deployed commit `crit-10`, and opened the
+  live site and `/make`.
+
+**Correction:** none.
+
+**Commits:** `3da0f14` shipped; this entry's commit is the `crit-10` tag.
