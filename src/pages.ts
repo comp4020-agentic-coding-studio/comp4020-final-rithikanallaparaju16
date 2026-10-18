@@ -43,6 +43,7 @@ import {
 import { house, made } from "./houses.ts";
 import { esc } from "./html.ts";
 import { PEOPLE, personById, type Person } from "./people.ts";
+import { their, them, they, theyre, verb } from "./words.ts";
 import { DOG_SPOTS, houseSvg, HUG_REACH, isPlace, KENNEL, placeAt, standingSpots, type Doing, type Figure, type Scene, type Spot } from "./scene.ts";
 import type { Thing } from "./store.ts";
 import { ago, asleep, birthday, birthdayLabel, clock, dayLabel, hello, localInput, phase, ymd, type Phase } from "./time.ts";
@@ -164,11 +165,11 @@ const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 // Where someone's sleeping or sitting, as the visitor would say it.
 function restText(r: Thing, p: Person, v: Visit): string {
   const owner = ownerOf(r.place);
-  const whose = owner?.id === v.me.id ? "your" : owner?.id === p.id ? "her own" : `${owner?.name}'s`;
+  const whose = owner?.id === v.me.id ? "your" : owner?.id === p.id ? `${their(p)} own` : `${owner?.name}'s`;
   if (r.kind === "nap") return `asleep in ${whose} bed`;
   if (r.item === "sofa") return "on the sofa in the living room";
   if (r.item === "yoga") return `meditating on ${whose} yoga mat`;
-  return `on ${p.id === v.me.id ? "your" : "her"} cushion on ${whose} mat`;
+  return `on ${p.id === v.me.id ? "your" : their(p)} cushion on ${whose} mat`;
 }
 
 // Who's asleep or sitting down in this place.
@@ -452,7 +453,7 @@ function happening(t: Thing, me: Person, all: Thing[]): Happening | undefined {
     }
     case "kettle": {
       const href = `/room/${KETTLE_ROOM}`;
-      if (t.author === KETTLE_ROOM) return { text: `${by} made kettle Maggi in ${mine ? "your" : "her"} room`, href, forYou: false, at };
+      if (t.author === KETTLE_ROOM) return { text: `${by} made kettle Maggi in ${mine ? "your" : their(personById(t.author))} room`, href, forYou: false, at };
       if (me.id === KETTLE_ROOM) return { text: `${by} made kettle Maggi in your room`, href, forYou: true, at };
       return { text: `${by} made kettle Maggi in ${nameOf(KETTLE_ROOM)}'s room`, href, forYou: false, at };
     }
@@ -498,7 +499,7 @@ function happening(t: Thing, me: Person, all: Thing[]): Happening | undefined {
       if (!owner) return undefined;
       const href = `/room/${owner.id}`;
       if (owner.id === me.id) return { text: mine ? "You tidied your room" : `${by} tidied your room`, href, forYou: !mine, at };
-      if (owner.id === t.author) return { text: `${by} tidied up her own room`, href, forYou: false, at };
+      if (owner.id === t.author) return { text: `${by} tidied up ${their(personById(t.author))} own room`, href, forYou: false, at };
       return { text: `${by} tidied ${owner.name}'s room`, href, forYou: false, at };
     }
     case "dish":
@@ -507,7 +508,7 @@ function happening(t: Thing, me: Person, all: Thing[]): Happening | undefined {
       // The cook hears who ate what she made.
       const dish = all.find((d) => `dish:${d.id}` === t.place);
       if (!dish) return undefined;
-      if (dish.author === t.author) return { text: `${by} finished ${mine ? "your" : "her"} own ${dishName(dish)}`, href: "/kitchen", forYou: false, at };
+      if (dish.author === t.author) return { text: `${by} finished ${mine ? "your" : their(personById(t.author))} own ${dishName(dish)}`, href: "/kitchen", forYou: false, at };
       if (dish.author === me.id) return { text: `${by} ate your ${dishName(dish)}`, href: "/kitchen", forYou: true, at };
       return { text: `${by} ate ${nameOf(dish.author)}'s ${dishName(dish)}`, href: "/kitchen", forYou: false, at };
     }
@@ -534,7 +535,7 @@ function happening(t: Thing, me: Person, all: Thing[]): Happening | undefined {
       const owner = ownerOf(t.place);
       if (!owner) return undefined;
       const href = `/room/${owner.id}`;
-      if (owner.id === t.author) return { text: `${by} celebrated ${mine ? "your" : "her"} birthday`, href, forYou: false, at };
+      if (owner.id === t.author) return { text: `${by} celebrated ${mine ? "your" : their(personById(t.author))} birthday`, href, forYou: false, at };
       if (owner.id === me.id) return { text: `${by} wished you a happy birthday`, href, forYou: true, at };
       return { text: `${by} wished ${owner.name} a happy birthday`, href, forYou: false, at };
     }
@@ -542,7 +543,7 @@ function happening(t: Thing, me: Person, all: Thing[]): Happening | undefined {
       const owner = ownerOf(t.place);
       if (!owner) return undefined;
       const href = `/room/${owner.id}`;
-      if (owner.id === t.author) return { text: `${by} had a nap in ${mine ? "your" : "her"} own bed`, href, forYou: false, at };
+      if (owner.id === t.author) return { text: `${by} had a nap in ${mine ? "your" : their(personById(t.author))} own bed`, href, forYou: false, at };
       if (owner.id === me.id) return { text: `${by} slept in your bed`, href, forYou: true, at };
       return { text: `${by} slept in ${owner.name}'s bed`, href, forYou: false, at };
     }
@@ -553,7 +554,7 @@ function happening(t: Thing, me: Person, all: Thing[]): Happening | undefined {
       const href = `/room/${owner.id}`;
       const what = t.item === "yoga" ? "meditated on" : "sat on";
       const mat = t.item === "yoga" ? "yoga mat" : "mat";
-      if (owner.id === t.author) return { text: `${by} ${what} ${mine ? "your" : "her"} ${mat}`, href, forYou: false, at };
+      if (owner.id === t.author) return { text: `${by} ${what} ${mine ? "your" : their(personById(t.author))} ${mat}`, href, forYou: false, at };
       if (owner.id === me.id) return { text: `${by} ${what} your ${mat}`, href, forYou: true, at };
       return { text: `${by} ${what} ${owner.name}'s ${mat}`, href, forYou: false, at };
     }
@@ -625,7 +626,7 @@ function status(p: Person, v: Visit): string {
   const rest = restOf(p, v);
   const there = rest && restText(rest, p, v);
   if (p.id === v.me.id) return `you're here, ${there ?? placeName(at, v.me)}${mask}`;
-  if (homeNow(p, v)) return `home now, ${there ?? (at === roomPlace(p.id) ? "in her room" : placeName(at, v.me))}${mask}`;
+  if (homeNow(p, v)) return `home now, ${there ?? (at === roomPlace(p.id) ? `in ${their(p)} room` : placeName(at, v.me))}${mask}`;
   if (there) return `${there}${mask}`;
   if (sleeping(p, v)) return "asleep";
   const last = v.seen.get(p.id);
@@ -728,7 +729,7 @@ function laddooCard(place: string, v: Visit): string {
     ? here ? `He's ${upTo(d, v)}.` : `He's off on his own, ${upTo(d, v)}.`
     : !here ? `He went off with ${mine ? "you" : f.name}, and he's ${placeName(d.place, v.me)}.`
     : mine ? "He's at your heels for a while, and goes wherever you go."
-    : homeNow(f, v) ? `He's with ${f.name}, and goes wherever she goes.`
+    : homeNow(f, v) ? `He's with ${f.name}, and goes wherever ${they(f)} ${verb(f, "goes", "go")}.`
     : sleeping(f, v) ? `He's keeping watch at the foot of ${f.name}'s bed.`
     : `He's waiting right where ${f.name} left him.`;
   const petted = d.last ? ` ${d.last.kind === "treat" ? "Last treat from" : "Last petted by"} ${by(d.last, v)}, ${ago(d.last.createdAt, v.now)}.` : "";
@@ -844,7 +845,7 @@ function unoCard(v: Visit): string {
     : `<p class="small">${esc(outLine(g, v))} <a href="/uno">See how it's going</a>.</p>`;
   const deal = dealt
     ? `<form method="post" action="/uno" class="inline"><button class="soft">${emoji("uno")} ${playing ? "Deal a new game" : "Deal UNO"} for you and ${esc(others(dealt))}</button></form>
-    <p class="small">Seven cards each, and twenty seconds a turn. Whoever lets her time run out, or leaves the house, is out, and the rest play on.</p>`
+    <p class="small">Seven cards each, and twenty seconds a turn. Whoever lets ${made() ? "their" : "her"} time run out, or leaves the house, is out, and the rest play on.</p>`
     : playing ? "" : `<p class="empty">Sit on the mat with a friend to play.${mat.length ? ` ${esc(cap(names(mat.map((p) => whoName(p, v)))))} ${mat.length === 1 && mat[0] !== v.me.id ? "is" : "are"} on the mat right now.` : ""}</p>`;
   return `<section class="card uno-card-room" aria-labelledby="uno-heading">
     <h2 id="uno-heading">UNO on the mat</h2>
@@ -881,8 +882,8 @@ function lastLine(g: Game, v: Visit): string {
   const you = g.last.by === v.me.id;
   if (g.last.move === "draw") return `${who} drew a card.`;
   if (g.last.move === "pass") return `${who} kept the card and passed.`;
-  if (g.last.move === "time") return `${you ? "Your" : `${who}'s`} twenty seconds ran out, so ${you ? "you're" : "she's"} out${g.winner ? "" : " and play moved on"}.`;
-  if (g.last.move === "quit") return `${who} left the house, so ${you ? "you're" : "she's"} out of the game.`;
+  if (g.last.move === "time") return `${you ? "Your" : `${who}'s`} twenty seconds ran out, so ${you ? "you're" : theyre(personById(g.last.by))} out${g.winner ? "" : " and play moved on"}.`;
+  if (g.last.move === "quit") return `${who} left the house, so ${you ? "you're" : theyre(personById(g.last.by))} out of the game.`;
   return `${who} played ${isWild(g.last.move) ? "a" : "the"} ${cardName(g.last.move)}${g.last.color ? ` and picked ${COLOR_NAME[g.last.color]}` : ""}.`;
 }
 
@@ -1005,11 +1006,11 @@ function birthdayCard(owner: Person, v: Visit): string {
     ? (mine ? "Happy birthday!" : `It's ${owner.name}'s birthday today!`)
     : (mine ? "It's your birthday month" : `It's ${owner.name}'s birthday month`);
   const line = when === 2
-    ? (mine ? "Today's the day. Everyone who comes by finds the cake on your desk." : `Today's the day in ${owner.city}. There's cake on her desk.`)
-    : (mine ? `Your birthday is ${day}. The bunting stays up all month.` : `Her birthday is ${day}, in ${owner.city}. The bunting stays up all month.`);
+    ? (mine ? "Today's the day. Everyone who comes by finds the cake on your desk." : `Today's the day in ${owner.city}. There's cake on ${their(owner)} desk.`)
+    : (mine ? `Your birthday is ${day}. The bunting stays up all month.` : `${cap(their(owner))} birthday is ${day}, in ${owner.city}. The bunting stays up all month.`);
   const wished = wishers.length
-    ? `Wished ${mine ? "you" : "her"} a happy birthday this month: ${names(wishers)}.`
-    : mine ? "Your friends' wishes will show up here." : "Be the first to wish her a happy birthday.";
+    ? `Wished ${mine ? "you" : them(owner)} a happy birthday this month: ${names(wishers)}.`
+    : mine ? "Your friends' wishes will show up here." : `Be the first to wish ${them(owner)} a happy birthday.`;
   const label = mine ? "Celebrate your birthday" : `Wish ${owner.name} a happy birthday`;
   return `<section class="card birthday-card" aria-labelledby="birthday-heading" style="--accent:${owner.color}">
     <h2 id="birthday-heading">${emoji("wish")} ${esc(head)}</h2>
@@ -1242,7 +1243,7 @@ function nightCard(v: Visit): string {
   const rows = PEOPLE.map((p) => {
     const c = clock(p.tz, night.at);
     const you = p.id === v.me.id;
-    const late = asleep(p, c) ? (you ? " You're usually asleep then." : " She's usually asleep then.") : "";
+    const late = asleep(p, c) ? (you ? " You're usually asleep then." : ` ${cap(theyre(p))} usually asleep then.`) : "";
     return `<li data-person="${esc(p.id)}" style="--accent:${p.color}"><span class="name">${you ? "You" : esc(p.name)}</span> <span>${esc(dayLabel(p.tz, night.at))}, <span class="clock">${esc(c.label)}</span> in ${esc(p.city)}.${esc(late)}</span></li>`;
   }).join("\n");
   const pick = night.movie.thing.author === MOVIE_LOVER && !made() ? ` <span class="pick">${esc(nameOf(MOVIE_LOVER))}'s pick</span>` : "";
@@ -1277,7 +1278,7 @@ export function moviesPage(v: Visit, did?: Done): string {
     <select id="night-movie" name="movie" required>${choices}</select>
     <label for="night-when">When, in your own time (${esc(v.me.city)})</label>
     <input id="night-when" type="datetime-local" name="when" required min="${localInput(v.me.tz, v.now)}">
-    <p class="small">Everyone sees it in her own time. A new plan replaces the old one.</p>
+    <p class="small">Everyone sees it in ${made() ? "their" : "her"} own time. A new plan replaces the old one.</p>
     <button>${emoji("night")} Plan it</button>
   </form>` : "";
 

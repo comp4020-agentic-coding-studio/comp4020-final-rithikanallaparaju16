@@ -32,6 +32,7 @@ import { PEOPLE, personById, type Person } from "./people.ts";
 import { isPlace, placeAt } from "./scene.ts";
 import * as store from "./store.ts";
 import { birthday, fromLocal } from "./time.ts";
+import { cap, their, them } from "./words.ts";
 import { dealFor, gameOf, isWild, play, replay, stillIn } from "./uno.ts";
 
 const MAX_FORM = 8 * 1024;
@@ -163,7 +164,7 @@ function line(did: string | null, owner?: Person, me?: Person): string | undefin
       if (!owner) return undefined;
       return owner.id === me?.id
         ? "Happy birthday to you! Everyone who comes by sees the party."
-        : `Happy birthday, ${owner.name}! Your wish is in her room for her to find.`;
+        : `Happy birthday, ${owner.name}! Your wish is in ${their(owner)} room for ${them(owner)} to find.`;
     case "desk":
       return owner && `Left on ${owner.name}'s desk. It'll be waiting whenever ${owner.name} is next home.`;
     case "tidy":
@@ -197,9 +198,11 @@ function line(did: string | null, owner?: Person, me?: Person): string | undefin
     case "watched":
       return "Marked as watched.";
     case "night":
-      return "Movie night's planned. Everyone sees it in her own time.";
+      return `Movie night's planned. Everyone sees it in ${made() ? "their" : "her"} own time.`;
     case "uno":
-      return "Dealt: seven cards each. The game waits for whoever's turn it is, however long she's away.";
+      return made()
+        ? "Dealt: seven cards each, and twenty seconds a turn."
+        : "Dealt: seven cards each. The game waits for whoever's turn it is, however long she's away.";
     case "unowon":
       return "You won UNO! Back to the mat for another round whenever you like.";
     default:
@@ -229,7 +232,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     if (!who) return send(res, 400, messagePage("Who's that?", "That isn't one of the five of us."));
     if (mine?.me.id === who.id) return redirect(res, "/");
     if (held(who.id)) {
-      return send(res, 409, messagePage(`${who.name}'s already home`, `Someone's in the house as ${who.name} right now. Her window opens again once they leave.`));
+      return send(res, 409, messagePage(`${who.name}'s already home`, `Someone's in the house as ${who.name} right now. ${cap(their(who))} window opens again once they leave.`));
     }
     if (mine) leaveHouse(mine.me.id, mine.token);
     const token = randomUUID();
@@ -341,7 +344,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   // A birthday wish, all through her birthday month (by her own clock).
   if (owner && roomMatch?.[2] === "/wish") {
     if (!birthday(owner, Date.now())) {
-      return send(res, 404, messagePage("It's not her birthday month", "Her room gets bunting and balloons all through her birthday month. Come back then.", `/room/${owner.id}`));
+      return send(res, 404, messagePage(`It's not ${their(owner)} birthday month`, `${cap(their(owner))} room gets bunting and balloons all through ${their(owner)} birthday month. Come back then.`, `/room/${owner.id}`));
     }
     store.leave({ author: me.id, kind: "wish", place: roomPlace(owner.id) });
     return redirect(res, `/room/${owner.id}?did=wish`);
@@ -469,7 +472,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     const asked = form.has("with") ? text(form, "with").split(",") : undefined;
     const group = from.near.filter((p) => !asked || asked.includes(p.id));
     if (!group.length) {
-      return send(res, 400, messagePage("Nobody's close enough to hug", "Walk up to a friend who's here right now, then hug her.", pageOf(from.place)));
+      return send(res, 400, messagePage("Nobody's close enough to hug", `Walk up to a friend who's here right now, then hug ${made() ? "them" : "her"}.`, pageOf(from.place)));
     }
     if (from.resting && from.spot) store.walkTo(me.id, from.place, Math.round(from.spot[0]), Math.round(from.spot[1]));
     store.leave({ author: me.id, kind: "hug", place: from.place, item: group.map((p) => p.id).sort().join(",") });

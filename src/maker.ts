@@ -54,11 +54,11 @@ function friendBlock(i: number, a?: Answer): string {
     <input id="name-${n}" name="name-${n}" required maxlength="${MAX_NAME}" autocomplete="off" value="${esc(a?.name ?? "")}">
     <fieldset class="gender-pick"><legend>${n === 1 ? "You are" : "They are"}</legend>${GENDERS.map(([value, label]) =>
       `<label><input type="radio" name="gender-${n}" value="${value}"${(a?.gender ?? "girl") === value ? " checked" : ""}> ${label}</label>`).join("")}</fieldset>
-    <label for="city-${n}">Where she lives</label>
+    <label for="city-${n}">Where they live</label>
     <input id="city-${n}" name="city-${n}" maxlength="${MAX_CITY}" placeholder="Canberra, New Jersey…" value="${esc(a?.city ?? "")}">
-    <label for="qualities-${n}">A few things about her</label>
+    <label for="qualities-${n}">A few things about them</label>
     <textarea id="qualities-${n}" name="qualities-${n}" rows="2" maxlength="${MAX_FIELD}" placeholder="always late, loves movies, gives the best hugs">${esc(a?.qualities ?? "")}</textarea>
-    <label for="things-${n}">What's in her room</label>
+    <label for="things-${n}">What's in their room</label>
     <textarea id="things-${n}" name="things-${n}" rows="2" maxlength="${MAX_FIELD}" placeholder="a yoga mat, too many plants, a box of KitKats">${esc(a?.things ?? "")}</textarea>
     <span class="birthday-pick"><label for="month-${n}">Birthday, if you like</label>
       <select id="month-${n}" name="month-${n}" aria-label="Birthday month"><option value="">Month</option>${months}</select>
@@ -149,14 +149,14 @@ const SCHEMA = {
         properties: {
           name: { type: "string" },
           city: { type: "string" },
-          tz: { type: "string", description: "IANA time zone for where she lives, e.g. Australia/Sydney" },
-          sleep_from: { type: "number", description: "local hour she goes to sleep, 0-24, halves allowed" },
-          sleep_to: { type: "number", description: "local hour she wakes, 0-24" },
-          color: { type: "string", description: "her colour, #rrggbb, warm and readable on cream" },
-          paper: { type: "string", description: "a very pale tint of her colour for her note paper, #rrggbb" },
-          about: { type: "string", description: "one warm sentence describing her room" },
-          things: { type: "array", items: { type: "string" }, description: "3 to 6 short items in her room" },
-          qualities: { type: "string", description: "a short phrase for who she is" },
+          tz: { type: "string", description: "IANA time zone for where they live, e.g. Australia/Sydney" },
+          sleep_from: { type: "number", description: "local hour they go to sleep, 0-24, halves allowed" },
+          sleep_to: { type: "number", description: "local hour they wake, 0-24" },
+          color: { type: "string", description: "their colour, #rrggbb, warm and readable on cream" },
+          paper: { type: "string", description: "a very pale tint of their colour for their note paper, #rrggbb" },
+          about: { type: "string", description: "one warm sentence describing their room" },
+          things: { type: "array", items: { type: "string" }, description: "3 to 6 short items in their room" },
+          qualities: { type: "string", description: "a short phrase for who they are" },
         },
         required: ["name", "city", "tz", "sleep_from", "sleep_to", "color", "paper", "about", "things", "qualities"],
         additionalProperties: false,
@@ -177,11 +177,11 @@ Write the house from the answers only. Don't invent facts about these real peopl
 For each of the five friends, in the order given:
 - name and city exactly as given (city may be empty).
 - tz: the IANA time zone for that city or country; "UTC" if unknown or empty.
-- sleep_from / sleep_to: plausible local sleep hours, e.g. 23 and 7, nudged by her qualities if they say she's a night owl or an early riser.
-- color: a warm, distinct #rrggbb for her, different from the others; paper: a very pale tint of it.
+- sleep_from / sleep_to: plausible local sleep hours, e.g. 23 and 7, nudged by their qualities if they say they're a night owl or an early riser.
+- color: a warm, distinct #rrggbb for them, different from the others; paper: a very pale tint of it.
 - about: one warm, specific sentence describing their room from their qualities and things, using the pronouns given for them, in this voice: "Shelves of little bottles and jars, a pink bed, and a desk where the laptop's always open." No names of other friends, no exclamation marks.
-- things: 3 to 6 short items in her room, kept close to the user's own words.
-- qualities: a short phrase summing her up, from what was given.
+- things: 3 to 6 short items in their room, kept close to the user's own words.
+- qualities: a short phrase summing them up, from what was given.
 
 memories: tidy the given memories into 3 to 8 short notes for the wall, keeping the friends' own words. If none were given, write 3 gentle, general ones about the five of them being friends, without inventing events.
 
@@ -435,8 +435,8 @@ function readyPage(spec: HouseSpec, by: "claude" | "offline", host: string): str
   const url = `${host}/h/${spec.code}/`;
   const who = new Intl.ListFormat("en-AU", { type: "conjunction" }).format(spec.friends.map((f) => f.name));
   const note = by === "offline"
-    ? `<p class="small">Every room is built from exactly what you wrote about her.</p>`
-    : `<p class="small">Claude wrote each room from what you said about her.</p>`;
+    ? `<p class="small">Every room is built from exactly what you wrote about each of them.</p>`
+    : `<p class="small">Claude wrote each room from what you said about each of them.</p>`;
   return shell(`${spec.title} · Five Windows`, `
 <main class="plain">
   <article class="paper message made">
