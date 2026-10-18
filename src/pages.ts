@@ -1,5 +1,6 @@
 import { crownSvg, emoji, EMOJI, iconSvg, patchesSvg, plantSvg, POP } from "./art.ts";
 import { art } from "./assets.ts";
+import { avatarUrl } from "./avatars.ts";
 import {
   along,
   counter,
@@ -232,7 +233,7 @@ function tabs(current: Tab, v: Visit): string {
 // Your own sticker in the corner: tap it to go back to the door and come in
 // as someone else.
 const switcher = (me: Person): string =>
-  `<form method="post" action="/leave" class="switch"><button title="Go back to the door and pick someone else"><img src="${art(`avatar-${me.id}.png`)}" alt="" width="180" height="242"><span>Not ${esc(me.name)}?</span></button></form>`;
+  `<form method="post" action="/leave" class="switch"><button title="Go back to the door and pick someone else"><img src="${avatarUrl(me)}" alt="" width="180" height="242"><span>Not ${esc(me.name)}?</span></button></form>`;
 
 function bar(v: Visit, current: Tab): string {
   const c = clock(v.me.tz, v.now);
@@ -262,7 +263,7 @@ const done = (d: Done | undefined): string =>
 
 // In her birthday month, she wears her crown in her window too.
 const pane = (p: Person, light: Phase, asleepNow: boolean, now: number): string =>
-  `<span class="pane light-${light}${asleepNow ? " asleep" : ""}"><img src="${art(`avatar-${p.id}.png`)}" alt="" width="180" height="242">${birthday(p, now) ? crownSvg() : ""}</span>`;
+  `<span class="pane light-${light}${asleepNow ? " asleep" : ""}"><img src="${avatarUrl(p)}" alt="" width="180" height="242">${birthday(p, now) ? crownSvg() : ""}</span>`;
 
 /* ---------- the house, as the scene draws it ---------- */
 

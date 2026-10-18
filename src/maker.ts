@@ -2,7 +2,9 @@ import Anthropic from "@anthropic-ai/sdk";
 import { jsonSchemaOutputFormat } from "@anthropic-ai/sdk/helpers/json-schema";
 import { randomInt } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { lookFor } from "./avatars.ts";
 import { saveHouse, type Friend, type HouseSpec } from "./houses.ts";
+import type { Gender } from "./people.ts";
 import { esc } from "./html.ts";
 import { messagePage, shell } from "./pages.ts";
 
@@ -23,7 +25,7 @@ const MAX_CITY = 60;
 const MAX_TITLE = 60;
 
 // What one friend's block of the form says.
-type Answer = { name: string; city: string; qualities: string; things: string; birthday: [number, number] };
+type Answer = { name: string; city: string; gender: Gender; qualities: string; things: string; birthday: [number, number] };
 type Answers = { title: string; friends: Answer[]; memories: string };
 
 // What Claude (or the local maker) writes; tidied into a HouseSpec after.
@@ -35,6 +37,11 @@ type Written = {
 
 /* ---------- the form ---------- */
 
+// What the form offers for each friend, and the words that go with it.
+const GENDERS: [Gender, string][] = [["girl", "a girl"], ["boy", "a boy"], ["name", "just use their name"]];
+const asGender = (v: string | null): Gender => (v === "boy" || v === "name" ? v : "girl");
+const PRONOUN: Record<Gender, string> = { girl: "she/her", boy: "he/him", name: "they/them, or just their name" };
+
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 function friendBlock(i: number, a?: Answer): string {
@@ -45,6 +52,8 @@ function friendBlock(i: number, a?: Answer): string {
     <legend>${n === 1 ? "You, or your first friend" : `Friend ${n}`}</legend>
     <label for="name-${n}">Name</label>
     <input id="name-${n}" name="name-${n}" required maxlength="${MAX_NAME}" autocomplete="off" value="${esc(a?.name ?? "")}">
+    <fieldset class="gender-pick"><legend>${n === 1 ? "You are" : "They are"}</legend>${GENDERS.map(([value, label]) =>
+      `<label><input type="radio" name="gender-${n}" value="${value}"${(a?.gender ?? "girl") === value ? " checked" : ""}> ${label}</label>`).join("")}</fieldset>
     <label for="city-${n}">Where she lives</label>
     <input id="city-${n}" name="city-${n}" maxlength="${MAX_CITY}" placeholder="Canberra, New Jersey…" value="${esc(a?.city ?? "")}">
     <label for="qualities-${n}">A few things about her</label>
@@ -106,6 +115,7 @@ function read(form: URLSearchParams): Answers {
     return {
       name: field(form, `name-${n}`).replace(/\s+/g, " "),
       city: field(form, `city-${n}`).replace(/\s+/g, " "),
+      gender: asGender(form.get(`gender-${n}`)),
       qualities: field(form, `qualities-${n}`),
       things: field(form, `things-${n}`),
       birthday: ok ? [month, day] : [0, 0],
@@ -169,7 +179,7 @@ For each of the five friends, in the order given:
 - tz: the IANA time zone for that city or country; "UTC" if unknown or empty.
 - sleep_from / sleep_to: plausible local sleep hours, e.g. 23 and 7, nudged by her qualities if they say she's a night owl or an early riser.
 - color: a warm, distinct #rrggbb for her, different from the others; paper: a very pale tint of it.
-- about: one warm, specific sentence describing her room from her qualities and things, in this voice: "Shelves of little bottles and jars, a pink bed, and a desk where the laptop's always open." No names of other friends, no exclamation marks.
+- about: one warm, specific sentence describing their room from their qualities and things, using the pronouns given for them, in this voice: "Shelves of little bottles and jars, a pink bed, and a desk where the laptop's always open." No names of other friends, no exclamation marks.
 - things: 3 to 6 short items in her room, kept close to the user's own words.
 - qualities: a short phrase summing her up, from what was given.
 
@@ -180,9 +190,10 @@ title: the house's name as given; if empty, "<first friend's name>'s house".`;
 function prompt(a: Answers): string {
   const friends = a.friends.map((f, i) => `<friend n="${i + 1}">
 name: ${f.name}
+pronouns: ${PRONOUN[f.gender]}
 city: ${f.city}
 qualities: ${f.qualities}
-things in her room: ${f.things}
+things in their room: ${f.things}
 </friend>`).join("\n");
   return `<answers>
 house name: ${a.title}
@@ -263,7 +274,7 @@ export function writeOffline(a: Answers): Written {
       const list = sentence(things.slice(0, 4));
       const about = things.length
         ? `${list.replace(/^./, (c) => c.toUpperCase())}${qualities ? `. Very ${f.name}: ${qualities}` : ""}.`
-        : qualities ? `A cosy room that's all ${f.name}: ${qualities}.` : "A cosy room, waiting for her things.";
+        : qualities ? `A cosy room that's all ${f.name}: ${qualities}.` : "A cosy room, waiting for their things.";
       return {
         name: f.name,
         city: f.city,
@@ -319,9 +330,11 @@ export function tidy(w: Written, a: Answers, code: string): HouseSpec {
       birthday: given.birthday,
       color: HEX.test(String(f?.color)) ? String(f!.color) : color,
       paper: HEX.test(String(f?.paper)) ? String(f!.paper) : paper,
-      about: clip(f?.about, 240) || "A cosy room, waiting for her things.",
+      about: clip(f?.about, 240) || "A cosy room, waiting for their things.",
       things: things.length ? things : ["a bed", "a desk"],
       qualities: clip(f?.qualities, 120),
+      gender: given.gender,
+      look: lookFor(given.gender, code, i + 1),
     };
   });
   // Five friends, five colours: anyone sharing a colour with someone before

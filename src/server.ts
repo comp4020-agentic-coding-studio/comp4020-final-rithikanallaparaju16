@@ -2,6 +2,7 @@ import { randomInt, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { ART, ART_TYPES, isArt } from "./assets.ts";
+import { avatarSvg, parseLook } from "./avatars.ts";
 import { counter, DOG, find, FOOD, gifts, KETTLE_ROOM, MASK_ROOM, movies, PLANTS, resting, roomPlace, seats, STICKERS, wall } from "./house.ts";
 import { closeHouses, findHouse, house, inHouse, made, ORIGINAL } from "./houses.ts";
 import * as live from "./live.ts";
@@ -52,7 +53,7 @@ function rebase(html: string): string {
   const { base } = house();
   if (!base) return html;
   return html
-    .replace(/\b(href|action|src)="\/(?!\/|h\/|art\/|style\.css|make\b)/g, `$1="${base}/`)
+    .replace(/\b(href|action|src)="\/(?!\/|h\/|art\/|avatar\/|style\.css|make\b)/g, `$1="${base}/`)
     .replace(/(["'])\/(here|live|live\.js|house\.js)\b/g, `$1${base}/$2`);
 }
 
@@ -249,6 +250,15 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   if (route === "GET /style.css") return send(res, 200, readFileSync(STYLE), "text/css; charset=utf-8");
   if (route === "GET /house.js") return send(res, 200, readFileSync(SCRIPT), "text/javascript; charset=utf-8");
   if (route === "GET /live.js") return send(res, 200, readFileSync(LIVE), "text/javascript; charset=utf-8");
+  // A made friend's sticker, drawn on the server from her look
+  // (src/avatars.ts). The same look always draws the same picture.
+  const sticker = method === "GET" ? pathname.match(/^\/avatar\/([a-z0-9-]+)\.svg$/) : null;
+  if (sticker) {
+    const look = parseLook(sticker[1]);
+    if (!look) return send(res, 404, messagePage("Nothing here", "There's no picture by that name."));
+    res.writeHead(200, { "content-type": "image/svg+xml; charset=utf-8", "cache-control": "public, max-age=86400" });
+    return void res.end(avatarSvg(look));
+  }
   const art = method === "GET" && pathname.startsWith("/art/") ? pathname.slice("/art/".length) : undefined;
   if (art !== undefined) {
     if (!isArt(art)) return send(res, 404, messagePage("Nothing here", "There's no picture by that name."));

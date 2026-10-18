@@ -14,7 +14,19 @@ export type Person = {
   // The colour of the paper this person writes notes on.
   paper: string;
   about: string;
+  // A made house's friends only (src/houses.ts): which words fit her ("girl"
+  // is she/her, "boy" he/him, "name" they/them or just her name), and how
+  // her sticker looks. Rithika's five are girls, drawn by their Stitch
+  // stickers, so they need neither.
+  gender?: Gender;
+  look?: Look;
 };
+
+export type Gender = "girl" | "boy" | "name";
+
+// A made friend's sticker (src/avatars.ts): who it's drawn as, her skin and
+// hair, and her hairstyle. Each is an index into that file's own lists.
+export type Look = { gender: Gender; skin: number; hair: number; style: number };
 
 import { house } from "./houses.ts";
 

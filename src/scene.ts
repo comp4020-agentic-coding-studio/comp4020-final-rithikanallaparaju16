@@ -1,5 +1,6 @@
 import { balloons, BLANKET, bunting, cake, confetti, CROWN, DOG_STANDING, EMOJI, icon, messItem, PARTY_HAT, pop } from "./art.ts";
 import { art } from "./assets.ts";
+import { avatarUrl } from "./avatars.ts";
 import { along, DOG, KETTLE_ROOM, MASK_ROOM, rejoin, YOGA_ROOM, type DogSpot, type Pose, type Waypoint } from "./house.ts";
 import { made } from "./houses.ts";
 import { esc } from "./html.ts";
@@ -591,14 +592,14 @@ function headwear(f: Figure, dy = 0): string {
 const BED_SPOTS: Pt[] = [[0, 0], [34, 6], [-30, 10]];
 const lying = (f: Figure): string => {
   const hat = f.crown ? `<g transform="translate(0 -20) scale(.75)">${CROWN}</g>` : f.hat ? `<g transform="translate(6 -19) rotate(16) scale(.75)">${PARTY_HAT}</g>` : "";
-  return `<g transform="rotate(-10)"><image href="${art(`avatar-${f.person.id}.png`)}" x="-32" y="-27.5" width="64" height="86" clip-path="url(#head)"/>${hat}<text class="zz" x="22" y="-24">z</text><text class="zz small" x="34" y="-40">z</text></g>`;
+  return `<g transform="rotate(-10)"><image href="${avatarUrl(f.person)}" x="-32" y="-27.5" width="64" height="86" clip-path="url(#head)"/>${hat}<text class="zz" x="22" y="-24">z</text><text class="zz small" x="34" y="-40">z</text></g>`;
 };
 
 // Someone sitting is drawn lower, with her legs tucked out of sight, so she
 // sits on the cushion or the sofa.
 const SIT_DOWN = 20;
 const sitting = (f: Figure): string =>
-  `<image href="${art(`avatar-${f.person.id}.png`)}" x="-36" y="${SIT_DOWN - 95}" width="72" height="97" clip-path="url(#sit)"/>${f.masked ? `<g transform="translate(0 ${SIT_DOWN})">${MASK}</g>` : ""}${headwear(f, SIT_DOWN)}`;
+  `<image href="${avatarUrl(f.person)}" x="-36" y="${SIT_DOWN - 95}" width="72" height="97" clip-path="url(#sit)"/>${f.masked ? `<g transform="translate(0 ${SIT_DOWN})">${MASK}</g>` : ""}${headwear(f, SIT_DOWN)}`;
 
 // A standing friend (or you), feet on (x, y). `extra` adds classes; someone
 // in a hug leans in toward its middle by `lean` degrees (style.css turns her
@@ -606,7 +607,7 @@ const sitting = (f: Figure): string =>
 function walkerSvg(f: Figure, [x, y]: Pt, pose: string, extra: string, lean?: number): string {
   const p = f.person;
   const cls = ["walker", f.me ? "me" : "", f.here ? "here" : "", extra].filter(Boolean).join(" ");
-  const body = `<g class="bob"><image href="${art(`avatar-${p.id}.png`)}" x="-36" y="-95" width="72" height="97"/>${f.masked ? MASK : ""}${headwear(f)}</g>`;
+  const body = `<g class="bob"><image href="${avatarUrl(p)}" x="-36" y="-95" width="72" height="97"/>${f.masked ? MASK : ""}${headwear(f)}</g>`;
   const style = `--accent:${p.color}${lean === undefined ? "" : `;--lean:${lean}deg`}`;
   return `<g class="${cls}" data-person="${p.id}" data-place="${f.place}" transform="translate(${x} ${y})" style="${style}"><ellipse class="shadow" rx="22" ry="7"/>${lean === undefined ? body : `<g class="lean">${body}</g>`}${pose}<text class="who" y="24">${esc(f.me ? "you" : p.name)}</text></g>`;
 }

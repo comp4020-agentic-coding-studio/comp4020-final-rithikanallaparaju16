@@ -2,6 +2,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import type { Gender, Look } from "./people.ts";
 
 // More than one house (prototype, branch llm-any-friends). The original house
 // is Rithika's five at `/`; every other house is made from a form by Claude
@@ -29,6 +30,11 @@ export type Friend = {
   things: string[];
   // A few words for who she is, as the maker described her.
   qualities: string;
+  // Asked on the form (src/people.ts Gender). Houses made before it was asked
+  // have none, and are treated as girls, as they were made.
+  gender?: Gender;
+  // Her sticker (src/avatars.ts), picked when the house is made.
+  look?: Look;
 };
 
 // A house someone made: its friends, and the memories they asked for on the
