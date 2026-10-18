@@ -2021,3 +2021,54 @@ friends means more rooms, which means new art.
 **Correction:** none.
 
 **Commits:** `0997905` so far; the agents' work is merged later.
+
+### 38. "continue and open the live site when youre donw", "live site, because i want to it be in process.md", "continue and ship it when done, then open the live4 site" (18 Oct 2026)
+
+**Asked:** first "continue and open the live site when youre donw". The agent
+asked whether to open the branch locally or put it on the live site, since
+the live site only runs `main`. Rithika chose to clarify, then said "live
+site, because i want to it be in process.md", and later "continue and ship
+it when done, then open the live4 site".
+
+**Correction:** the prototype was meant to stay on a branch to throw away.
+Rithika chose to ship it, so it's merged to `main`. Throwing it away now
+means reverting it there.
+
+**Agent:**
+- **Before shipping:** told the maker agent to add a cap and make the image
+  install the SDK, since `/make` would be public and real calls cost money.
+- **Crit 10 logging,** [`d669cbc`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/d669cbc):
+  every `store.leave`, coming in and leaving (with the browser's first 6
+  token characters), each change of room, and every refused write, each
+  tagged with its house. No note text. A rehearsal with Neha and Aswathy in
+  separate cookie jars read cleanly from the log alone, including "Aswathy
+  was refused POST /me (409)" when she tried to be Neha.
+- **Merged the maker,** [`083033e`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/083033e):
+  - the `/make` form, and the Claude call (`claude-opus-5-5`, structured
+    output, effort low)
+  - the offline maker, used when there's no key (the live site has none)
+  - the cap: 3 an hour per visitor and 30 an hour in all
+  - the Dockerfile installing the SDK with `--prod --frozen-lockfile`
+  - ADR 0017
+- **Merged the rooms,** [`71209b0`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/71209b0):
+  each made friend's things as tags in her room and a card on her page, the
+  memories pinned on the wall, rooms named after their owners, and Rithika's
+  five's own details shown only in her house.
+- **The merge,** [`09269ed`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/09269ed),
+  conflicted only at the ends of `style.css` and the spec. The rooms agent's
+  made-house test, skipped while `/make` was a stub, was un-skipped and given
+  its own visitor header for the cap. 47/47 passed, twice.
+- **Checks:** a real fill-in of `/make` at 390px, with real typing and a
+  real tap, built "The Pune flat" for Priya, Sara, Kavya, Diya and Meera.
+  Screenshots showed rooms named after them, their things pinned in their
+  rooms, "Very Priya: always late, loves chai…" on her page, and no KitKat
+  gift.
+
+**What went wrong:** the per-visitor cap trusts the `fly-client-ip` header,
+which a caller can send themselves, so it can be dodged. The 30-an-hour
+total still bounds the cost. ADR 0017 says so.
+
+**Commits:** the above, then
+[`056bfee`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/056bfee)
+(README and `CLAUDE.md`), then this entry. The branch merges into `main` for
+CI to deploy, and the results go in the next entry.
