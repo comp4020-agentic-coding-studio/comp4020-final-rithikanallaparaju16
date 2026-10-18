@@ -1956,3 +1956,68 @@ So, before the 1:30 pm cutoff:
 **Commits:** this entry with the `PROCESS.md` ending, then the push with the
 earlier unpushed `f5fd555`. If CI deploys before 1:30, `crit-9` moves to it.
 The results go in the next entry.
+
+### 36. Crit 10: "lets start crit 10 … i wanna add an LLM where this website becomes for everybody" (18 Oct 2026)
+
+**Asked:** "hi queen , lets start crit 10, first lets talk ab this idea. i
+wanna add an LLM where this website becomes for everybody because this is j
+for me and my friends, so i want to make it for everybody using an LLM, so
+the user is asked to list how many ffriends and a few qualities of them, and
+also what specific things should be in their room, what things they want as
+memories in living room etc make a new branch and do this on a diff branch
+so we can j throw it away if its bad, we can talk ab thisd= before you start
+if you feel like we have sumn to discuss"
+
+**Agent:**
+- Read the crit 10 brief first. "Fly by instruments" asks for two
+  classmates in separate browsers, told apart from the server's logs alone,
+  with server-side checks on who may change what.
+- Made the branch `llm-any-friends` and built nothing yet.
+- Raised three things before starting:
+  - The crit's real ask is logging, which the house barely has.
+  - The LLM idea turns "exactly five" into a house-maker for anyone. The
+    art is the hard part: an LLM can write rooms, not draw a new house.
+  - The cutoff was three days away.
+- Suggested the crit 10 logging first, and for the branch a first slice
+  with the same picture and new friends and contents.
+
+### 37. "but rooms should increase if its more friends, for now lets stick to 5 friends for the prototype, try your best to make this work" (18 Oct 2026)
+
+**Asked:** "but rooms should increase if its more friends, for now lets stick to
+5 friends for the prototype, try your best to make this work, you can fan out
+subagents and make them talk and intereact w eachother queen, goodluck"
+
+**Agent, on `llm-any-friends`:**
+- **Checks first:**
+  - No other AI provider in the project.
+  - No `ANTHROPIC_API_KEY` for the app. The shell's token is the course
+    proxy for Claude Code and isn't the app's to use.
+  - Loaded the Claude API reference.
+- **The SDK:** pinned `@anthropic-ai/sdk@0.131.0`, the newest release at
+  least two weeks old (0.135.0 was three days old), and confirmed it imports
+  under Node's type stripping. It's the app's first runtime dependency, so
+  the Dockerfile and an ADR have to say so.
+- **Multi-house base,** [`0997905`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/0997905):
+  - Each made house lives under `/h/<code>/` with its own SQLite file, its
+    own five friends and its own `who=` cookie path.
+  - `AsyncLocalStorage` runs each request inside one house. `PEOPLE` became
+    a Proxy over that house's five, `store.ts` keeps one set of statements
+    per house, and `live.ts` only tells a house's own pages.
+  - Responses in a made house have their links rebased onto `/h/<code>`.
+    So about 100 hard-coded paths, and Rithika's house at `/`, didn't change.
+  - All 41 existing tests passed unchanged. A scratch script against a
+    hand-seeded house passed 15 checks: its own five, its own cookie, its
+    own wall, its live line, and Rithika's wall untouched.
+- **Fanned out** two agents in their own worktrees, told to message each
+  other about the shared `Friend`/`HouseSpec` fields:
+  - **maker:** the `/make` form, the Claude call with structured output, and
+    an offline maker used when there's no key.
+  - **rooms:** made friends' things in their rooms and the memories on the
+    wall, and Rithika's own details hidden in made houses.
+
+**Decision to redirect:** five fixed windows for the prototype, since more
+friends means more rooms, which means new art.
+
+**Correction:** none.
+
+**Commits:** `0997905` so far; the agents' work is merged later.
