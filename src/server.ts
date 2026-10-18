@@ -52,7 +52,7 @@ function rebase(html: string): string {
   const { base } = house();
   if (!base) return html;
   return html
-    .replace(/\b(href|action|src)="\/(?!\/|h\/|art\/|style\.css)/g, `$1="${base}/`)
+    .replace(/\b(href|action|src)="\/(?!\/|h\/|art\/|style\.css|make\b)/g, `$1="${base}/`)
     .replace(/(["'])\/(here|live|live\.js|house\.js)\b/g, `$1${base}/$2`);
 }
 
