@@ -2132,3 +2132,41 @@ trust you w my key".
 **Commits:** [`1e762fe`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/1e762fe),
 then this entry with the prompt in `PROCESS.md`. Both are committed locally
 and go out with the next push.
+
+### 41. "open it for me" / "okayokay, ask gender and make the avatras accordingly" (18 Oct 2026)
+
+**Asked:** "open it for me". The agent checked the local server answered
+and opened `localhost:8130/make`.
+
+Then: "okayokay, ask gender and make the avatras accordingly".
+
+**Agent:**
+- **Found the gap:** every avatar is one of Rithika's five Stitch stickers,
+  all girls, and that's all the art there is. A made house had reused them,
+  so a "boy" would still wear a friend's face. The text also says she/her
+  about 160 times.
+- **Asked two things:**
+  - Who draws the new stickers? Rithika chose "You draw them".
+  - What does the form offer? She chose "Girl / boy / just their name".
+- **The base,** [`17c0351`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/17c0351):
+  - The form asks each friend's gender, and Claude hears the pronouns.
+  - Each made friend gets a `look` (gender, skin, hair, style), picked
+    deterministically from the house's code and window.
+  - Every picture of a person goes through `avatarUrl()`. Rithika's five
+    keep their Stitch PNGs; made friends get `/avatar/<look>.svg`, drawn on
+    the server (a placeholder at first).
+  - A scratch check passed: the form asks, a boy gets `/avatar/boy-…`, all
+    five look different, a made-up look is a 404, and Rithika's door still
+    shows her Stitch stickers.
+- **Fanned out** two agents in their own worktrees, told to tell each other
+  before touching the same lines:
+  - **art:** draws the chibi girl, boy and no-gender stickers in SVG, in
+    six skin tones and hair colours and a few hairstyles, checked against
+    Rithika's Stitch stickers by eye.
+  - **words:** he/him, she/her and they/them through every sentence a made
+    house says about a friend. Rithika's house's HTML must not change at
+    all, checked by a before-and-after diff.
+
+**Correction:** none.
+
+**Commits:** `17c0351` so far; the agents' work is merged later.
