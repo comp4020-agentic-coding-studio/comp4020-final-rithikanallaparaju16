@@ -20,5 +20,8 @@
   },
   "engines": {
     "pnpm": ">=11"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "0.131.0"
   }
 }

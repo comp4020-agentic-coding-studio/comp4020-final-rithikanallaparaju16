@@ -2590,3 +2590,144 @@ g.walker.near:not(.me) > .shadow {
   stroke-width: 3px;
   animation: beckon 0.9s ease-in-out infinite alternate;
 }
+
+/* ---------- making a house for any five friends (src/maker.ts, ADR 0017) ---------- */
+
+.make-link {
+  margin-top: 6px;
+  font-size: 0.85rem;
+}
+
+main.make {
+  max-width: 640px;
+}
+
+.make .room-head {
+  margin-top: 16px;
+}
+
+.make-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.make-form fieldset {
+  margin: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.make-form legend {
+  float: left;
+  width: 100%;
+  margin: 0 0 4px;
+  padding: 0;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.make-form input,
+.make-form select {
+  width: 100%;
+  padding: 6px 0;
+  border: 0;
+  border-bottom: 1px dashed rgba(59, 42, 32, 0.35);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.05rem;
+}
+
+.make-form input:focus,
+.make-form select:focus {
+  outline: none;
+  border-bottom-color: var(--accent);
+}
+
+.make-form .compose textarea {
+  font-size: 1.25rem;
+}
+
+.make-form .birthday-pick {
+  display: grid;
+  grid-template-columns: 1fr 5.5em;
+  gap: 4px 10px;
+  align-items: end;
+}
+
+.make-form .birthday-pick label {
+  grid-column: 1 / -1;
+}
+
+.make .problem {
+  margin-top: 16px;
+  background: #fbe3dc;
+  box-shadow: inset 4px 0 0 var(--new);
+}
+
+.made .made-url code {
+  display: inline-block;
+  max-width: 100%;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: rgba(59, 42, 32, 0.08);
+  overflow-wrap: anywhere;
+  font-size: 0.85rem;
+  user-select: all;
+}
+
+.made .go-in {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 9px 22px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--frame);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* ---------- a made house's own rooms and memories (src/houses.ts) ---------- */
+
+/* what a friend said is in her room, on little paper tags pinned up in it
+   (src/scene.ts roomThings); SVG only, so scoped to the group */
+g.room-things {
+  pointer-events: none;
+}
+
+g.room-things .pin-paper {
+  fill: var(--paper);
+  stroke: rgba(80, 55, 40, 0.35);
+  stroke-width: 1;
+  filter: drop-shadow(0 2px 2px rgba(40, 20, 10, 0.3));
+}
+
+g.room-things .pin {
+  fill: var(--accent);
+  stroke: rgba(40, 20, 10, 0.4);
+  stroke-width: 0.8;
+}
+
+g.room-things .pin-text {
+  font: 700 15px var(--hand);
+  fill: var(--ink);
+}
+
+.room-things-card {
+  border-left: 5px solid var(--accent);
+}
+
+.room-things-card .plain-list li {
+  font-family: var(--hand);
+  font-size: 1.2rem;
+}
+
+/* the memories a made house moved in with, pinned at the top of the wall */
+.notes.memories .note {
+  border-top: 6px solid #f2c14e;
+}
+
+.notes.memories .note .by {
+  font-style: italic;
+}

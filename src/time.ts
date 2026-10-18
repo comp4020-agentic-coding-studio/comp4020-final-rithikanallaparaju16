@@ -109,7 +109,9 @@ export function ymd(tz: string, at: number): [number, number, number] {
 
 // Her birthday month, by her own clock: 0 if it isn't, 1 all month, 2 on
 // the day itself.
+// [0, 0] is a friend whose birthday a made house wasn't told: never her month.
 export function birthday(p: Person, now: number): 0 | 1 | 2 {
+  if (!p.birthday[0]) return 0;
   const [, month, day] = ymd(p.tz, now);
   if (month !== p.birthday[0]) return 0;
   return day === p.birthday[1] ? 2 : 1;

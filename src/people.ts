@@ -16,9 +16,11 @@ export type Person = {
   about: string;
 };
 
+import { house } from "./houses.ts";
+
 // Ids are window numbers, so renaming someone never orphans what they left.
 // Each person's sticker is public/art/avatar-<id>.png.
-export const PEOPLE: Person[] = [
+export const FIVE: Person[] = [
   {
     id: "1",
     name: "Rithika",
@@ -76,6 +78,21 @@ export const PEOPLE: Person[] = [
     about: "A yoga mat where she meditates, and bananas that should have been thrown out a while ago.",
   },
 ];
+
+// The five of whichever house this request is in (src/houses.ts): Rithika's
+// five, or the friends a made house was given. Reads like the array it always
+// was, so nothing that loops over PEOPLE needs to know there's more than one
+// house.
+export const PEOPLE: Person[] = new Proxy([] as Person[], {
+  get(_, key) {
+    const list = house().spec?.friends ?? FIVE;
+    const value = Reflect.get(list, key);
+    return typeof value === "function" ? value.bind(list) : value;
+  },
+  has: (_, key) => Reflect.has(house().spec?.friends ?? FIVE, key),
+  ownKeys: () => Reflect.ownKeys(house().spec?.friends ?? FIVE),
+  getOwnPropertyDescriptor: (_, key) => Reflect.getOwnPropertyDescriptor(house().spec?.friends ?? FIVE, key),
+});
 
 export const personById = (id: string | undefined): Person | undefined =>
   PEOPLE.find((p) => p.id === id);

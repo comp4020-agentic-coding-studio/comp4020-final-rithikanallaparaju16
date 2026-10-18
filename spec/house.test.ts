@@ -725,4 +725,138 @@ describe.skipIf(!throwaway)("living in the house", () => {
       }
     }
   });
+
+  /* ---------- a house for any five friends (src/maker.ts, ADR 0017) ---------- */
+
+  // Making a house the way the form does, and the address it lives at.
+  async function makeHouse(names: string[], extra: Record<string, string> = {}): Promise<{ res: Response; code?: string }> {
+    const fields: Record<string, string> = { ...extra };
+    names.forEach((name, i) => (fields[`name-${i + 1}`] = name));
+    // A visitor of its own each time, so runs back to back stay under the
+    // per-visitor cap (Fly's proxy sets this header itself in production).
+    const res = await fetch(new URL("/make", baseUrl), {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded", "fly-client-ip": unique("spec") },
+      body: new URLSearchParams(fields),
+      redirect: "manual",
+    });
+    const code = res.status === 201 ? (await res.clone().text()).match(/\/h\/([a-z0-9]{10})\//)?.[1] : undefined;
+    return { res, code };
+  }
+
+  it("makes a house for any five friends from what you tell it", async () => {
+    const five = ["Mia", "Jo", "Sam", "Ana", "Lee"].map((n) => unique(n).slice(0, 30));
+    const { res, code } = await makeHouse(five, { "city-1": "London", "things-1": "a record player, fairy lights", memories: "the road trip" });
+    expect(res.status, "the house wasn't made").toBe(201);
+    expect(code, "the made page doesn't say where the house is").toBeTruthy();
+
+    const door = parse(await (await fetch(new URL(`/h/${code}/`, baseUrl))).text());
+    const names = [...door.querySelectorAll("button[name=who] .name")].map((n) => text(n));
+    expect(names, "the new house's door doesn't have its own five").toEqual(five);
+    expect(text(door.body), "Rithika's five are in someone else's house").not.toContain("Rithika");
+    expect(door.querySelector(`form[action="/h/${code}/me"]`), "the door's form leaves the house").not.toBeNull();
+  });
+
+  it("keeps each made house to itself", async () => {
+    const { code } = await makeHouse(["Ivy", "Rae", "Kit", "Bo", "Dee"]);
+    const house = (path: string): URL => new URL(`/h/${code}${path}`, baseUrl);
+    const res = await fetch(house("/me"), { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ who: "1" }), redirect: "manual" });
+    const set = res.headers.getSetCookie().find((c) => c.startsWith("who="))!;
+    expect(set, "the made house's who= cookie reaches other houses").toContain(`Path=/h/${code}`);
+    const cookie = set.split(";")[0];
+
+    const theirs = unique("a note in the made house");
+    await fetch(house("/wall"), { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", cookie }, body: new URLSearchParams({ body: theirs }), redirect: "manual" });
+    const [a] = await people();
+    const ours = unique("a note in Rithika's house");
+    await post("/wall", { body: ours }, a.id);
+
+    const theirWall = parse(await (await fetch(house("/living"), { headers: { cookie } })).text());
+    expect(withText(theirWall, ".note", theirs), "the made house lost its own note").toBeDefined();
+    expect(withText(theirWall, ".note", ours), "Rithika's note turned up in the made house").toBeUndefined();
+    expect(withText(await page("/living", a.id), ".note", theirs), "the made house's note turned up in Rithika's").toBeUndefined();
+    await fetch(house("/leave"), { method: "POST", headers: { cookie }, redirect: "manual" });
+  });
+
+  it("only makes a few houses an hour for each visitor", async () => {
+    const visitor = unique("the same visitor");
+    const make = (): Promise<Response> => fetch(new URL("/make", baseUrl), {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded", "fly-client-ip": visitor },
+      body: new URLSearchParams(Object.fromEntries(["Ivy", "Rae", "Kit", "Bo", "Dee"].map((n, i) => [`name-${i + 1}`, n]))),
+      redirect: "manual",
+    });
+    for (let i = 0; i < 3; i++) expect((await make()).status, `house ${i + 1} wasn't made`).toBe(201);
+    const fourth = await make();
+    expect(fourth.status, "a fourth house in the hour was made").toBe(429);
+    expect(text(parse(await fourth.text()).querySelector(".problem"))).toContain("Try again in a little while");
+  });
+
+  it("turns down a house with missing friends", async () => {
+    const { res } = await makeHouse(["Only", "Four", "Friends", "Here"]);
+    expect(res.status, "a house was made with an empty room").toBe(400);
+    expect(text(parse(await res.text()).querySelector(".problem"))).toContain("missing");
+  });
+
+  it("keeps Rithika's five's own things in their rooms", async () => {
+    const five = await people();
+    const named = (name: string): Person => five.find((p) => p.name === name)!;
+    const [rithanya, amirdha, aswathy] = ["Rithanya", "Amirdhavarshini", "Aswathy"].map(named);
+    const visitor = five.find((p) => p !== rithanya && p !== amirdha)!;
+
+    expect(text((await page("/", visitor.id)).querySelector(".house-svg .kitkat-word")), "Rithanya's KitKat box is gone").toBe("KitKat");
+    expect(text((await page(`/room/${rithanya.id}`, visitor.id)).querySelector("#mask-heading")), "her face masks are gone").toBe("Face masks");
+    const amirdhas = await page(`/room/${amirdha.id}`, visitor.id);
+    expect(amirdhas.querySelector(`form[action="/room/${amirdha.id}/kettle"]`), "the hostel kettle is gone").not.toBeNull();
+    expect(amirdhas.querySelector("input[name=item][value=kitkat]"), "there's no KitKat to leave").not.toBeNull();
+    expect((await page(`/room/${aswathy.id}`, visitor.id)).querySelector("input[name=seat][value=yoga]"), "Aswathy's yoga mat is gone").not.toBeNull();
+  });
+
+  it("gives a made house's five their own rooms and memories, and none of Rithika's five's", async () => {
+    const form = new URLSearchParams({ title: unique("Spec house"), memories: "the road trip where the car broke down in Porto" });
+    ["Mia", "Jo", "Sam", "Ana", "Lee"].forEach((name, i) => {
+      form.set(`name-${i + 1}`, name);
+      form.set(`city-${i + 1}`, "London");
+      form.set(`things-${i + 1}`, i === 0 ? "a monstera, fairy lights, a record player" : "a lamp");
+    });
+    const made = await fetch(new URL("/make", baseUrl), { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", "fly-client-ip": unique("spec") }, body: form, redirect: "manual" });
+    expect(made.status, "the house wasn't made").toBe(201);
+    const base = parse(await made.text()).querySelector("a.go-in")?.getAttribute("href") ?? "";
+    expect(base).toMatch(/^\/h\/[a-z0-9]{10}\/$/);
+
+    const cookie = sessionOf(await fetch(new URL(`${base}me`, baseUrl), { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: "who=2", redirect: "manual" }))!;
+    const inside = async (path: string): Promise<Document> => {
+      const res = await fetch(new URL(`${base}${path}`, baseUrl), { headers: { cookie } });
+      expect(res.status, `GET ${base}${path}`).toBe(200);
+      return parse(await res.text());
+    };
+    const tryTo = async (path: string): Promise<number> =>
+      (await fetch(new URL(`${base}${path}`, baseUrl), { method: "POST", headers: { cookie }, redirect: "manual" })).status;
+    try {
+      const mias = await inside("room/1");
+      const listed = [...mias.querySelectorAll(".room-things-card li")].map(text);
+      expect(listed.join(" "), "Mia's things aren't in her room").toContain("monstera");
+      const pinned = [...mias.querySelectorAll(".house-svg g.room-thing[data-place='room:1'] .pin-text")].map(text);
+      expect(pinned.length, "nothing of hers is drawn in her room").toBeGreaterThan(0);
+      pinned.forEach((tag, i) => expect(listed[i]).toContain(tag.replace(/…$/, "")));
+      expect(text(mias.querySelector(".house-svg")), "her room has someone else's name on it").toContain("Mia's room");
+
+      const living = await inside("living");
+      expect(text(living.querySelector(".notes.memories")), "the memories aren't on the wall").toContain("Porto");
+
+      const home = await inside("");
+      expect(home.querySelector(".house-svg .kitkat-word"), "Rithanya's KitKats moved in").toBeNull();
+      expect(text(home.body)).not.toMatch(/Rithanya|Amirdhavarshini|Aswathy|Rithika|Neha/);
+      expect((await inside("room/4")).querySelector("#mask-heading"), "Rithanya's face masks moved in").toBeNull();
+      const room3 = await inside("room/3");
+      expect(room3.querySelector("form[action$='/kettle']"), "the hostel kettle moved in").toBeNull();
+      expect(room3.querySelector("input[name=item][value=kitkat]"), "there's a KitKat to leave").toBeNull();
+      expect((await inside("room/5")).querySelector("input[name=seat][value=yoga]"), "Aswathy's yoga mat moved in").toBeNull();
+      expect(text((await inside("movies")).querySelector("main"))).not.toContain("loves movies");
+      expect(await tryTo("room/4/mask")).toBe(404);
+      expect(await tryTo("room/3/kettle")).toBe(404);
+    } finally {
+      await fetch(new URL(`${base}leave`, baseUrl), { method: "POST", headers: { cookie }, redirect: "manual" });
+    }
+  });
 });

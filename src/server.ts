@@ -2,8 +2,10 @@ import { randomInt, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { ART, ART_TYPES, isArt } from "./assets.ts";
-import { counter, DOG, find, FOOD, GIFTS, KETTLE_ROOM, MASK_ROOM, movies, PLANTS, resting, roomPlace, SEATS, STICKERS, wall } from "./house.ts";
+import { counter, DOG, find, FOOD, gifts, KETTLE_ROOM, MASK_ROOM, movies, PLANTS, resting, roomPlace, seats, STICKERS, wall } from "./house.ts";
+import { closeHouses, findHouse, house, inHouse, made, ORIGINAL } from "./houses.ts";
 import * as live from "./live.ts";
+import { make } from "./maker.ts";
 import { markdown } from "./markdown.ts";
 import {
   bedroomPage,
@@ -43,13 +45,24 @@ store.onChange(live.broadcast);
 
 type Headers = Record<string, string>;
 
+// In a made house (src/houses.ts), every page's own links, forms and scripts
+// start with /h/<code>, so nothing written for Rithika's house at `/` needs to
+// know there's more than one.
+function rebase(html: string): string {
+  const { base } = house();
+  if (!base) return html;
+  return html
+    .replace(/\b(href|action|src)="\/(?!\/|h\/|art\/|style\.css|make\b)/g, `$1="${base}/`)
+    .replace(/(["'])\/(here|live|live\.js|house\.js)\b/g, `$1${base}/$2`);
+}
+
 function send(res: ServerResponse, status: number, body: string | Buffer, type = "text/html; charset=utf-8"): void {
   res.writeHead(status, { "content-type": type });
-  res.end(body);
+  res.end(typeof body === "string" && type.startsWith("text/html") ? rebase(body) : body);
 }
 
 function redirect(res: ServerResponse, to: string, headers: Headers = {}): void {
-  res.writeHead(303, { location: to, ...headers });
+  res.writeHead(303, { location: to.startsWith("/") && !to.startsWith("//") ? `${house().base}${to}` : to, ...headers });
   res.end();
 }
 
@@ -64,7 +77,9 @@ function cookie(req: IncomingMessage, name: string): string | undefined {
 function whoCookie(req: IncomingMessage, value: string, maxAge: number): string {
   // Fly terminates TLS in front of the app, so https only shows up in this header.
   const secure = req.headers["x-forwarded-proto"] === "https" ? "; Secure" : "";
-  return `who=${value}; Path=/; Max-Age=${maxAge}; SameSite=Lax; HttpOnly${secure}`;
+  // Each house has its own who= cookie, so being Neha in one house says
+  // nothing about who you are in another.
+  return `who=${value}; Path=${house().base || "/"}; Max-Age=${maxAge}; SameSite=Lax; HttpOnly${secure}`;
 }
 
 // Who this browser came in as: `who=<id>.<token>`, and only while the token is
@@ -151,7 +166,7 @@ function line(did: string | null, owner?: Person, me?: Person): string | undefin
     case "desk":
       return owner && `Left on ${owner.name}'s desk. It'll be waiting whenever ${owner.name} is next home.`;
     case "tidy":
-      return owner?.id === "5" ? "All tidy. The banana stays, though. It's Aswathy's." : "All tidy.";
+      return owner?.id === "5" && !made() ? "All tidy. The banana stays, though. It's Aswathy's." : "All tidy.";
     case "wall":
       return "Pinned to the wall. Whoever comes by next will see it.";
     case "sticker":
@@ -252,7 +267,8 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   const owner = roomMatch ? personById(roomMatch[1]) : undefined;
   if (roomMatch && !owner) return send(res, 404, messagePage("No such room", "There are five rooms in this house, and that isn't one of them."));
   // The face mask powder is in Rithanya's room, and the kettle in Amirdhavarshini's.
-  if ((roomMatch?.[2] === "/mask" && owner?.id !== MASK_ROOM) || (roomMatch?.[2] === "/kettle" && owner?.id !== KETTLE_ROOM)) {
+  // A made house (src/houses.ts) has neither: they're Rithika's five's own.
+  if ((roomMatch?.[2] === "/mask" && (owner?.id !== MASK_ROOM || made())) || (roomMatch?.[2] === "/kettle" && (owner?.id !== KETTLE_ROOM || made()))) {
     return send(res, 404, messagePage("Not in this room", "That happens in another room."));
   }
 
@@ -331,7 +347,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   if (owner && roomMatch?.[2] === "/leave") {
     const back = `/room/${owner.id}`;
     if (owner.id === me.id) return send(res, 400, messagePage("That's your desk", "Leave things on a friend's desk instead.", back));
-    if (item && !find(GIFTS, item)) return send(res, 400, messagePage("Not in this house", "That isn't something you can leave here.", back));
+    if (item && !find(gifts(), item)) return send(res, 400, messagePage("Not in this house", "That isn't something you can leave here.", back));
     if (!body && !item) return send(res, 400, messagePage("Nothing to leave", "Write a note or pick something to leave.", back));
     if (body.length > MAX_NOTE) return send(res, 400, messagePage("Too long", `Notes fit up to ${MAX_NOTE} characters.`, back));
     store.leave({ author: me.id, kind: "desk", place: roomPlace(owner.id), body, item });
@@ -376,7 +392,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   // you're one of them and not alone.
   if (pathname === "/uno") {
     const who = dealFor(me.id, resting(store.things(), Date.now(), store.whereabouts(), store.arrivals()));
-    if (!who) return send(res, 400, messagePage("Not yet", "Sit on Amirdhavarshini's mat with a friend first, then deal.", `/room/${KETTLE_ROOM}`));
+    if (!who) return send(res, 400, messagePage("Not yet", `Sit on the mat in ${personById(KETTLE_ROOM)?.name ?? "the big"}'s room with a friend first, then deal.`, `/room/${KETTLE_ROOM}`));
     store.leave({ author: me.id, kind: "uno", place: roomPlace(KETTLE_ROOM), item: who.join(","), body: String(randomInt(1, 2 ** 31)) });
     return redirect(res, "/uno?did=uno");
   }
@@ -452,7 +468,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
 
   // Sitting down, like lying down, puts you in that room first.
   if (pathname === "/sit") {
-    const seat = SEATS.find((s) => s.key === text(form, "seat"));
+    const seat = seats().find((s) => s.key === text(form, "seat"));
     if (!seat) return send(res, 400, messagePage("Sit where?", "There's no seat like that in this house."));
     store.recordVisit(me.id, seat.place);
     store.leave({ author: me.id, kind: "sit", place: seat.place, item: seat.key });
@@ -468,8 +484,40 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   return redirect(res, `${back}?did=${kind}`);
 }
 
+// /h/<code>/... is a made house (src/houses.ts): the rest of the path is
+// handled exactly as in Rithika's house at `/`, inside that house. /make is
+// where a house gets made (src/maker.ts), in no house at all.
+function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const path = (req.url ?? "/").split("?")[0];
+  if (path === "/make" || path.startsWith("/make/")) return make(req, res);
+  const m = (req.url ?? "/").match(/^\/h\/([^/?]+)(\/[^?]*)?(\?.*)?$/);
+  if (!m) return inHouse(ORIGINAL, () => (watchRefusals(req, res), handle(req, res)));
+  const h = findHouse(m[1]);
+  if (!h) return inHouse(ORIGINAL, async () => send(res, 404, messagePage("No house here", "There's no house at that address. Check the link, or make your own.", "/make")));
+  // /h/<code> on its own is the house's door.
+  if (!m[2]) return inHouse(h, async () => redirect(res, "/"));
+  req.url = `${m[2]}${m[3] ?? ""}`;
+  return inHouse(h, () => (watchRefusals(req, res), handle(req, res)));
+}
+
+// Anything the house turns down is logged too, by who tried it (crit 10): a
+// write that answers 4xx, like a stranger posting or someone acting as a
+// friend whose window isn't theirs.
+function watchRefusals(req: IncomingMessage, res: ServerResponse): void {
+  if (req.method !== "POST") return;
+  // Who's asking is worked out now, inside the house; the line is written once
+  // the answer has gone, by which time the request has left it.
+  const h = house();
+  const mine = session(req);
+  const by = mine ? `${mine.me.id}:${mine.me.name}` : "someone not signed in";
+  res.on("finish", () => {
+    if (res.statusCode < 400 || res.statusCode >= 500) return;
+    inHouse(h, () => store.log(`${by} was refused ${req.method} ${(req.url ?? "").split("?")[0]} (${res.statusCode})`));
+  });
+}
+
 const server = createServer((req, res) => {
-  handle(req, res).catch((err: unknown) => {
+  route(req, res).catch((err: unknown) => {
     console.error(err);
     if (!res.headersSent) send(res, 500, messagePage("Something broke", "The house stumbled. Try again in a moment."));
     else res.end();
@@ -485,6 +533,7 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.on(signal, () => {
     server.close();
     store.close();
+    closeHouses();
     process.exit(0);
   });
 }
