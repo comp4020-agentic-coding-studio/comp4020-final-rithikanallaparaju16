@@ -2,6 +2,7 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { house } from "./houses.ts";
+import { personById } from "./people.ts";
 
 // On Fly, DATA_DIR is the /data volume: the only place that survives a restart.
 const dir = process.env.DATA_DIR ?? "data";
@@ -153,8 +154,20 @@ function q(): Statements {
 // port, as it always has.
 q();
 
+// Who did what, for `flyctl logs` (crit 10): one line per thing left, by
+// house and by friend, with the kind, where and which item. Never what anyone
+// wrote: a note's words stay in the house.
+const who = (person: string): string => `${person}:${personById(person)?.name ?? "?"}`;
+const where = (): string => house().code || "rithika";
+export function log(line: string): void {
+  console.log(`[${where()}] ${line}`);
+}
+
 export function leave(t: { author: string; kind: Kind; place: string; body?: string; item?: string }): void {
-  q().insertThing.run(t.author, t.kind, t.place, t.body ?? "", t.item ?? "", Date.now());
+  const r = q().insertThing.run(t.author, t.kind, t.place, t.body ?? "", t.item ?? "", Date.now());
+  const item = t.item ? ` item=${t.item}` : "";
+  const words = t.body ? ` (${t.body.length} chars written)` : "";
+  log(`${who(t.author)} ${t.kind} at ${t.place}${item}${words} #${r.lastInsertRowid}`);
   changed();
 }
 
@@ -195,9 +208,14 @@ export function spots(): Map<string, [number, number]> {
 
 // `person` walked to (x, y), in `place`. Walking counts as being here, and as
 // getting up from wherever she was sitting or asleep.
+const lastPlace = new Map<string, string>();
+
 export function walkTo(person: string, place: string, x: number, y: number): void {
   recordVisit(person, place);
   q().updateSpot.run(x, y, Date.now(), person);
+  // Walking sends a step a few times a second; only a change of room is news.
+  if (place !== lastPlace.get(`${where()}/${person}`)) log(`${who(person)} walked into ${place}`);
+  lastPlace.set(`${where()}/${person}`, place);
   changed({ type: "moved", person, place, x, y });
 }
 
@@ -237,14 +255,22 @@ export function holder(person: string): { token: string; active: number } {
   return { token: String(r?.token ?? ""), active: Number(r?.active ?? 0) };
 }
 
+// A browser's session is named by the first 6 characters of its token, which
+// tells two browsers apart in the logs without printing the token itself.
+const tag = (token: string): string => token.slice(0, 6);
+
 export function claim(person: string, token: string): void {
   q().claimToken.run(person, token, Date.now());
+  log(`${who(person)} came in at the door (browser ${tag(token)})`);
   changed();
 }
 
 // Only the one holding her can let her go.
 export function release(person: string, token: string): void {
-  if (Number(q().releaseToken.run(person, token).changes) > 0) changed();
+  if (Number(q().releaseToken.run(person, token).changes) > 0) {
+    log(`${who(person)} left the house (browser ${tag(token)})`);
+    changed();
+  }
 }
 
 export function close(): void {

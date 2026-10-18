@@ -490,13 +490,29 @@ function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const path = (req.url ?? "/").split("?")[0];
   if (path === "/make" || path.startsWith("/make/")) return make(req, res);
   const m = (req.url ?? "/").match(/^\/h\/([^/?]+)(\/[^?]*)?(\?.*)?$/);
-  if (!m) return inHouse(ORIGINAL, () => handle(req, res));
+  if (!m) return inHouse(ORIGINAL, () => (watchRefusals(req, res), handle(req, res)));
   const h = findHouse(m[1]);
   if (!h) return inHouse(ORIGINAL, async () => send(res, 404, messagePage("No house here", "There's no house at that address. Check the link, or make your own.", "/make")));
   // /h/<code> on its own is the house's door.
   if (!m[2]) return inHouse(h, async () => redirect(res, "/"));
   req.url = `${m[2]}${m[3] ?? ""}`;
-  return inHouse(h, () => handle(req, res));
+  return inHouse(h, () => (watchRefusals(req, res), handle(req, res)));
+}
+
+// Anything the house turns down is logged too, by who tried it (crit 10): a
+// write that answers 4xx, like a stranger posting or someone acting as a
+// friend whose window isn't theirs.
+function watchRefusals(req: IncomingMessage, res: ServerResponse): void {
+  if (req.method !== "POST") return;
+  // Who's asking is worked out now, inside the house; the line is written once
+  // the answer has gone, by which time the request has left it.
+  const h = house();
+  const mine = session(req);
+  const by = mine ? `${mine.me.id}:${mine.me.name}` : "someone not signed in";
+  res.on("finish", () => {
+    if (res.statusCode < 400 || res.statusCode >= 500) return;
+    inHouse(h, () => store.log(`${by} was refused ${req.method} ${(req.url ?? "").split("?")[0]} (${res.statusCode})`));
+  });
 }
 
 const server = createServer((req, res) => {
