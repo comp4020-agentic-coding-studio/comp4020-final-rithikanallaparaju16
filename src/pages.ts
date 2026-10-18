@@ -185,7 +185,7 @@ function slot(key: string, html: string): string {
 
 /* ---------- the frame every page shares ---------- */
 
-function shell(title: string, body: string, light: Phase, kind: string): string {
+export function shell(title: string, body: string, light: Phase, kind: string): string {
   return `<!doctype html>
 <html lang="en-AU">
 <head>
@@ -422,6 +422,7 @@ ${people}
     </ul>
   </form>
   <p class="hint">Each window shows the sky where that friend is right now. <a href="/readme/">What is this place?</a></p>
+  <p class="hint make-link"><a href="/make">Make a house for your own friends ›</a></p>
 </main>`, "dusk", "page-door");
 }
 

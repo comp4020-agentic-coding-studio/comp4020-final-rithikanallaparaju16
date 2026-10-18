@@ -725,4 +725,76 @@ describe.skipIf(!throwaway)("living in the house", () => {
       }
     }
   });
+
+  /* ---------- a house for any five friends (src/maker.ts, ADR 0017) ---------- */
+
+  // Making a house the way the form does, and the address it lives at.
+  async function makeHouse(names: string[], extra: Record<string, string> = {}): Promise<{ res: Response; code?: string }> {
+    const fields: Record<string, string> = { ...extra };
+    names.forEach((name, i) => (fields[`name-${i + 1}`] = name));
+    // A visitor of its own each time, so runs back to back stay under the
+    // per-visitor cap (Fly's proxy sets this header itself in production).
+    const res = await fetch(new URL("/make", baseUrl), {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded", "fly-client-ip": unique("spec") },
+      body: new URLSearchParams(fields),
+      redirect: "manual",
+    });
+    const code = res.status === 201 ? (await res.clone().text()).match(/\/h\/([a-z0-9]{10})\//)?.[1] : undefined;
+    return { res, code };
+  }
+
+  it("makes a house for any five friends from what you tell it", async () => {
+    const five = ["Mia", "Jo", "Sam", "Ana", "Lee"].map((n) => unique(n).slice(0, 30));
+    const { res, code } = await makeHouse(five, { "city-1": "London", "things-1": "a record player, fairy lights", memories: "the road trip" });
+    expect(res.status, "the house wasn't made").toBe(201);
+    expect(code, "the made page doesn't say where the house is").toBeTruthy();
+
+    const door = parse(await (await fetch(new URL(`/h/${code}/`, baseUrl))).text());
+    const names = [...door.querySelectorAll("button[name=who] .name")].map((n) => text(n));
+    expect(names, "the new house's door doesn't have its own five").toEqual(five);
+    expect(text(door.body), "Rithika's five are in someone else's house").not.toContain("Rithika");
+    expect(door.querySelector(`form[action="/h/${code}/me"]`), "the door's form leaves the house").not.toBeNull();
+  });
+
+  it("keeps each made house to itself", async () => {
+    const { code } = await makeHouse(["Ivy", "Rae", "Kit", "Bo", "Dee"]);
+    const house = (path: string): URL => new URL(`/h/${code}${path}`, baseUrl);
+    const res = await fetch(house("/me"), { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ who: "1" }), redirect: "manual" });
+    const set = res.headers.getSetCookie().find((c) => c.startsWith("who="))!;
+    expect(set, "the made house's who= cookie reaches other houses").toContain(`Path=/h/${code}`);
+    const cookie = set.split(";")[0];
+
+    const theirs = unique("a note in the made house");
+    await fetch(house("/wall"), { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", cookie }, body: new URLSearchParams({ body: theirs }), redirect: "manual" });
+    const [a] = await people();
+    const ours = unique("a note in Rithika's house");
+    await post("/wall", { body: ours }, a.id);
+
+    const theirWall = parse(await (await fetch(house("/living"), { headers: { cookie } })).text());
+    expect(withText(theirWall, ".note", theirs), "the made house lost its own note").toBeDefined();
+    expect(withText(theirWall, ".note", ours), "Rithika's note turned up in the made house").toBeUndefined();
+    expect(withText(await page("/living", a.id), ".note", theirs), "the made house's note turned up in Rithika's").toBeUndefined();
+    await fetch(house("/leave"), { method: "POST", headers: { cookie }, redirect: "manual" });
+  });
+
+  it("only makes a few houses an hour for each visitor", async () => {
+    const visitor = unique("the same visitor");
+    const make = (): Promise<Response> => fetch(new URL("/make", baseUrl), {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded", "fly-client-ip": visitor },
+      body: new URLSearchParams(Object.fromEntries(["Ivy", "Rae", "Kit", "Bo", "Dee"].map((n, i) => [`name-${i + 1}`, n]))),
+      redirect: "manual",
+    });
+    for (let i = 0; i < 3; i++) expect((await make()).status, `house ${i + 1} wasn't made`).toBe(201);
+    const fourth = await make();
+    expect(fourth.status, "a fourth house in the hour was made").toBe(429);
+    expect(text(parse(await fourth.text()).querySelector(".problem"))).toContain("Try again in a little while");
+  });
+
+  it("turns down a house with missing friends", async () => {
+    const { res } = await makeHouse(["Only", "Four", "Friends", "Here"]);
+    expect(res.status, "a house was made with an empty room").toBe(400);
+    expect(text(parse(await res.text()).querySelector(".problem"))).toContain("missing");
+  });
 });
