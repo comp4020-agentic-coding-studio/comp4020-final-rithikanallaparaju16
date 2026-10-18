@@ -240,7 +240,7 @@ const ZONES: [RegExp, string][] = [
   [/perth/i, "Australia/Perth"],
   [/brisbane/i, "Australia/Brisbane"],
   [/auckland|new zealand/i, "Pacific/Auckland"],
-  [/india|bangalore|bengaluru|chennai|mumbai|delhi|tamil|kerala|hyderabad|kolkata/i, "Asia/Kolkata"],
+  [/india|bangalore|bengaluru|chennai|mumbai|delhi|tamil|kerala|hyderabad|kolkata|pune|ahmedabad|jaipur|goa|kochi|coimbatore|madurai|mysore|mysuru|lucknow|chandigarh/i, "Asia/Kolkata"],
   [/singapore/i, "Asia/Singapore"],
   [/tokyo|japan/i, "Asia/Tokyo"],
   [/london|england|\buk\b|united kingdom|scotland|wales/i, "Europe/London"],

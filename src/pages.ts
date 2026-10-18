@@ -829,8 +829,8 @@ const outLine = (g: Game, v: Visit): string =>
     ? "Your twenty seconds ran out, so the others played on without you."
     : "You left the house, so you're out of this game.";
 
-// Sitting on the mat with a friend, anyone can deal. A game, once dealt, waits
-// for whoever's turn it is, however long she's away.
+// Sitting on the mat with a friend, anyone can deal. Once dealt, each player
+// gets twenty seconds a turn (ADR 0016).
 function unoCard(v: Visit): string {
   const rests = resting(v.things, v.now, v.where, v.arrived);
   const dealt = dealFor(v.me.id, rests);

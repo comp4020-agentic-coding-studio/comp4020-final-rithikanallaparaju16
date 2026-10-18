@@ -200,9 +200,7 @@ function line(did: string | null, owner?: Person, me?: Person): string | undefin
     case "night":
       return `Movie night's planned. Everyone sees it in ${made() ? "their" : "her"} own time.`;
     case "uno":
-      return made()
-        ? "Dealt: seven cards each, and twenty seconds a turn."
-        : "Dealt: seven cards each. The game waits for whoever's turn it is, however long she's away.";
+      return "Dealt: seven cards each, and twenty seconds a turn.";
     case "unowon":
       return "You won UNO! Back to the mat for another round whenever you like.";
     default:
