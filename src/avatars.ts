@@ -24,20 +24,34 @@ export function parseLook(key: string): Look | undefined {
   return skin < SKINS.length && hair < HAIRS.length && style < STYLES[gender] ? { gender, skin, hair, style } : undefined;
 }
 
+// How far apart two colours are in lightness, as a WCAG contrast ratio (1 is
+// the same, 21 is black on white).
+function contrast(a: string, b: string): number {
+  const lum = (hex: string): number => {
+    const n = parseInt(hex.slice(1), 16);
+    const [r, g, bl] = [n >> 16, (n >> 8) & 255, n & 255].map((v) => (v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+    return 0.2126 * r + 0.7152 * g + 0.0722 * bl;
+  };
+  const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+}
+// Hair at least this far from the skin reads as hair, not part of the face.
+// Black hair on the deepest skin is 1.93.
+const HAIR_CONTRAST = 1.9;
+
 // A made friend's look, picked when the house is made: the gender she was
 // given, and a skin, hair colour and hairstyle chosen from the house's code
 // and her window, so the five in a house mostly look different from each
 // other (two can match by chance) and the same house always draws them the
-// same way.
+// same way. Hair too close to her skin steps to a darker colour (round to the
+// light ones past black) until it stands out.
 export function lookFor(gender: Gender, code: string, window: number): Look {
   let h = 2166136261;
   for (const c of `${code}/${window}`) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0;
-  return {
-    gender,
-    skin: (h + window * 2) % SKINS.length,
-    hair: (h >>> 8) % HAIRS.length,
-    style: (h >>> 16) % STYLES[gender],
-  };
+  const skin = (h + window * 2) % SKINS.length;
+  let hair = (h >>> 8) % HAIRS.length;
+  for (let i = 0; i < HAIRS.length && contrast(SKINS[skin], HAIRS[hair]) < HAIR_CONTRAST; i++) hair = (hair + HAIRS.length - 1) % HAIRS.length;
+  return { gender, skin, hair, style: (h >>> 16) % STYLES[gender] };
 }
 
 // The address of someone's picture, for an <img> or an SVG <image>.
@@ -177,10 +191,15 @@ function bodyFor(l: Look, skin: string): string {
 
 // The sticker itself, as a whole SVG document: everything drawn twice, first
 // as a thick white edge underneath, then in colour on top, like a die-cut
-// sticker.
+// sticker. Hair gets a darker line round it, so it stays apart from the face;
+// a bolder one when it's close to the skin (houses made before lookFor kept
+// them apart can still have that).
 export function avatarSvg(l: Look): string {
   const skin = SKINS[l.skin];
   const hair = hairFor(l, HAIRS[l.hair]);
-  const figure = `${hair.back}${bodyFor(l, skin)}${head(skin)}${face(skin)}${hair.sides ?? ""}${hair.front}`;
+  const c = HAIRS[l.hair];
+  const width = contrast(skin, c) < HAIR_CONTRAST ? 5 : 3;
+  const lined = (s: string): string => s.replaceAll(`fill="${c}"`, `fill="${c}" stroke="${darker(c, 0.45)}" stroke-width="${width}" stroke-linejoin="round"`);
+  const figure = `${lined(hair.back)}${bodyFor(l, skin)}${head(skin)}${face(skin)}${lined((hair.sides ?? "") + hair.front)}`;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 242" width="180" height="242"><g stroke="#fff" stroke-width="12" stroke-linejoin="round" fill="#fff" opacity=".97">${hair.back}${bodyFor(l, skin)}${head(skin)}${hair.front}</g><g filter="drop-shadow(0 1px 1px rgba(60,40,30,.25))">${figure}</g></svg>`;
 }
