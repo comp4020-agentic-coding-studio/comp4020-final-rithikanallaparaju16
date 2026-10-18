@@ -50,6 +50,11 @@ const current = new AsyncLocalStorage<House>();
 
 export const house = (): House => current.getStore() ?? ORIGINAL;
 
+// Whether this request is in a made house. Rithika's five have details only
+// they share (KitKats, the hostel kettle, face masks, a yoga mat); a made
+// house has its own five, and none of those.
+export const made = (): boolean => house().spec !== undefined;
+
 export const inHouse = <T>(h: House, fn: () => T): T => current.run(h, fn);
 
 // A made house's code: short, unguessable enough that a stranger doesn't

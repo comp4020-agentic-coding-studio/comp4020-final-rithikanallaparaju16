@@ -1,6 +1,7 @@
 import { balloons, BLANKET, bunting, cake, confetti, CROWN, DOG_STANDING, EMOJI, icon, messItem, PARTY_HAT, pop } from "./art.ts";
 import { art } from "./assets.ts";
 import { along, DOG, KETTLE_ROOM, MASK_ROOM, rejoin, YOGA_ROOM, type DogSpot, type Pose, type Waypoint } from "./house.ts";
+import { made } from "./houses.ts";
 import { esc } from "./html.ts";
 import type { Person } from "./people.ts";
 import type { Phase } from "./time.ts";
@@ -41,6 +42,10 @@ type Room = {
   // Bedrooms only: in her birthday month, bunting from `from` to `to`
   // (sagging by `sag`) and balloons tied down at `balloons`.
   party?: { from: Pt; to: Pt; sag: number; balloons: Pt };
+  // Bedrooms only, in a made house: where the first of her things is pinned
+  // up, on a bit of wall or floor clear of her name tag and the bunting
+  // (src/houses.ts); the rest go down below it.
+  pins?: Pt;
 };
 
 export const ROOMS: Record<string, Room> = {
@@ -57,6 +62,7 @@ export const ROOMS: Record<string, Room> = {
     bedArea: [[80, 168], [196, 168], [198, 296], [80, 296]],
     deskArea: [[205, 170], [302, 170], [302, 240], [205, 240]],
     party: { from: [30, 125], to: [312, 120], sag: 10, balloons: [74, 300] },
+    pins: [322, 150],
   },
   kitchen: {
     name: "Kitchen",
@@ -92,6 +98,7 @@ export const ROOMS: Record<string, Room> = {
     bedArea: [[42, 636], [230, 636], [230, 728], [42, 728]],
     deskArea: [[280, 572], [352, 572], [352, 700], [280, 700]],
     party: { from: [26, 512], to: [352, 512], sag: 9, balloons: [298, 566] },
+    pins: [236, 588],
   },
   "room:4": {
     name: "Rithanya's room",
@@ -106,6 +113,7 @@ export const ROOMS: Record<string, Room> = {
     bedArea: [[366, 490], [482, 490], [482, 650], [366, 650]],
     deskArea: [[460, 645], [602, 645], [602, 705], [460, 705]],
     party: { from: [364, 470], to: [648, 470], sag: 9, balloons: [600, 562] },
+    pins: [612, 462],
   },
   "room:5": {
     name: "Aswathy's room",
@@ -121,6 +129,7 @@ export const ROOMS: Record<string, Room> = {
     bedArea: [[718, 488], [820, 488], [852, 645], [718, 645]],
     deskArea: [[738, 642], [856, 642], [858, 692], [740, 692]],
     party: { from: [712, 515], to: [962, 500], sag: 8, balloons: [940, 585] },
+    pins: [836, 548],
   },
   "room:2": {
     name: "Neha's room",
@@ -135,6 +144,7 @@ export const ROOMS: Record<string, Room> = {
     bedArea: [[1128, 442], [1220, 442], [1272, 575], [1270, 612], [1172, 612], [1128, 525]],
     deskArea: [[1120, 630], [1262, 630], [1288, 700], [1120, 712]],
     party: { from: [992, 410], to: [1222, 400], sag: 10, balloons: [1015, 530] },
+    pins: [1168, 520],
   },
 };
 
@@ -202,6 +212,10 @@ export type Rest = { kind: "nap" | "sit"; place: string; seat: string };
 
 export type Bedroom = {
   owner: Person;
+  // In a made house (src/houses.ts), what she said is in her room; a few are
+  // pinned up by her desk. Empty in Rithika's house, where the picture
+  // already has them.
+  things: string[];
   phase: Phase;
   clock: string;
   status: string;
@@ -329,15 +343,30 @@ const tub = (x: number, y: number, body: string, lid: string): string =>
 
 // The illustration gave Rithanya cats. She has KitKats instead, and a mirror
 // and face mask powder for everyone, so those are drawn over the cats.
-const RITHANYA = `<g class="fixes" aria-hidden="true">
-<path d="M503 498V466A24 17 0 0 1 551 466V498Z" fill="#9a6233"/>
+const MIRROR_GLASS = `<path d="M503 498V466A24 17 0 0 1 551 466V498Z" fill="#9a6233"/>
 <path d="M507 495V467A20 14 0 0 1 547 467V495Z" fill="url(#glass)"/>
 <path d="M515 489L535 461M524 491L540 469" stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity=".55"/>
-<rect x="509" y="496" width="36" height="5" rx="2" fill="#7c4a26"/>
+<rect x="509" y="496" width="36" height="5" rx="2" fill="#7c4a26"/>`;
+const TOWELS = `${towel(628, 701, "#cfe9df")}${towel(648, 698, "#f8d2bf")}${towel(638, 713, "#fbf6ee")}${towel(656, 712, "#cfe9df")}`;
+const RITHANYA = `<g class="fixes" aria-hidden="true">
+${MIRROR_GLASS}
 ${tub(514, 504, "#b9d79d", "#5f8f4e")}${tub(527, 506, "#f6c7cf", "#d9768a")}${tub(540, 504, "#fbf3e4", "#c9a27a")}
 ${kitkat(418, 704, -25)}${kitkat(436, 699, 12)}${kitkat(447, 709, -8)}${kitkat(424, 714, 18)}${kitkat(440, 717, -30)}${kitkat(430, 707, 5)}
-${towel(628, 701, "#cfe9df")}${towel(648, 698, "#f8d2bf")}${towel(638, 713, "#fbf6ee")}${towel(656, 712, "#cfe9df")}
+${TOWELS}
 <g transform="translate(579 668) rotate(-5)"><rect x="-22" y="-15" width="44" height="30" rx="3" fill="#d62828" stroke="#7f1212" stroke-width="1.5"/><ellipse rx="16" ry="7.5" fill="#fff"/><text class="kitkat-word" y="3.2">KitKat</text></g>
+</g>`;
+
+// A made house (src/houses.ts) has its own five, so room 4 gets none of
+// Rithanya's KitKats or face mask tubs. The picture's cats still need
+// covering: a plain mirror, folded towels in the basket, a blanket on the
+// cushion, and a lid on the red box.
+const blanket4 = (x: number, y: number): string =>
+  `<g transform="translate(${x} ${y}) rotate(-12)"><rect x="-17" y="-11" width="34" height="22" rx="4" fill="#e8c8c8" stroke="#a47b7b" stroke-width="1.2"/><path d="M-17 -3h34M-17 4h34" stroke="#c99d9d" stroke-width="2"/></g>`;
+const COVERED = `<g class="fixes" aria-hidden="true">
+${MIRROR_GLASS}
+${blanket4(430, 708)}
+${TOWELS}
+<g transform="translate(579 668) rotate(-5)"><rect x="-22" y="-15" width="44" height="30" rx="3" fill="#c94a3a" stroke="#7f1212" stroke-width="1.5"/><rect x="-22" y="-15" width="44" height="9" rx="3" fill="#e2705f"/></g>
 </g>`;
 
 function kettleMaggi(s: Scene): string {
@@ -478,10 +507,16 @@ function hotspots(s: Scene): string {
       spots.push({ place, area: balloonArea(room.party.balloons), doings: [{ label: mine ? "Celebrate your birthday" : `Wish ${name} a happy birthday`, emoji: EMOJI.wish, post: `/room/${id}/wish` }] });
     }
   }
+  // Rithika's five share kettle Maggi, Rithanya's face masks and Aswathy's
+  // yoga mat; a made house's five don't. The mat and its cushions are in the
+  // picture, so they're everyone's.
+  const ours = !made();
   spots.push(
-    { place: `room:${KETTLE_ROOM}`, area: MAT, doings: [{ label: "Sit on your cushion", emoji: EMOJI.sit, post: "/sit", fields: { seat: "mat" } }, { label: "Make kettle Maggi", emoji: EMOJI.kettle, post: `/room/${KETTLE_ROOM}/kettle` }, ...(s.uno?.mat ?? [])] },
-    { place: `room:${MASK_ROOM}`, area: MIRROR, doings: [{ label: "Do a face mask", emoji: EMOJI.mask, post: `/room/${MASK_ROOM}/mask` }] },
-    { place: `room:${YOGA_ROOM}`, area: YOGA, doings: [{ label: "Meditate on the yoga mat", emoji: EMOJI.yoga, post: "/sit", fields: { seat: "yoga" } }] },
+    { place: `room:${KETTLE_ROOM}`, area: MAT, doings: [{ label: "Sit on your cushion", emoji: EMOJI.sit, post: "/sit", fields: { seat: "mat" } }, ...(ours ? [{ label: "Make kettle Maggi", emoji: EMOJI.kettle, post: `/room/${KETTLE_ROOM}/kettle` }] : []), ...(s.uno?.mat ?? [])] },
+    ...(ours ? [
+      { place: `room:${MASK_ROOM}`, area: MIRROR, doings: [{ label: "Do a face mask", emoji: EMOJI.mask, post: `/room/${MASK_ROOM}/mask` }] },
+      { place: `room:${YOGA_ROOM}`, area: YOGA, doings: [{ label: "Meditate on the yoga mat", emoji: EMOJI.yoga, post: "/sit", fields: { seat: "yoga" } }] },
+    ] : []),
     { place: "living", area: WALL_BOARD, doings: [{ label: "Write on the wall", emoji: EMOJI.write, href: "/living#write" }, { label: "Read the wall", emoji: EMOJI.read, href: "/living#wall" }] },
     { place: "living", area: SOFAS, doings: [{ label: "Sit on the sofa", emoji: EMOJI.sit, post: "/sit", fields: { seat: "sofa" } }, { label: "Plan a movie night", emoji: EMOJI.night, href: "/movies" }] },
     // Whatever's out on the counter can be eaten, which takes it away.
@@ -498,14 +533,41 @@ function hotspots(s: Scene): string {
   return `<g class="acts" aria-hidden="true">${svg.join("")}</g>`;
 }
 
+// In a made house, a few of what each friend said is in her room, on little
+// paper tags pinned up in it, in her paper colour. The full list is on her
+// room page.
+const PINNED = 3;
+function roomThings(s: Scene): string {
+  const tags = s.bedrooms.flatMap((b) => {
+    const room = ROOMS[`room:${b.owner.id}`];
+    const at = room.pins;
+    if (!at || !b.things.length) return [];
+    return b.things.slice(0, PINNED).map((thing, i) => {
+      const label = thing.length > 18 ? `${thing.slice(0, 17).trimEnd()}…` : thing;
+      const w = Math.round(label.length * 6.6 + 18);
+      const tilt = [-3, 2, -1.5][i % 3];
+      return `<g class="room-thing" data-place="room:${b.owner.id}" transform="translate(${at[0]} ${at[1] + i * 30}) rotate(${tilt})" style="--paper:${b.owner.paper};--accent:${b.owner.color}"><rect class="pin-paper" width="${w}" height="22" rx="3"/><circle class="pin" cx="${w / 2}" cy="1" r="3"/><text class="pin-text" x="9" y="15">${esc(label)}</text></g>`;
+    });
+  });
+  return tags.length ? `<g class="room-things" aria-hidden="true">${tags.join("")}</g>` : "";
+}
+
+// A bedroom is named for whoever's room it is in this house; the shared rooms
+// keep their own names.
+const roomName = (place: string, s: Scene): string => {
+  const owner = s.bedrooms.find((b) => `room:${b.owner.id}` === place)?.owner;
+  return owner ? `${owner.name}'s room` : ROOMS[place].name;
+};
+
 // data-go is what the Go in button says when you walk yourself into the room,
 // and data-view is what to zoom to on the way in (public/house.js).
 function links(s: Scene): string {
   return Object.entries(ROOMS).map(([place, room]) => {
     const owner = s.bedrooms.find((b) => `room:${b.owner.id}` === place)?.owner;
     const href = owner ? `/room/${owner.id}` : `/${place}`;
-    const label = owner?.id === s.me.id ? "Your room" : room.name;
-    const go = place === "garden" ? "Go out to the garden" : `Go into ${owner ? (owner.id === s.me.id ? "your room" : room.name) : `the ${room.name.toLowerCase()}`}`;
+    const name = roomName(place, s);
+    const label = owner?.id === s.me.id ? "Your room" : name;
+    const go = place === "garden" ? "Go out to the garden" : `Go into ${owner ? (owner.id === s.me.id ? "your room" : name) : `the ${name.toLowerCase()}`}`;
     const current = place === s.focus ? ` aria-current="page"` : "";
     return `<a class="room-link" href="${href}" data-place="${place}" data-walk="${room.walk[0].join(",")}" data-view="${room.view.join(" ")}" data-go="${esc(go)}" aria-label="${esc(label)}"${current}><polygon points="${pts(room.outline)}"/></a>`;
   }).join("");
@@ -658,7 +720,7 @@ const SPARKLE = "M0 -10L2.6 -2.6L10 0L2.6 2.6L0 10L-2.6 2.6L-10 0L-2.6 -2.6Z";
 function tags(s: Scene): string {
   return Object.entries(ROOMS).map(([place, room]) => {
     const b = s.bedrooms.find((r) => `room:${r.owner.id}` === place);
-    const title = b ? (b.owner.id === s.me.id ? "Your room" : room.name) : room.name;
+    const title = b?.owner.id === s.me.id ? "Your room" : roomName(place, s);
     const subText = b ? `${b.clock}${b.status ? ` · ${b.status}` : ""}` : "";
     const sub = b ? `<text class="tag-sub" x="16" y="45"><tspan class="clock" data-tz="${esc(b.owner.tz)}">${esc(b.clock)}</tspan>${b.status ? ` · ${esc(b.status)}` : ""}</text>` : "";
     const w = Math.round(Math.max(title.length * 10.8, subText.length * 7.6) + 30);
@@ -681,11 +743,12 @@ export function houseSvg(s: Scene): string {
 <radialGradient id="glow"><stop offset="0" stop-color="#ffcf7a" stop-opacity=".6"/><stop offset="1" stop-color="#ffcf7a" stop-opacity="0"/></radialGradient>
 </defs>
 <image href="${art("house.jpg")}" width="${W}" height="${H}" aria-hidden="true"/>
-${RITHANYA}
-${kettleMaggi(s)}
+${made() ? COVERED : RITHANYA}
+${made() ? "" : kettleMaggi(s)}
 ${blanket(s, people.standing)}
 ${light(s)}
 ${things(s)}
+${roomThings(s)}
 ${party(s)}
 ${hotspots(s)}
 ${laddoo(s, people.standing)}

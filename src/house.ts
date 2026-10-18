@@ -1,3 +1,4 @@
+import { made } from "./houses.ts";
 import type { Thing } from "./store.ts";
 
 export type Item = { key: string; label: string; short: string };
@@ -52,6 +53,12 @@ export const SEATS: Seat[] = [
 ];
 
 export const find = (list: Item[], key: string): Item | undefined => list.find((i) => i.key === key);
+
+// What this house can leave on a desk, and sit on. A made house
+// (src/houses.ts) has no KitKat box and no yoga mat: they're Rithanya's and
+// Aswathy's. GIFTS and SEATS stay whole for reading back anything stored.
+export const gifts = (): Item[] => (made() ? GIFTS.filter((g) => g.key !== "kitkat") : GIFTS);
+export const seats = (): Seat[] => (made() ? SEATS.filter((s) => s.key !== "yoga") : SEATS);
 
 export const roomPlace = (id: string): string => `room:${id}`;
 
