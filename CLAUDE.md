@@ -246,6 +246,13 @@ accepted record.
 
 - `pnpm start` in one terminal, `pnpm check` in another. The spec runs against
   the running app over HTTP.
+- The agent's shell carries the course's Claude credentials
+  (`ANTHROPIC_AUTH_TOKEN`), and the house maker uses any credential the SDK
+  can read. So a spec server started from the agent's shell must have
+  `HOUSE_MAKER=fake`, or every test that makes a house spends real tokens.
+  Rithika okayed her course key for trying the maker on her own machine
+  (18 Oct 2026). It never goes on Fly, where anyone making a house would
+  spend it.
 - One test per promise the product makes; no tests for test count.
 - Spec tests that write notes or record visits stay inside the `throwaway`
   gate in `spec/house.test.ts`. They must never write into the real house on

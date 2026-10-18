@@ -368,7 +368,12 @@ function send(res: ServerResponse, status: number, html: string): void {
   res.end(html);
 }
 
-const useClaude = (): boolean => Boolean(process.env.ANTHROPIC_API_KEY) && process.env.HOUSE_MAKER !== "fake";
+// Claude writes the house when there's a credential the SDK reads itself: an
+// API key, or an auth token (with its base URL), as when Rithika runs it on her
+// own machine on her course key. HOUSE_MAKER=fake keeps it local, which is how
+// the spec runs: it must never spend tokens.
+const useClaude = (): boolean =>
+  Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN) && process.env.HOUSE_MAKER !== "fake";
 
 export async function make(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const path = (req.url ?? "/").split("?")[0];
