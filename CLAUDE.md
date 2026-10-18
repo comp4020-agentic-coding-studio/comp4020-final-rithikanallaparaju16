@@ -108,8 +108,10 @@ accepted record.
 
 - Node 24 runs `src/*.ts` directly (type stripping). Use erasable TypeScript
   only (no enums or parameter properties); `pnpm typecheck` enforces it.
-- No build step and no runtime dependencies. The Dockerfile copies `src/`,
-  `public/` and `README.md` and runs node. Adding a runtime dependency needs a
+- No build step, and one runtime dependency: `@anthropic-ai/sdk` 0.131.0,
+  for making houses (ADR 0017). The Dockerfile installs it with
+  `pnpm install --prod --frozen-lockfile`, then copies `src/`,
+  `public/` and `README.md` and runs node. Adding another runtime dependency needs a
   reason written in PROCESS.md, and the Dockerfile must then install it.
 - All state lives in SQLite at `$DATA_DIR/house.db` (`/data` on Fly, the only
   storage that survives a redeploy; `./data` locally). Nothing friends must see
@@ -184,6 +186,24 @@ accepted record.
   and birthday.
   Ids are window numbers; never change an id, since everything left
   references it. Rename by changing `name`.
+- More than one house (ADR 0017, a prototype). Rithika's five are at `/`.
+  Anyone can make a house for five friends at `/make`: Claude writes it
+  from the form when `ANTHROPIC_API_KEY` is set, otherwise a local maker
+  does. It lives at `/h/<code>/` with its own `houses/<code>.db`, its own
+  five and its own `who=` cookie path; specs are in `houses.db`.
+  - Each request runs inside one house (`inHouse`, `src/houses.ts`), so
+    `PEOPLE`, the store and live updates all read "the house" without being
+    passed it.
+  - A made house's pages are rebased onto `/h/<code>` in `send()`, so links
+    keep being written as `/…`.
+  - Rithika's five's own details (KitKats, masks, the kettle, the yoga mat,
+    Rithanya's movie picks) only show where `made()` is false.
+  - Five windows only: more friends means more rooms, which means new art.
+- Logs say who did what (crit 10): every `store.leave`, coming in and
+  leaving (with the first 6 characters of the browser's token), each change
+  of room, and every refused write, each tagged with its house. Never what
+  anyone wrote, and never a full token or an address. A new kind of write
+  goes through `store.leave` and is logged for free.
 - `/readme/` renders README.md with `src/markdown.ts`, which supports headings,
   paragraphs, flat lists, blockquotes, code, links, images and emphasis only.
   Keep README.md within that, and don't add relative links to repo files

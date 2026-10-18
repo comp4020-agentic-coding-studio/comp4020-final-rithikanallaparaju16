@@ -71,6 +71,12 @@ Characters sleep at night where they live: Neha from 10 pm to 8 am, Rithanya fro
 
 When you come home, **While you were away** lists what's new since your last visit, starting with what was left for you: who tidied your room, what's on your desk, who wrote on the wall, what's in the kitchen. Rooms with something new for you twinkle in the house too. A visit is a stretch of page loads with no 30-minute gap, so the *new* marks survive a refresh and reset the next time you come back. The Updates tab also keeps what happened lately, so there's always something to read.
 
+## A house for your own friends
+
+This house is for the five of us, but anyone can make one for their own five at `/make` (there's a link at the door). Tell it each friend's name, where she lives, a few things about her and what's in her room, plus the memories you'd pin on the living room wall. It builds a house of your own at its own private address: the same picture, with a room each named for your friends, their things pinned up in their rooms, your memories on the wall, and everyone's own clock. When the app has an Anthropic API key, Claude writes the rooms from what you said; without one, the house is built straight from your words. Everything else works the same in your house: walking, hugs, UNO, the wall, Shinzo. Our five's own things (the KitKats, the face masks, the kettle) stay in our house.
+
+It's a prototype: five friends only for now, because more friends means more rooms, and more rooms means new art.
+
 ## What isn't here yet, on purpose
 
 Photos, drawings, notifications, and editing or deleting things you left. Each one has to show it makes five people feel closer first. Being in at the same time is a bonus, never a need: you see friends walk and what they do as it happens, but everything waits for whoever comes by later. UNO, with its twenty-second turns, is the one thing that needs you there.
@@ -137,6 +143,10 @@ Run it locally with `pnpm start` (it keeps its data in `./data`), then run `pnpm
 - an open UNO table keeps up with friends' moves, and a card goes down without leaving the page
 - each UNO player gets twenty seconds a turn, then the others play on without her
 - leaving the house takes you out of your UNO game
+- anyone can make a house for five friends, and it's built from what they said
+- each made house keeps to itself: its own five, its own wall, its own sign-in
+- a made house gives its five their own rooms and memories, and none of ours
+- making houses is capped, and a house with a missing friend is turned down
 - the house only takes things it has
 
 The checks that write only run against a throwaway house, never the deployed one. `doc/process-log.md` in the repo records what was verified on the deployed app and how.
