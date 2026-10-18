@@ -22,9 +22,12 @@ if (!url || !out) {
 // Comes in at the door as `who` for a real session (only one of us can be
 // each friend at a time, ADR 0011), and leaves again at the end.
 const origin = new URL(url).origin;
+// A made house's url starts /h/<code>: you come in at that house's door, and
+// its cookie only goes to its own pages.
+const door = `${origin}${new URL(url).pathname.match(/^\/h\/[^/]+/)?.[0] ?? ""}`;
 let session: string | undefined;
 if (who !== "none") {
-  const res = await fetch(`${origin}/me`, {
+  const res = await fetch(`${door}/me`, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ who }),
@@ -72,7 +75,7 @@ const cdp = (method: string, params: object = {}): Promise<Record<string, any>> 
 
 await cdp("Network.enable");
 await cdp("Network.clearBrowserCookies");
-if (session) await cdp("Network.setCookie", { name: "who", value: session, url: `${origin}/` });
+if (session) await cdp("Network.setCookie", { name: "who", value: session, url: `${door}/`, path: new URL(`${door}/`).pathname.replace(/\/$/, "") || "/" });
 await cdp("Emulation.setDeviceMetricsOverride", { width: Number(width), height: 844, deviceScaleFactor: 2, mobile: Number(width) < 600 });
 // Phone widths are touch screens, which get the thumb stick. TOUCH=1 makes a
 // wider screen one too (an iPad), and TOUCH=0 turns it off.
@@ -116,4 +119,4 @@ writeFileSync(out, Buffer.from(shot.data, "base64"));
 console.log(`${out}: ${Math.ceil(cssContentSize.width)}x${Math.ceil(cssContentSize.height)} css px`);
 socket.close();
 chrome.kill();
-if (session) await fetch(`${origin}/leave`, { method: "POST", headers: { cookie: `who=${session}` }, redirect: "manual" });
+if (session) await fetch(`${door}/leave`, { method: "POST", headers: { cookie: `who=${session}` }, redirect: "manual" });

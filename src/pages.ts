@@ -10,6 +10,7 @@ import {
   find,
   FOOD,
   GIFTS,
+  gifts,
   hugs,
   kettle,
   KETTLE_ROOM,
@@ -38,6 +39,7 @@ import {
   type Pose,
   type Waypoint,
 } from "./house.ts";
+import { house, made } from "./houses.ts";
 import { esc } from "./html.ts";
 import { PEOPLE, personById, type Person } from "./people.ts";
 import { DOG_SPOTS, houseSvg, HUG_REACH, isPlace, KENNEL, placeAt, standingSpots, type Doing, type Figure, type Scene, type Spot } from "./scene.ts";
@@ -86,6 +88,10 @@ const HOME_NOW = 10 * 60 * 1000;
 const WEEK = 7 * 24 * 60 * 60 * 1000;
 
 const nameOf = (id: string): string => personById(id)?.name ?? "someone";
+
+// In a made house (src/houses.ts), what each friend said is in her room.
+// Rithika's five have theirs in the picture.
+const thingsOf = (p: Person): string[] => house().spec?.friends.find((f) => f.id === p.id)?.things ?? [];
 
 const nameHtml = (p: Person): string =>
   p.breakAfter ? `${esc(p.name.slice(0, p.breakAfter))}<wbr>${esc(p.name.slice(p.breakAfter))}` : esc(p.name);
@@ -311,6 +317,7 @@ function scene(v: Visit, focus?: string, did?: string): Scene {
         desk: deskSpots(owner, v),
         lamp: !zz,
         birthday: birthday(owner, v.now),
+        things: thingsOf(owner),
       };
     }),
     figures: PEOPLE.map((p): Figure => {
@@ -1036,14 +1043,27 @@ export function bedroomPage(owner: Person, v: Visit, did?: Done): string {
     <h2>Leave something for ${esc(owner.name)}</h2>
     <label for="body">A note, if you like</label>
     <textarea id="body" name="body" rows="3" maxlength="${MAX_NOTE}" placeholder="good luck today, I saw this and thought of you…"></textarea>
-    ${picker("item", "And something with it", GIFTS, iconSvg, "Just the note")}
+    ${picker("item", "And something with it", gifts(), iconSvg, "Just the note")}
     <p class="small">Only ${esc(owner.name)} can read the note. Anyone who walks in can see something's been left.</p>
     <button>${emoji("desk")} Leave it on ${esc(owner.name)}'s desk</button>
   </form>`;
 
-  // Anyone can sleep in anyone's bed, and sit down on the seats.
+  // Anyone can sleep in anyone's bed, and sit down on the seats. Aswathy's
+  // yoga mat, Rithanya's face masks and the hostel kettle are Rithika's five's
+  // own; a made house (src/houses.ts) has the mat and cushions, which are in
+  // the picture.
+  const ours = !made();
   const seat = owner.id === KETTLE_ROOM ? sitButton("mat", "Sit on your cushion on the mat")
-    : owner.id === YOGA_ROOM ? sitButton("yoga", "Meditate on the yoga mat")
+    : owner.id === YOGA_ROOM && ours ? sitButton("yoga", "Meditate on the yoga mat")
+    : "";
+
+  // What she said is in her room, when a made house was told.
+  const stuff = thingsOf(owner);
+  const inRoom = stuff.length
+    ? `<section class="card room-things-card" aria-labelledby="things-heading" style="--accent:${owner.color}">
+    <h2 id="things-heading">${mine ? "In your room" : `In ${esc(owner.name)}'s room`}</h2>
+    <ul class="plain-list">${stuff.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
+  </section>`
     : "";
 
   const title = mine ? "Your room" : `${owner.name}'s room`;
@@ -1059,9 +1079,10 @@ export function bedroomPage(owner: Person, v: Visit, did?: Done): string {
     <form method="post" action="/room/${esc(owner.id)}/nap" class="inline"><button class="soft">${emoji("nap")} Sleep in ${mine ? "your" : `${esc(owner.name)}'s`} bed</button></form>
     ${seat}
   </div>
+  ${inRoom}
   ${slot("dog", laddooCard(roomPlace(owner.id), v))}
-  ${owner.id === MASK_ROOM ? slot("mask", maskCard(owner, v)) : ""}
-  ${owner.id === KETTLE_ROOM ? slot("kettle", kettleCard(owner, v)) : ""}
+  ${owner.id === MASK_ROOM && ours ? slot("mask", maskCard(owner, v)) : ""}
+  ${owner.id === KETTLE_ROOM && ours ? slot("kettle", kettleCard(owner, v)) : ""}
   ${owner.id === KETTLE_ROOM ? slot("uno", unoCard(v)) : ""}
   <section class="card" id="desk" aria-labelledby="desk-heading" data-live="desk">
 
@@ -1094,6 +1115,18 @@ function wallNote(t: Thing, v: Visit): string {
   return `<li class="${cls}" id="note-${t.id}" data-id="${t.id}" style="--paper:${paper}">${isNew(t, v) ? `<span class="tag">new</span>` : ""}<p class="body hand">${esc(t.body)}</p><p class="by">${esc(by(t, v))}, ${esc(ago(t.createdAt, v.now))}</p>${chips ? `<ul class="stickers">${chips}</ul>` : ""}${picker}</li>`;
 }
 
+// A made house (src/houses.ts) moves in with the memories it was made with,
+// pinned at the top of the wall. They come from the house's spec, not the
+// log, so they're the same for everyone and nobody wrote them; each is on one
+// of the five's paper, in turn.
+function memoriesOnWall(): string {
+  const memories = house().spec?.memories ?? [];
+  if (!memories.length) return "";
+  const papers = PEOPLE.map((p) => p.paper);
+  const notes = memories.map((m, i) => `<li class="note memory" style="--paper:${papers[i % papers.length] ?? "#fff8e6"}"><p class="body hand">${esc(m)}</p><p class="by">from the house</p></li>`).join("\n");
+  return `<h3 class="pinned">Memories</h3><ul class="notes memories">\n${notes}\n</ul>`;
+}
+
 export function livingPage(v: Visit, did?: Done): string {
   const night = movieNight(v.things, v.now);
   const notes = wall(v.things);
@@ -1116,8 +1149,9 @@ export function livingPage(v: Visit, did?: Done): string {
   </form>
   <section class="wall" id="wall" aria-labelledby="wall-heading" data-live="wall">
     <h2 id="wall-heading">The wall</h2>
+    ${memoriesOnWall()}
     ${big.length ? `<h3 class="pinned">Big news</h3><ul class="notes">\n${big.map((t) => wallNote(t, v)).join("\n")}\n</ul>` : ""}
-    ${everyday.length ? `<ul class="notes">\n${everyday.slice(0, WALL_SHOWN).map((t) => wallNote(t, v)).join("\n")}\n</ul>` : big.length ? "" : `<p class="empty">The wall is bare. Be the first to pin something up.</p>`}
+    ${everyday.length ? `<ul class="notes">\n${everyday.slice(0, WALL_SHOWN).map((t) => wallNote(t, v)).join("\n")}\n</ul>` : big.length || house().spec?.memories.length ? "" : `<p class="empty">The wall is bare. Be the first to pin something up.</p>`}
     ${everyday.length > WALL_SHOWN ? `<details class="drawer" id="memory-box"><summary>The memory box: older notes, taken down but kept</summary><ul class="notes">${everyday.slice(WALL_SHOWN).map((t) => wallNote(t, v)).join("\n")}</ul></details>` : ""}
   </section>`, did);
 }
@@ -1209,7 +1243,7 @@ function nightCard(v: Visit): string {
     const late = asleep(p, c) ? (you ? " You're usually asleep then." : " She's usually asleep then.") : "";
     return `<li data-person="${esc(p.id)}" style="--accent:${p.color}"><span class="name">${you ? "You" : esc(p.name)}</span> <span>${esc(dayLabel(p.tz, night.at))}, <span class="clock">${esc(c.label)}</span> in ${esc(p.city)}.${esc(late)}</span></li>`;
   }).join("\n");
-  const pick = night.movie.thing.author === MOVIE_LOVER ? ` <span class="pick">${esc(nameOf(MOVIE_LOVER))}'s pick</span>` : "";
+  const pick = night.movie.thing.author === MOVIE_LOVER && !made() ? ` <span class="pick">${esc(nameOf(MOVIE_LOVER))}'s pick</span>` : "";
   return `<section class="card night" aria-labelledby="night-heading" data-live="night">
     <h2 id="night-heading">Movie night: “${esc(night.movie.title)}”${pick}</h2>
     <p class="small">Planned by ${esc(by(night.plan, v))}, ${esc(ago(night.plan.createdAt, v.now))}. Here's when it is for each of you:</p>
@@ -1220,7 +1254,7 @@ function nightCard(v: Visit): string {
 function movieItem(m: Movie, v: Visit): string {
   const seen = m.watched.includes(v.me.id);
   const who = m.watched.map((id) => (id === v.me.id ? "you" : nameOf(id)));
-  const pick = m.thing.author === MOVIE_LOVER ? `<span class="pick">${esc(nameOf(MOVIE_LOVER))}'s pick</span>` : "";
+  const pick = m.thing.author === MOVIE_LOVER && !made() ? `<span class="pick">${esc(nameOf(MOVIE_LOVER))}'s pick</span>` : "";
   const cls = ["movie", isNew(m.thing, v) ? "new" : ""].filter(Boolean).join(" ");
   return `<li class="${cls}" data-id="${m.thing.id}">${isNew(m.thing, v) ? `<span class="tag">new</span>` : ""}
     <p class="title">${esc(m.title)} ${pick}</p>
@@ -1248,9 +1282,9 @@ export function moviesPage(v: Visit, did?: Done): string {
   return shell("Movies · Five Windows", `
 ${bar(v, "movies")}
 <main class="list movies">
-  <header class="room-head" style="--accent:${personById(MOVIE_LOVER)?.color ?? "#8e7cc3"}">
+  <header class="room-head" style="--accent:${made() ? "#8e7cc3" : personById(MOVIE_LOVER)?.color ?? "#8e7cc3"}">
     <h1>Movie time</h1>
-    <p class="local">${esc(nameOf(MOVIE_LOVER))} loves movies. Suggest one for everyone, say when you've watched one, or plan a movie night on the living room sofas.</p>
+    <p class="local">${made() ? "" : `${esc(nameOf(MOVIE_LOVER))} loves movies. `}Suggest one for everyone, say when you've watched one, or plan a movie night on the living room sofas.</p>
   </header>
   ${done(did)}
   ${nightCard(v)}
@@ -1264,7 +1298,7 @@ ${bar(v, "movies")}
   </form>
   <section class="card" aria-labelledby="list-heading" data-live="movies">
     <h2 id="list-heading">Suggestions</h2>
-    ${list.length ? `<ul class="movie-list">\n${list.map((m) => movieItem(m, v)).join("\n")}\n</ul>` : `<p class="empty">Nothing yet. ${esc(nameOf(MOVIE_LOVER))} will have opinions.</p>`}
+    ${list.length ? `<ul class="movie-list">\n${list.map((m) => movieItem(m, v)).join("\n")}\n</ul>` : `<p class="empty">Nothing yet.${made() ? " Be the first to suggest one." : ` ${esc(nameOf(MOVIE_LOVER))} will have opinions.`}</p>`}
   </section>
   ${plan}
 </main>`, phase(clock(v.me.tz, v.now)), "page-list");

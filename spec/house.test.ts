@@ -725,4 +725,67 @@ describe.skipIf(!throwaway)("living in the house", () => {
       }
     }
   });
+
+  it("keeps Rithika's five's own things in their rooms", async () => {
+    const five = await people();
+    const named = (name: string): Person => five.find((p) => p.name === name)!;
+    const [rithanya, amirdha, aswathy] = ["Rithanya", "Amirdhavarshini", "Aswathy"].map(named);
+    const visitor = five.find((p) => p !== rithanya && p !== amirdha)!;
+
+    expect(text((await page("/", visitor.id)).querySelector(".house-svg .kitkat-word")), "Rithanya's KitKat box is gone").toBe("KitKat");
+    expect(text((await page(`/room/${rithanya.id}`, visitor.id)).querySelector("#mask-heading")), "her face masks are gone").toBe("Face masks");
+    const amirdhas = await page(`/room/${amirdha.id}`, visitor.id);
+    expect(amirdhas.querySelector(`form[action="/room/${amirdha.id}/kettle"]`), "the hostel kettle is gone").not.toBeNull();
+    expect(amirdhas.querySelector("input[name=item][value=kitkat]"), "there's no KitKat to leave").not.toBeNull();
+    expect((await page(`/room/${aswathy.id}`, visitor.id)).querySelector("input[name=seat][value=yoga]"), "Aswathy's yoga mat is gone").not.toBeNull();
+  });
+
+  // Needs the house maker (src/maker.ts), which makes a house each time.
+  it.skipIf(!process.env.MAKER)("gives a made house's five their own rooms and memories, and none of Rithika's five's", async () => {
+    const form = new URLSearchParams({ title: unique("Spec house"), memories: "the road trip where the car broke down in Porto" });
+    ["Mia", "Jo", "Sam", "Ana", "Lee"].forEach((name, i) => {
+      form.set(`name-${i + 1}`, name);
+      form.set(`city-${i + 1}`, "London");
+      form.set(`things-${i + 1}`, i === 0 ? "a monstera, fairy lights, a record player" : "a lamp");
+    });
+    const made = await fetch(new URL("/make", baseUrl), { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: form, redirect: "manual" });
+    expect(made.status, "the house wasn't made").toBe(201);
+    const base = parse(await made.text()).querySelector("a.go-in")?.getAttribute("href") ?? "";
+    expect(base).toMatch(/^\/h\/[a-z0-9]{10}\/$/);
+
+    const cookie = sessionOf(await fetch(new URL(`${base}me`, baseUrl), { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: "who=2", redirect: "manual" }))!;
+    const inside = async (path: string): Promise<Document> => {
+      const res = await fetch(new URL(`${base}${path}`, baseUrl), { headers: { cookie } });
+      expect(res.status, `GET ${base}${path}`).toBe(200);
+      return parse(await res.text());
+    };
+    const tryTo = async (path: string): Promise<number> =>
+      (await fetch(new URL(`${base}${path}`, baseUrl), { method: "POST", headers: { cookie }, redirect: "manual" })).status;
+    try {
+      const mias = await inside("room/1");
+      const listed = [...mias.querySelectorAll(".room-things-card li")].map(text);
+      expect(listed.join(" "), "Mia's things aren't in her room").toContain("monstera");
+      const pinned = [...mias.querySelectorAll(".house-svg g.room-thing[data-place='room:1'] .pin-text")].map(text);
+      expect(pinned.length, "nothing of hers is drawn in her room").toBeGreaterThan(0);
+      pinned.forEach((tag, i) => expect(listed[i]).toContain(tag.replace(/…$/, "")));
+      expect(text(mias.querySelector(".house-svg")), "her room has someone else's name on it").toContain("Mia's room");
+
+      const living = await inside("living");
+      expect(text(living.querySelector(".notes.memories")), "the memories aren't on the wall").toContain("Porto");
+
+      const home = await inside("");
+      expect(home.querySelector(".house-svg .kitkat-word"), "Rithanya's KitKats moved in").toBeNull();
+      expect(text(home.body)).not.toMatch(/Rithanya|Amirdhavarshini|Aswathy|Rithika|Neha/);
+      expect((await inside("room/4")).querySelector("#mask-heading"), "Rithanya's face masks moved in").toBeNull();
+      const room3 = await inside("room/3");
+      expect(room3.querySelector("form[action$='/kettle']"), "the hostel kettle moved in").toBeNull();
+      expect(room3.querySelector("input[name=item][value=kitkat]"), "there's a KitKat to leave").toBeNull();
+      expect((await inside("room/5")).querySelector("input[name=seat][value=yoga]"), "Aswathy's yoga mat moved in").toBeNull();
+      expect(text((await inside("movies")).querySelector("main"))).not.toContain("loves movies");
+      expect(await tryTo("room/4/mask")).toBe(404);
+      expect(await tryTo("room/3/kettle")).toBe(404);
+    } finally {
+      await fetch(new URL(`${base}leave`, baseUrl), { method: "POST", headers: { cookie }, redirect: "manual" });
+    }
+  });
 });
