@@ -2170,3 +2170,42 @@ Then: "okayokay, ask gender and make the avatras accordingly".
 **Correction:** none.
 
 **Commits:** `17c0351` so far; the agents' work is merged later.
+
+**Finished:**
+- **words,** [`003f110`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/003f110), merged in `8a7f799`:
+  - A made house's friends are she, he or they in every line about them:
+    rooms, Updates, Everyone, the birthday card, UNO, movie night, and the
+    door's 409.
+  - Rithika's pages are byte-for-byte the same as before.
+- **art,** [`5b5e779`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/5b5e779):
+  - Chibi stickers drawn in SVG on the Stitch stickers' canvas:
+    - girls: long hair, ponytail, bob, or bun and braids;
+    - boys: crop, curls, or side part;
+    - just-their-name: beanie, hood, or backwards cap.
+  - Each comes in six skins and six hair colours, with a white die-cut edge.
+- **A check turned up two things:**
+  - Arjun's hair came out the colour of his skin. The art agent made
+    `lookFor` step to a hair colour that contrasts with the skin, and lined
+    every sticker's hair, [`443b809`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/443b809).
+  - Dealing UNO still said the game waits "however long she's away". That
+    stopped being true with twenty-second turns, so it now says twenty
+    seconds in every house. The offline maker didn't know Pune's time zone
+    either; it does now, [`20e848e`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/20e848e).
+- **Merged the art,** [`0e39059`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/0e39059):
+  - The spec conflicted, and both sides were kept.
+  - Sticker addresses had no fingerprint, so browsers would have kept an
+    old drawing for a day. The merge gave them `?v=` with a hash of
+    `src/avatars.ts`, the way `art()` does.
+  - 50/50 tests passed twice, with `HOUSE_MAKER=fake` so no test called
+    Claude.
+- **Tried it with Claude** on Rithika's machine (port 8130, her course key):
+  - Made "The Bangalore gang" with headless Chrome: real typing, and each
+    gender picked with a real tap. The friends were Arjun (boy), Priya
+    (girl), Sam (just their name), Ravi (boy) and Meera (girl). Claude took
+    11.6 s.
+  - Looked at the house at 1280 and Arjun's room at 390: each sticker
+    matches the gender given, Sam wears a cap, and Arjun's room says "his
+    laugh carries down the hall".
+- Opened the house and `/make` for Rithika.
+
+**Commits:** `17c0351`, `5b5e779`, `003f110`, `8a7f799`, `443b809`, `20e848e`, `0e39059`.
