@@ -859,4 +859,51 @@ describe.skipIf(!throwaway)("living in the house", () => {
       await fetch(new URL(`${base}leave`, baseUrl), { method: "POST", headers: { cookie }, redirect: "manual" });
     }
   });
+
+  it("talks about a made house's friends in their own words", async () => {
+    const form = new URLSearchParams({ title: unique("Words house"), memories: "the beach" });
+    const five: [string, string][] = [["Arjun", "boy"], ["Priya", "girl"], ["Sam", "name"], ["Ravi", "boy"], ["Meera", "girl"]];
+    five.forEach(([name, gender], i) => {
+      form.set(`name-${i + 1}`, name);
+      form.set(`gender-${i + 1}`, gender);
+      form.set(`city-${i + 1}`, "Chennai");
+      form.set(`things-${i + 1}`, "a lamp");
+    });
+    const made = await fetch(new URL("/make", baseUrl), { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", "fly-client-ip": unique("spec") }, body: form, redirect: "manual" });
+    expect(made.status, "the house wasn't made").toBe(201);
+    const code = (await made.text()).match(/\/h\/([a-z0-9]{10})\//)?.[1];
+    const base = `/h/${code}/`;
+    const signInHere = async (who: string): Promise<string> =>
+      sessionOf(await fetch(new URL(`${base}me`, baseUrl), { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: `who=${who}`, redirect: "manual" }))!;
+    const [arjun, priya, sam] = [await signInHere("1"), await signInHere("2"), await signInHere("3")];
+    const inside = async (path: string, cookie: string): Promise<string> =>
+      text(parse(await (await fetch(new URL(`${base}${path}`, baseUrl), { headers: { cookie } })).text()).body);
+    try {
+      // Arjun lies down in his own bed; Sam sits on their cushion.
+      await fetch(new URL(`${base}room/1/nap`, baseUrl), { method: "POST", headers: { cookie: arjun }, redirect: "manual" });
+      await fetch(new URL(`${base}sit`, baseUrl), { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", cookie: sam }, body: "seat=mat", redirect: "manual" });
+
+      const room = await inside("room/1", priya);
+      expect(room, "Priya's view of Arjun's room doesn't say his").toContain("Arjun is asleep in his own bed");
+      expect(room, "Arjun is called she").not.toMatch(/Arjun is asleep in her/);
+      const updates = await inside("updates", priya);
+      expect(updates).toContain("Arjun had a nap in his own bed");
+      expect(updates, "Sam is called she or he").toContain("Sam sat on their mat");
+      expect(await inside("room/3", priya)).toContain("Sam is on their cushion on their own mat");
+
+      // Someone else trying to be Arjun while he's in.
+      const taken = await fetch(new URL(`${base}me`, baseUrl), { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", cookie: priya }, body: "who=1", redirect: "manual" });
+      expect(taken.status).toBe(409);
+      expect(text(parse(await taken.text()).body), "the 409 calls Arjun her").toContain("His window opens again");
+    } finally {
+      for (const cookie of [arjun, priya, sam]) await fetch(new URL(`${base}leave`, baseUrl), { method: "POST", headers: { cookie }, redirect: "manual" });
+    }
+  });
+
+  it("still talks about Rithika's five as she and her", async () => {
+    const neha = (await people()).find((p) => p.name === "Neha")!;
+    await post(`/room/${neha.id}/nap`, {}, neha.id);
+    const [a] = (await people()).filter((p) => p.id !== neha.id);
+    expect(text((await page("/updates", a.id)).querySelector(".away")), "Neha's nap isn't in her own words").toContain("Neha had a nap in her own bed");
+  });
 });
