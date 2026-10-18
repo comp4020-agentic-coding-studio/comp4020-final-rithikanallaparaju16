@@ -2072,3 +2072,29 @@ total still bounds the cost. ADR 0017 says so.
 [`056bfee`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/056bfee)
 (README and `CLAUDE.md`), then this entry. The branch merges into `main` for
 CI to deploy, and the results go in the next entry.
+
+### 39. Shipping the house maker (18 Oct 2026)
+
+**What happened to entry 38's ship:**
+- `llm-any-friends` merged into `main` as `aa5cc94`. `main` hadn't moved,
+  so it merged cleanly.
+- The Dockerfile's new install step was checked before pushing: the
+  `prepare` script ends in `|| true`, so a missing git in the slim image
+  can't fail it.
+- The diff scan for secrets found nothing.
+- CI run 39103092566 built the image with the SDK, passed `check` with all
+  47 tests against the container, and passed `deploy`.
+- The live `/`, `/readme/` and `/make` answered 200. The door had "Make a
+  house for your own friends", and `/readme/` had the new section.
+- The read-only spec passed 5 and skipped 42.
+- A real fill-in of `/make` on the live site at 390px built "The Pune flat"
+  at `/h/g30muizqfr/`. `flyctl logs` read `maker: offline` and `made house
+  g30muizqfr for 5 friends (offline) in 3ms`: the crit 10 logs working on
+  Fly, with no names or answers in them.
+- That house stays up as a demo.
+- Fly has no `ANTHROPIC_API_KEY`, so the live maker is the offline one until
+  Rithika sets one with `flyctl secrets set`. That's her call, since it
+  spends her money.
+
+**Tags:** `crit-10` isn't set yet. Its cutoff is 21 October, 1:30 pm, and
+the tag goes on whatever's deployed then.
