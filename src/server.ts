@@ -3,7 +3,9 @@ import { readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { ART, ART_TYPES, isArt } from "./assets.ts";
 import { counter, DOG, find, FOOD, GIFTS, KETTLE_ROOM, MASK_ROOM, movies, PLANTS, resting, roomPlace, SEATS, STICKERS, wall } from "./house.ts";
+import { closeHouses, findHouse, house, inHouse, ORIGINAL } from "./houses.ts";
 import * as live from "./live.ts";
+import { make } from "./maker.ts";
 import { markdown } from "./markdown.ts";
 import {
   bedroomPage,
@@ -43,13 +45,24 @@ store.onChange(live.broadcast);
 
 type Headers = Record<string, string>;
 
+// In a made house (src/houses.ts), every page's own links, forms and scripts
+// start with /h/<code>, so nothing written for Rithika's house at `/` needs to
+// know there's more than one.
+function rebase(html: string): string {
+  const { base } = house();
+  if (!base) return html;
+  return html
+    .replace(/\b(href|action|src)="\/(?!\/|h\/|art\/|style\.css)/g, `$1="${base}/`)
+    .replace(/(["'])\/(here|live|live\.js|house\.js)\b/g, `$1${base}/$2`);
+}
+
 function send(res: ServerResponse, status: number, body: string | Buffer, type = "text/html; charset=utf-8"): void {
   res.writeHead(status, { "content-type": type });
-  res.end(body);
+  res.end(typeof body === "string" && type.startsWith("text/html") ? rebase(body) : body);
 }
 
 function redirect(res: ServerResponse, to: string, headers: Headers = {}): void {
-  res.writeHead(303, { location: to, ...headers });
+  res.writeHead(303, { location: to.startsWith("/") && !to.startsWith("//") ? `${house().base}${to}` : to, ...headers });
   res.end();
 }
 
@@ -64,7 +77,9 @@ function cookie(req: IncomingMessage, name: string): string | undefined {
 function whoCookie(req: IncomingMessage, value: string, maxAge: number): string {
   // Fly terminates TLS in front of the app, so https only shows up in this header.
   const secure = req.headers["x-forwarded-proto"] === "https" ? "; Secure" : "";
-  return `who=${value}; Path=/; Max-Age=${maxAge}; SameSite=Lax; HttpOnly${secure}`;
+  // Each house has its own who= cookie, so being Neha in one house says
+  // nothing about who you are in another.
+  return `who=${value}; Path=${house().base || "/"}; Max-Age=${maxAge}; SameSite=Lax; HttpOnly${secure}`;
 }
 
 // Who this browser came in as: `who=<id>.<token>`, and only while the token is
@@ -468,8 +483,24 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   return redirect(res, `${back}?did=${kind}`);
 }
 
+// /h/<code>/... is a made house (src/houses.ts): the rest of the path is
+// handled exactly as in Rithika's house at `/`, inside that house. /make is
+// where a house gets made (src/maker.ts), in no house at all.
+function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const path = (req.url ?? "/").split("?")[0];
+  if (path === "/make" || path.startsWith("/make/")) return make(req, res);
+  const m = (req.url ?? "/").match(/^\/h\/([^/?]+)(\/[^?]*)?(\?.*)?$/);
+  if (!m) return inHouse(ORIGINAL, () => handle(req, res));
+  const h = findHouse(m[1]);
+  if (!h) return inHouse(ORIGINAL, async () => send(res, 404, messagePage("No house here", "There's no house at that address. Check the link, or make your own.", "/make")));
+  // /h/<code> on its own is the house's door.
+  if (!m[2]) return inHouse(h, async () => redirect(res, "/"));
+  req.url = `${m[2]}${m[3] ?? ""}`;
+  return inHouse(h, () => handle(req, res));
+}
+
 const server = createServer((req, res) => {
-  handle(req, res).catch((err: unknown) => {
+  route(req, res).catch((err: unknown) => {
     console.error(err);
     if (!res.headersSent) send(res, 500, messagePage("Something broke", "The house stumbled. Try again in a moment."));
     else res.end();
@@ -485,6 +516,7 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.on(signal, () => {
     server.close();
     store.close();
+    closeHouses();
     process.exit(0);
   });
 }
