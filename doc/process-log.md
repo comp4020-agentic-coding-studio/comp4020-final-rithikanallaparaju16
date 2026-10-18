@@ -2098,3 +2098,37 @@ CI to deploy, and the results go in the next entry.
 
 **Tags:** `crit-10` isn't set yet. Its cutoff is 21 October, 1:30 pm, and
 the tag goes on whatever's deployed then.
+
+### 40. "continue and open the llm part for me to try" / "yes do whatever you should, its okay i trust you w my key" (18 Oct 2026)
+
+**Asked:** "continue and open the llm part for me to try". The agent found no
+API key on Fly or on Rithika's machine and asked how to try it. She chose
+"Try it locally first", then said "yes do whatever you should, its okay i
+trust you w my key".
+
+**Agent:**
+- Used the course key Claude Code already runs on (`ANTHROPIC_AUTH_TOKEN`
+  with its base URL, which the SDK reads itself), only on her machine.
+  Nothing was written into a file, and it was never put on Fly, where anyone
+  making a house would spend it.
+- The maker had only switched to Claude on `ANTHROPIC_API_KEY`. It now uses
+  either credential, and `HOUSE_MAKER=fake` still forces offline. CI and Fly
+  have neither credential, so they stay offline.
+- **Ran it for real** on a scratch house at port 8130: one real fill-in of
+  `/make` logged `maker: claude` and `made house qo87wd9fun for 5 friends
+  (claude) in 10303ms`.
+  - From "artist, quiet, funny" and "paint tubes everywhere, an easel",
+    Claude wrote Kavya's room as "Paint tubes scattered everywhere, an easel
+    by the window, and a quiet calm that hides a very funny streak", in
+    Chennai's time.
+- **The spec** ran with `HOUSE_MAKER=fake`: 47/47, and all six houses it
+  made were offline, none through Claude. `CLAUDE.md` now says the agent's
+  spec server must set it, since the agent's shell carries the course key.
+- Opened `localhost:8130/make` and the house Claude wrote for Rithika to
+  try.
+
+**Correction:** none.
+
+**Commits:** [`1e762fe`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/1e762fe),
+then this entry with the prompt in `PROCESS.md`. Both are committed locally
+and go out with the next push.
