@@ -859,4 +859,18 @@ describe.skipIf(!throwaway)("living in the house", () => {
       await fetch(new URL(`${base}leave`, baseUrl), { method: "POST", headers: { cookie }, redirect: "manual" });
     }
   });
+
+  it("draws a made house's friends as the gender they were given", async () => {
+    const genders = ["boy", "girl", "name", "boy", "girl"];
+    const { code } = await makeHouse(["Arjun", "Priya", "Sam", "Ravi", "Meera"], Object.fromEntries(genders.map((g, i) => [`gender-${i + 1}`, g])));
+    const door = parse(await (await fetch(new URL(`/h/${code}/`, baseUrl))).text());
+    const pictures = [...door.querySelectorAll("button[name=who] img")].map((img) => img.getAttribute("src") ?? "");
+    expect(pictures.length).toBe(5);
+    pictures.forEach((src, i) => expect(src, `friend ${i + 1} isn't drawn as ${genders[i]}`).toMatch(new RegExp(`^/avatar/${genders[i]}-\\d-\\d-\\d\\.svg$`)));
+
+    const sticker = await fetch(new URL(pictures[0], baseUrl));
+    expect(sticker.headers.get("content-type")).toMatch(/^image\/svg\+xml/);
+    expect(await sticker.text()).toContain("<svg");
+    expect((await page("/", (await people())[0].id)).querySelector(".switch img")?.getAttribute("src"), "Rithika's five lost their Stitch stickers").toMatch(/^\/art\/avatar-\d\.png/);
+  });
 });
