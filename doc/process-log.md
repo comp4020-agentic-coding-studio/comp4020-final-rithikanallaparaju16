@@ -2233,3 +2233,16 @@ push and tag `crit-10`.
 **Correction:** none.
 
 **Commits:** `3da0f14` shipped; this entry's commit is the `crit-10` tag.
+
+### 43. "just commit it" (20 Oct 2026)
+
+**Asked:** "just commit it", about `reflections/crit-10.md`, which the last
+reply said was still untracked because it's Rithika's to write.
+
+**Agent:** Committed her reflection as she wrote it, unchanged,
+[`b17a158`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/b17a158).
+Not pushed, so `crit-10` is still on `94f1e1b`, without the reflection.
+
+**Correction:** none.
+
+**Commits:** `b17a158`.
