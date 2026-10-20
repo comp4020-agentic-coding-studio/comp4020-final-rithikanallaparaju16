@@ -757,6 +757,16 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect(door.querySelector(`form[action="/h/${code}/me"]`), "the door's form leaves the house").not.toBeNull();
   });
 
+  // Only checkable against a server whose Claude can't be reached (started
+  // with ANTHROPIC_BASE_URL pointing nowhere, MAKER_UNREACHABLE=1); the usual
+  // HOUSE_MAKER=fake server never calls Claude. ADR 0019.
+  it.skipIf(process.env.MAKER_UNREACHABLE !== "1")("still makes the house when Claude can't be reached", async () => {
+    const { res, code } = await makeHouse(["Ivy", "Rae", "Kit", "Bo", "Dee"], { "things-1": "a guitar" });
+    expect(res.status, "Claude failing stopped the house being made").toBe(201);
+    expect(await res.text(), "the house says Claude wrote it").toContain("built from exactly what you wrote");
+    expect(code).toBeTruthy();
+  });
+
   it("keeps each made house to itself", async () => {
     const { code } = await makeHouse(["Ivy", "Rae", "Kit", "Bo", "Dee"]);
     const house = (path: string): URL => new URL(`/h/${code}${path}`, baseUrl);

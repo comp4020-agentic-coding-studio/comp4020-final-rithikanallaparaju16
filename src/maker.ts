@@ -205,11 +205,15 @@ ${a.memories}
 </answers>`;
 }
 
-// Why Claude couldn't write the house, in words for the visitor.
+// Why Claude couldn't write the house, for the log; the visitor gets the
+// house made from the answers instead.
 class MakeFailed extends Error {}
 
 async function writeWithClaude(a: Answers): Promise<Written> {
-  const client = new Anthropic({ timeout: 90_000, maxRetries: 2 });
+  // Short enough that a Claude nobody can reach (as from Fly, ADR 0018)
+  // costs the visitor a wait of seconds, not minutes, before the house is
+  // made from the answers.
+  const client = new Anthropic({ timeout: 20_000, maxRetries: 1 });
   let message;
   try {
     message = await client.messages.parse({
@@ -220,16 +224,16 @@ async function writeWithClaude(a: Answers): Promise<Written> {
       output_config: { effort: "low", format: jsonSchemaOutputFormat(SCHEMA) },
     });
   } catch (err) {
-    if (err instanceof Anthropic.RateLimitError) throw new MakeFailed("A lot of houses are being made right now. Wait a minute and try again.");
-    if (err instanceof Anthropic.AuthenticationError) throw new MakeFailed("The house maker isn't set up properly yet. Try again later.");
-    if (err instanceof Anthropic.APIConnectionError) throw new MakeFailed("The house maker couldn't be reached. Check your connection and try again.");
-    if (err instanceof Anthropic.APIError) throw new MakeFailed("The house maker stumbled. Try again in a moment.");
+    if (err instanceof Anthropic.RateLimitError) throw new MakeFailed("rate limited");
+    if (err instanceof Anthropic.AuthenticationError) throw new MakeFailed("the key was refused");
+    if (err instanceof Anthropic.APIConnectionError) throw new MakeFailed("couldn't reach the API");
+    if (err instanceof Anthropic.APIError) throw new MakeFailed(`the API answered ${err.status}`);
     // Its answer didn't come back as the house's JSON.
-    if (err instanceof Anthropic.AnthropicError) throw new MakeFailed("The house maker's answer came back garbled. Try again in a moment.");
+    if (err instanceof Anthropic.AnthropicError) throw new MakeFailed("the answer didn't parse");
     throw err;
   }
-  if (message.stop_reason === "refusal") throw new MakeFailed("The house maker couldn't write this one. Try rewording some of the answers.");
-  if (message.stop_reason === "max_tokens" || !message.parsed_output) throw new MakeFailed("The house maker ran out of room partway. Try shorter answers.");
+  if (message.stop_reason === "refusal") throw new MakeFailed("refused");
+  if (message.stop_reason === "max_tokens" || !message.parsed_output) throw new MakeFailed("cut off");
   return message.parsed_output as Written;
 }
 
@@ -408,18 +412,22 @@ export async function make(req: IncomingMessage, res: ServerResponse): Promise<v
     return send(res, 429, makePage(answers, "Lots of houses are being made right now. Try again in a little while."));
   }
 
-  const by = useClaude() ? "claude" : "offline";
+  let by: "claude" | "offline" = useClaude() ? "claude" : "offline";
   console.log(`maker: ${by}`);
   const began = Date.now();
-  let written: Written;
-  try {
-    written = by === "claude" ? await writeWithClaude(answers) : writeOffline(answers);
-  } catch (err) {
-    if (!(err instanceof MakeFailed)) throw err;
-    console.log(`make failed (${by}) in ${Date.now() - began}ms: ${err.message}`);
-    return send(res, 503, makePage(answers, err.message));
+  let written: Written | undefined;
+  if (by === "claude") {
+    try {
+      written = await writeWithClaude(answers);
+    } catch (err) {
+      if (!(err instanceof MakeFailed)) throw err;
+      // Whatever went wrong with Claude, the house still gets made, from the
+      // answers, as it is without a key.
+      console.log(`claude failed in ${Date.now() - began}ms, making it offline: ${err.message}`);
+      by = "offline";
+    }
   }
-  const spec = tidy(written, answers, newCode());
+  const spec = tidy(written ?? writeOffline(answers), answers, newCode());
   if (by === "claude") {
     const client = newClient();
     const drawn = await Promise.all(spec.friends.map((f) => drawThings(client, f.things)));
