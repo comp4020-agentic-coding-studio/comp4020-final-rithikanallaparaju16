@@ -2370,3 +2370,25 @@ The live maker still isn't on Claude.
 **Correction:** none.
 
 **Commits:** [`8cf868f`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/8cf868f).
+
+### 48. "done" (21 Oct 2026)
+
+**Asked:** "done", after running the `jq` command from entry 47 in her own
+terminal.
+
+**Agent:**
+- Fly's two secrets now have their own digests, so the real key arrived.
+- Made one house on Fly to test it: 503 after 33 s. The log says
+  `maker: claude`, then `make failed (claude) in 32728ms: The house maker
+  couldn't be reached`.
+- The key's base URL is `strproxy.comp.anu.edu.au`. Its address is public,
+  but the course's LLM access page says it "is only reachable from the ANU
+  network: that's a university-wide network rule", so Fly's Sydney machine
+  can't reach it. `flyctl ssh` timed out before the agent could test from
+  the machine itself.
+- Updated CLAUDE.md: the course key can't serve the live maker.
+
+**Correction:** none.
+
+**Commits:** this entry's commit. The live maker on Claude needs a key that
+calls Anthropic directly; Rithika's to decide.

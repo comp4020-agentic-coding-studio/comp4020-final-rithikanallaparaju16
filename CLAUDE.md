@@ -255,7 +255,10 @@ accepted record.
   llm to work on the live site"), so it's a Fly secret
   (`ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_BASE_URL`), and anyone making a house
   there spends it ("yes thats okay"), within `/make`'s cap (ADR 0017).
-  Never print it, and never put it in the repo or the image.
+  Never print it, and never put it in the repo or the image. But the course
+  key goes through strproxy, which only answers the ANU network, so Fly
+  can't reach it: the live maker fails with "couldn't be reached" after
+  about 33 s. Live Claude needs a key that calls Anthropic directly.
 - One test per promise the product makes; no tests for test count.
 - Spec tests that write notes or record visits stay inside the `throwaway`
   gate in `spec/house.test.ts`. They must never write into the real house on
