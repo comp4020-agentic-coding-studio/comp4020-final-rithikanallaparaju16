@@ -2246,3 +2246,49 @@ Not pushed, so `crit-10` is still on `94f1e1b`, without the reflection.
 **Correction:** none.
 
 **Commits:** `b17a158`.
+
+### 44. "deploy the site with llm" (20 Oct 2026)
+
+**Asked:**
+- "open the live site bro"
+- "where is my llm"
+- "try /make locally"
+- "can you swutch thiz to live?"
+- "deploy the site with llm"
+- "i want the llm to work on the live site / cant you do this without making
+  my tokens public?"
+- "But visitors do spend your credits. yes thats okay"
+- "done"
+
+**Agent:**
+- Opened the live site, then answered "where is my llm": it's the house
+  maker at `/make`, which used Claude only where a credential was set, and
+  Fly had none.
+- Started the app locally on 8080 with the course credentials and opened
+  `/make`. Rithika made a house there, and Claude wrote it in 12 seconds
+  (`made house … (claude) in 12445ms`).
+- Asked what "swutch thiz to live" meant; she picked opening the deployed
+  site.
+- On "deploy the site with llm", pointed out that CLAUDE.md said her key
+  never goes on Fly, and asked. She turned the question down to clarify:
+  she wanted the LLM live, without making her tokens public.
+- Explained that a Fly secret isn't public, but that visitors making houses
+  would spend her key, within ADR 0017's cap (3 an hour per visitor, 30 in
+  all). Checked first that the `/make` tests are all inside the `throwaway`
+  gate, so the read-only spec against Fly never makes a house.
+- The agent's `flyctl secrets set --stage` was refused by Claude Code's
+  auto-mode classifier (secret-store writes). Rithika ran the same command
+  herself ("done").
+- Changed the CLAUDE.md rule to say the key is a Fly secret and visitors may
+  spend it, quoting her, and pushed it; CI's `check` and `deploy` passed and
+  both secrets show as deployed.
+- Made one house on Fly to test it: `maker: offline`, in 8 ms. The secrets
+  reached Fly empty (both show the same digest), since the shell the command
+  ran in didn't have the two variables. That test house (`ssg6r3qq1b`) is
+  still on the live site.
+
+**Corrections:** she turned down the agent's question about the key to
+clarify what she wanted. The classifier refused the agent's secret write.
+
+**Commits:** [`7642f54`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/7642f54).
+The live maker isn't on Claude yet.
