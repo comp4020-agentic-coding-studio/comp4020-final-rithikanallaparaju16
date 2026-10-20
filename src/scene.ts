@@ -1,6 +1,7 @@
 import { balloons, BLANKET, bunting, cake, confetti, CROWN, DOG_STANDING, EMOJI, icon, messItem, PARTY_HAT, pop } from "./art.ts";
 import { art } from "./assets.ts";
 import { avatarUrl } from "./avatars.ts";
+import { BOX, drawingShapes, type Drawing } from "./drawings.ts";
 import { along, DOG, KETTLE_ROOM, MASK_ROOM, rejoin, YOGA_ROOM, type DogSpot, type Pose, type Waypoint } from "./house.ts";
 import { made } from "./houses.ts";
 import { esc } from "./html.ts";
@@ -217,6 +218,8 @@ export type Bedroom = {
   // pinned up by her desk. Empty in Rithika's house, where the picture
   // already has them.
   things: string[];
+  // The first few, drawn by Claude when the house was made; empty otherwise.
+  drawings: Drawing[];
   phase: Phase;
   clock: string;
   status: string;
@@ -534,15 +537,26 @@ function hotspots(s: Scene): string {
   return `<g class="acts" aria-hidden="true">${svg.join("")}</g>`;
 }
 
-// In a made house, a few of what each friend said is in her room, on little
-// paper tags pinned up in it, in her paper colour. The full list is on her
-// room page.
+// In a made house, a few of what each friend said is in her room: drawn by
+// Claude when the house was made (ADR 0018), or else on little paper tags
+// pinned up in it, in her paper colour. The full list is on her room page.
 const PINNED = 3;
+// Where each drawing sits around the room's pin spot, and how big, in the
+// picture's pixels.
+const DRAWING = 46;
+const SPREAD: Pt[] = [[0, 0], [50, 18], [8, 52]];
 function roomThings(s: Scene): string {
   const tags = s.bedrooms.flatMap((b) => {
     const room = ROOMS[`room:${b.owner.id}`];
     const at = room.pins;
-    if (!at || !b.things.length) return [];
+    if (!at) return [];
+    if (b.drawings.length) {
+      return b.drawings.slice(0, PINNED).map((d, i) => {
+        const [dx, dy] = SPREAD[i];
+        return `<g class="room-drawing" data-place="room:${b.owner.id}" transform="translate(${at[0] + dx} ${at[1] + dy}) scale(${DRAWING / BOX})"><title>${esc(d.thing)}</title>${drawingShapes(d)}</g>`;
+      });
+    }
+    if (!b.things.length) return [];
     return b.things.slice(0, PINNED).map((thing, i) => {
       const label = thing.length > 18 ? `${thing.slice(0, 17).trimEnd()}…` : thing;
       const w = Math.round(label.length * 6.6 + 18);

@@ -2739,6 +2739,36 @@ g.room-things .pin-text {
   font-size: 1.2rem;
 }
 
+/* what Claude drew of her things, in the room (src/drawings.ts); SVG only */
+g.room-drawing {
+  pointer-events: none;
+  filter: drop-shadow(0 2px 2px rgba(40, 20, 10, 0.35));
+}
+
+g.room-drawing :is(circle, ellipse, rect, polygon, line) {
+  stroke-width: 3;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.room-things-card li.drawn-thing {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.room-things-card svg.drawing {
+  flex: none;
+  width: 44px;
+  height: 44px;
+}
+
+.room-things-card svg.drawing :is(circle, ellipse, rect, polygon, line) {
+  stroke-width: 3;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
 /* the memories a made house moved in with, pinned at the top of the wall */
 .notes.memories .note {
   border-top: 6px solid #f2c14e;

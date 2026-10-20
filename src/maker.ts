@@ -3,6 +3,7 @@ import { jsonSchemaOutputFormat } from "@anthropic-ai/sdk/helpers/json-schema";
 import { randomInt } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { lookFor } from "./avatars.ts";
+import { drawThings, newClient } from "./drawings.ts";
 import { saveHouse, type Friend, type HouseSpec } from "./houses.ts";
 import type { Gender } from "./people.ts";
 import { esc } from "./html.ts";
@@ -419,6 +420,14 @@ export async function make(req: IncomingMessage, res: ServerResponse): Promise<v
     return send(res, 503, makePage(answers, err.message));
   }
   const spec = tidy(written, answers, newCode());
+  if (by === "claude") {
+    const client = newClient();
+    const drawn = await Promise.all(spec.friends.map((f) => drawThings(client, f.things)));
+    spec.friends.forEach((f, i) => {
+      if (drawn[i].length) f.drawings = drawn[i];
+    });
+    console.log(`drew ${drawn.reduce((n, d) => n + d.length, 0)} things for house ${spec.code}`);
+  }
   saveHouse(spec);
   made.push({ at: Date.now(), visitor });
   console.log(`made house ${spec.code} for ${spec.friends.length} friends (${by}) in ${Date.now() - began}ms`);

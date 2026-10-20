@@ -2,6 +2,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import type { Drawing } from "./drawings.ts";
 import type { Gender, Look } from "./people.ts";
 
 // More than one house (prototype, branch llm-any-friends). The original house
@@ -28,6 +29,10 @@ export type Friend = {
   about: string;
   // What's in her room, drawn on her desk and listed on her room page.
   things: string[];
+  // The first few of those, drawn by Claude when the house was made
+  // (src/drawings.ts). Houses made without Claude have none, and pin up
+  // paper tags instead.
+  drawings?: Drawing[];
   // A few words for who she is, as the maker described her.
   qualities: string;
   // Asked on the form (src/people.ts Gender). Houses made before it was asked

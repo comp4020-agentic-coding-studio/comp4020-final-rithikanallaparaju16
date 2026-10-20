@@ -1,6 +1,7 @@
 import { crownSvg, emoji, EMOJI, iconSvg, patchesSvg, plantSvg, POP } from "./art.ts";
 import { art } from "./assets.ts";
 import { avatarUrl } from "./avatars.ts";
+import { drawingSvg, type Drawing } from "./drawings.ts";
 import {
   along,
   counter,
@@ -94,6 +95,7 @@ const nameOf = (id: string): string => personById(id)?.name ?? "someone";
 // In a made house (src/houses.ts), what each friend said is in her room.
 // Rithika's five have theirs in the picture.
 const thingsOf = (p: Person): string[] => house().spec?.friends.find((f) => f.id === p.id)?.things ?? [];
+const drawingsOf = (p: Person): Drawing[] => house().spec?.friends.find((f) => f.id === p.id)?.drawings ?? [];
 
 const nameHtml = (p: Person): string =>
   p.breakAfter ? `${esc(p.name.slice(0, p.breakAfter))}<wbr>${esc(p.name.slice(p.breakAfter))}` : esc(p.name);
@@ -320,6 +322,7 @@ function scene(v: Visit, focus?: string, did?: string): Scene {
         lamp: !zz,
         birthday: birthday(owner, v.now),
         things: thingsOf(owner),
+        drawings: drawingsOf(owner),
       };
     }),
     figures: PEOPLE.map((p): Figure => {
@@ -1062,10 +1065,14 @@ export function bedroomPage(owner: Person, v: Visit, did?: Done): string {
 
   // What she said is in her room, when a made house was told.
   const stuff = thingsOf(owner);
+  const drawn = new Map(drawingsOf(owner).map((d) => [d.thing, d]));
   const inRoom = stuff.length
     ? `<section class="card room-things-card" aria-labelledby="things-heading" style="--accent:${owner.color}">
     <h2 id="things-heading">${mine ? "In your room" : `In ${esc(owner.name)}'s room`}</h2>
-    <ul class="plain-list">${stuff.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
+    <ul class="plain-list">${stuff.map((t) => {
+      const d = drawn.get(t);
+      return `<li${d ? ` class="drawn-thing"` : ""}>${d ? drawingSvg(d) : ""}${esc(t)}</li>`;
+    }).join("")}</ul>
   </section>`
     : "";
 
