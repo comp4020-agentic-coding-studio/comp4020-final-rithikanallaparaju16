@@ -431,7 +431,7 @@ ${people}
     </ul>
   </form>
   <p class="hint">Each window shows the sky where that friend is right now. <a href="/readme/">What is this place?</a></p>
-  <p class="hint make-link"><a href="/make">Make a house for your own friends ›</a></p>
+  <p class="make-link"><a class="make-door" href="/make">🏡 Make your own house</a></p>
 </main>`, "dusk", "page-door");
 }
 

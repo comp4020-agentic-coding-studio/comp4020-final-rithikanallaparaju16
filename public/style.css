@@ -2594,8 +2594,24 @@ g.walker.near:not(.me) > .shadow {
 /* ---------- making a house for any five friends (src/maker.ts, ADR 0017) ---------- */
 
 .make-link {
-  margin-top: 6px;
-  font-size: 0.85rem;
+  margin-top: 18px;
+  text-align: center;
+}
+
+a.make-door {
+  display: inline-block;
+  padding: 11px 22px;
+  border-radius: 999px;
+  background: #e8c79f;
+  color: #3a2618;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 6px 18px rgba(20, 16, 30, 0.4);
+}
+
+a.make-door:hover,
+a.make-door:focus-visible {
+  background: #f3dab8;
 }
 
 main.make {
