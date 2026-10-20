@@ -2392,3 +2392,30 @@ terminal.
 
 **Commits:** this entry's commit. The live maker on Claude needs a key that
 calls Anthropic directly; Rithika's to decide.
+
+### 49. "do 3 and ship it" (21 Oct 2026)
+
+**Asked:** "do 3 and ship it", choosing the third of entry 48's options: when
+Claude can't be reached, make the house from the answers instead of showing an
+error.
+
+**Agent:**
+- `src/maker.ts`: any failure from Claude (can't reach it, rate limit, refused
+  key, refusal, cut-off or garbled answer) is logged as `claude failed in
+  <ms>ms, making it offline: <why>` and the house is made from the answers.
+  Nothing is drawn for a house Claude didn't write, so an unreachable Claude
+  isn't waited on twice. The failure reasons are now short log words, not
+  sentences for the form.
+- Cut Claude's timeouts: 20 s and one retry to write (was 90 s and two), 45 s
+  and one retry to draw. The worst wait is about 40 s.
+- Wrote this up as ADR 0019, superseding the line of 0017 that had failures
+  show on the form. The agent first appended it to 0018, then moved it into
+  its own record, since accepted records aren't edited.
+- A spec test, run only with `MAKER_UNREACHABLE=1`, makes a house against a
+  server whose Claude points at a closed port: 201, built from the answers, in
+  460 ms. The full `pnpm check` passed (52, that one skipped) against a
+  fake-maker server.
+
+**Correction:** none.
+
+**Commits:** [`1934d52`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/1934d52).
