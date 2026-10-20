@@ -2322,3 +2322,20 @@ The live maker isn't on Claude yet.
 
 **Commits:** [`a590225`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/a590225).
 The live maker still isn't on Claude.
+
+### 46. "ship it thanks" (20 Oct 2026)
+
+**Asked:** "ship it thanks", about the house-maker button.
+
+**Agent:**
+- Pushed `main` (`7642f54..1f12c1f`). CI's `check` and `deploy` both passed.
+- **Checked the live site:**
+  - the door has the "🏡 Make your own house" button;
+  - `/readme/` renders;
+  - the read-only spec passes (5 passed, 45 skipped by the `throwaway` gate).
+- Left `crit-10` where it is, on `94f1e1b`.
+- Opened the live site, then pushed this entry.
+
+**Correction:** none.
+
+**Commits:** `1f12c1f` shipped; this entry's commit.
