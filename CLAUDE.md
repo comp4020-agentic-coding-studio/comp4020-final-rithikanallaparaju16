@@ -251,8 +251,11 @@ accepted record.
   can read. So a spec server started from the agent's shell must have
   `HOUSE_MAKER=fake`, or every test that makes a house spends real tokens.
   Rithika okayed her course key for trying the maker on her own machine
-  (18 Oct 2026). It never goes on Fly, where anyone making a house would
-  spend it.
+  (18 Oct 2026). On 20 Oct 2026 she wanted the maker live too ("i want the
+  llm to work on the live site"), so it's a Fly secret
+  (`ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_BASE_URL`), and anyone making a house
+  there spends it ("yes thats okay"), within `/make`'s cap (ADR 0017).
+  Never print it, and never put it in the repo or the image.
 - One test per promise the product makes; no tests for test count.
 - Spec tests that write notes or record visits stay inside the `throwaway`
   gate in `spec/house.test.ts`. They must never write into the real house on
