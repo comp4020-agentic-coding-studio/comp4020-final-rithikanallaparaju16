@@ -2339,3 +2339,34 @@ The live maker still isn't on Claude.
 **Correction:** none.
 
 **Commits:** `1f12c1f` shipped; this entry's commit.
+
+### 47. "okay now all you do when i mention what should be there in the room is, just put a stiky note and write that on top, i want you to use the picture credits yuou have and actually draw what should be in the room, do this and ship the code" (20 Oct 2026)
+
+**Asked:** sent while the agent was watching CI for entry 46.
+
+**Agent:**
+- The Claude API takes pictures in but doesn't paint them, so Claude draws
+  each thing as a few flat SVG shapes (circles, boxes, outlines) in a
+  100 × 100 box, and the app turns them into SVG. Wrote ADR 0018 with the
+  other options: Claude writing raw SVG (rejected: markup from a stranger's
+  answers), hand-made drawings for common things, an image model.
+- `src/drawings.ts`: when Claude makes a house, one more call per friend,
+  all at once, draws her first three things. `tidyDrawings` keeps only the
+  five shape kinds, numbers clamped to the box and `#rrggbb` colours. The
+  drawings are saved in the house's spec, stand in her room where the tags
+  were, and sit beside each thing on her room page. A failed call keeps the
+  tags; houses made without Claude keep them too.
+- Tried one friend's things first ("a yoga mat", "too many plants", "a box
+  of KitKats"): all three drawn in 12 s, clear and in the house's style.
+  Then made a house with Claude on port 8092: 15 things drawn, the house
+  made in 23 s (12 s before). Looked at it at 1280 px and 390 px, the house
+  and Dev's room page.
+- `spec/drawings.test.ts` feeds in a `script` shape, an `onload` colour and
+  out-of-box numbers and checks none reach the page. `pnpm check` passed
+  (52 tests) against a fake-maker server on 8093.
+- The live maker still has an empty key, so houses made there keep tags
+  until the Fly secret is set.
+
+**Correction:** none.
+
+**Commits:** [`8cf868f`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/8cf868f).
