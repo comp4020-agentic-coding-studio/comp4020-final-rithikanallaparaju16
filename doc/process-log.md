@@ -2462,3 +2462,19 @@ can't reach the proxy, and asked before building.
 **Correction:** none.
 
 **Commits:** this entry's commit.
+
+### 53. "when the user prompts in LLM, casn we use the course key to make those images?" (21 Oct 2026)
+
+**Asked:** whether the course key could make pictures for each house as it's
+made.
+
+**Agent:** Answered, no code change: only where the server can reach
+strproxy, so on her laptop with the VPN, never from Fly. Fifteen pictures a
+house at $0.10 is $1.50, about 20 houses from her $30. Said the agent
+wouldn't relay requests through her laptop to get round the ANU-only rule.
+Offered a committed set of pictures, or her own image-service key on Fly, for
+the live site.
+
+**Correction:** none.
+
+**Commits:** this entry's commit.

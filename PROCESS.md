@@ -118,3 +118,4 @@ Every prompt I gave the agent from 8 October, word for word, with the commit it 
 - "push everything": it was all pushed already, [`29480f7`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/29480f7)
 - "where is my LLM stored?": a question, no code change. Claude runs on Anthropic's servers; the app only holds the code that calls it, the key and what it made.
 - "how can we create images then": a question, no code change. My course key can make images, but only from the ANU network.
+- "when the user prompts in LLM, casn we use the course key to make those images?": a question, no code change. Only on my laptop with the VPN, not on the live site.
