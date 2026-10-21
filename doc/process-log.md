@@ -2566,3 +2566,106 @@ weren't keeping things between friends properly.
 **Correction:** none.
 
 **Commits:** `b7810fc`; this entry's commit.
+
+### 57. "now add test cases and test all parts of the website, fan out subagents and try the multiuser part as well, and report the issues" (21 Oct 2026)
+
+**Asked:** "now add test cases and test all parts of the website, fan out subagents and try the multiuser part as well, and report the issues".
+
+**Agent:**
+- First checked how the spec signs friends in (one session per friend, ADR
+  0011) and how many houses a run makes (`/make` allows 30 an hour), so
+  parallel test files wouldn't lock each other out or hit the cap.
+- Fanned out four background agents, each with its own server, port and
+  `DATA_DIR` (all `HOUSE_MAKER=fake`): the door and sign-in, the house maker,
+  the house and its activities, and two to five friends at once (live
+  walking, hugs, UNO, house isolation, concurrent writes).
+- Each wrote a spec file (`spec/door.test.ts`, `made-houses.test.ts`,
+  `activities.test.ts`, `multiuser.test.ts`), with a `BUG:` comment on each
+  test that shows a defect. Those tests fail on purpose, so the files were
+  not committed: CI deploys only when every test passes. The findings went
+  to Rithika ranked by severity, to pick which to fix.
+- What held up under the multiuser agent: live walking between pages, hugs,
+  UNO moves arriving live, made houses kept apart, and concurrent writes.
+
+**Correction:** none.
+
+**Commits:** none yet (the spec files wait on Rithika's call).
+
+### 58. "can you use more credits for images and make house layouts for diffeernt number of people.2,3,4,6,7 should be enpugh, try how much ever yu can, show me the images first, then we will proceed" (21 Oct 2026)
+
+**Asked:** sent while the test agents were running: "can you use more
+credits for images and make house layouts for diffeernt number of
+people.2,3,4,6,7 should be enpugh, try how much ever yu can, show me the
+images first, then we will proceed".
+
+**Agent:**
+- Tried the course's image models for cutaway houses with a bedroom per
+  friend. Neither counted bedrooms reliably at first (a 3-friend picture
+  with 4 beds, a 4-friend one with 5); naming each bedroom by its quilt
+  colour fixed most. Counted the beds in every candidate by eye.
+- About 38 pictures, $3.80, bringing the image budget to $8.60 of $30.
+- Showed Rithika one picture per size beside her house, and said plainly
+  that they're cleaner line drawings than her watercolour house; the model
+  closer to her style kept miscounting beds.
+
+**Correction:** none.
+
+**Commits:** none (pictures only, kept in `/tmp` until approved).
+
+### 59. "continue" (21 Oct 2026)
+
+**Asked:** "continue", after the session ran out of context partway
+through the layout pictures.
+
+**Agent:** made a matching set of all five sizes in the style that counted
+beds right, kept the ones with the right rooms, and put the best of each on
+one sheet for Rithika.
+
+**Correction:** none.
+
+**Commits:** none.
+
+### 60. "yes perfect rooms, continue" (21 Oct 2026)
+
+**Asked:** "yes perfect rooms, continue".
+
+**Agent:**
+- `scripts/make-layouts.py` lifts each house and a separately made garden
+  strip off their backgrounds and sets them on a lawn at house.jpg's size,
+  writing `public/art/house-<n>.jpg`.
+- Moved every coordinate out of `src/scene.ts` into `src/layouts.ts`, one
+  `Layout` per size; Rithika's five are `STITCH`, moved unchanged.
+  Measured each new picture's rooms, beds, desks, walking spots, sofas,
+  wall, stove and garden, and drew them all over the pictures to check
+  before trusting them.
+- The new bedrooms have no room for a mat, so in houses of 2, 3, 4, 6 or 7,
+  UNO and its cushions are at the living room's coffee table (up to seven
+  players). Wording comes from `matWords()`.
+- `/make` asks "How many of you?" first; the door's windows, the greeting
+  ("A little house for seven friends") and the maker's texts follow the
+  count.
+- Fixed one of the test agents' findings on the way: leaving a room in a
+  made house didn't zoom out, since `house.js` looked for a link to `/`.
+- ADR 0021. Spec test: houses for 3 and 7 are made with a room each, drawn
+  on their own picture, and two friends can sit at the coffee table and
+  deal UNO. `pnpm check`: 55 passed. Looked at 7 friends at 1280 px, iPad
+  (820, touch) and the phone door, 2 friends on a phone, and 6 friends'
+  living room; tapped window 6 on the 7-friend door at 390 px, and it let
+  Fen in.
+
+**Correction:** none.
+
+**Commits:** [`9289cc5`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/9289cc5).
+
+### 61. "ship everything" (21 Oct 2026)
+
+**Asked:** "ship everything", sent while the layouts were being finished.
+
+**Agent:** finished the checks above, merged the `layouts` branch into
+`main`, pushed, watched CI's check and deploy, and checked the live site.
+Left out the four test agents' spec files (their bug tests fail on purpose)
+and `image.png`/`image-1.png` in the repo root, which nothing refers to.
+
+**Correction:** none.
+
+**Commits:** `9289cc5`; this entry's commit.
