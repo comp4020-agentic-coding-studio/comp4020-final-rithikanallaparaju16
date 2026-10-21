@@ -808,6 +808,45 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect(text(parse(await res.text()).querySelector(".problem"))).toContain("missing");
   });
 
+  // The page scripts (public/house.js, public/live.js) send live updates,
+  // steps and the house's buttons to addresses of their own. In a made house
+  // they must stay in it, or friends there never see each other and what
+  // they do lands in Rithika's house.
+  it("keeps a made house's live line, steps and buttons in that house", async () => {
+    const { code } = await makeHouse(["Ivy", "Rae", "Kit", "Bo", "Dee"]);
+    const base = `/h/${code}`;
+    const res = await fetch(new URL(`${base}/me`, baseUrl), { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: "who=1", redirect: "manual" });
+    const cookie = sessionOf(res)!;
+    try {
+      const home = parse(await (await fetch(new URL(`${base}/`, baseUrl), { headers: { cookie } })).text());
+      expect(home.body.getAttribute("data-base"), "the page doesn't tell its scripts which house it's in").toBe(base);
+      const doings = [...home.querySelectorAll(".act, .laddoo")].flatMap((g) => JSON.parse(g.getAttribute("data-do") ?? "[]") as { post?: string; href?: string }[]);
+      expect(doings.length).toBeGreaterThan(0);
+
+      // What the scripts would post to, as public/house.js builds it.
+      const to = (path: string): string => (path.startsWith(`${base}/`) ? path : base + path);
+      for (const d of doings.filter((d) => d.post)) {
+        const r = await fetch(new URL(to(d.post!), baseUrl), { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", cookie }, body: "", redirect: "manual" });
+        expect(r.status, `${d.post} didn't reach the made house`).not.toBe(404);
+        expect(r.status, `${d.post} was refused in the made house`).not.toBe(403);
+      }
+
+      // A step is saved in the made house, not Rithika's.
+      const step = await fetch(new URL(to("/here"), baseUrl), { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", cookie }, body: "x=230&y=380", redirect: "manual" });
+      expect(step.status, "a step in the made house wasn't saved").toBe(204);
+      const ivy = parse(await (await fetch(new URL(`${base}/`, baseUrl), { headers: { cookie } })).text()).querySelector(".walker.me");
+      expect(ivy?.getAttribute("transform"), "the made house didn't keep where she stopped").toContain("230");
+
+      // Her house's live line answers.
+      const ctl = new AbortController();
+      const line = await fetch(new URL(to("/live"), baseUrl), { headers: { cookie }, signal: ctl.signal });
+      expect(line.headers.get("content-type"), "the made house has no live line").toContain("text/event-stream");
+      ctl.abort();
+    } finally {
+      await fetch(new URL(`${base}/leave`, baseUrl), { method: "POST", headers: { cookie }, redirect: "manual" });
+    }
+  });
+
   it("only puts the pictured things in a made house's rooms", async () => {
     const maker = parse(await (await fetch(new URL("/make", baseUrl))).text());
     const offered = [...maker.querySelectorAll("input[name=things-1]")].map((i) => i.getAttribute("value"));

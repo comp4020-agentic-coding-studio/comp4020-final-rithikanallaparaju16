@@ -176,7 +176,8 @@
 
   let source;
   function listen() {
-    source = new EventSource("/live");
+    // In a made house (ADR 0017) its own line, under /h/<code>.
+    source = new EventSource(`${document.body.dataset.base ?? ""}/live`);
     source.addEventListener("changed", soon);
     source.addEventListener("moved", (event) => {
       try {

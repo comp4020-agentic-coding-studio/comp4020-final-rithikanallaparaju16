@@ -212,7 +212,7 @@ export function shell(title: string, body: string, light: Phase, kind: string): 
 <script src="/house.js" defer></script>
 <script src="/live.js" defer></script>
 </head>
-<body class="light-${light} ${kind}">
+<body class="light-${light} ${kind}" data-base="${esc(house().base)}">
 ${body}
 </body>
 </html>`;

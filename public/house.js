@@ -30,6 +30,11 @@
   if (!svg || !me) return;
 
   const NS = "http://www.w3.org/2000/svg";
+  // A made house (ADR 0017) lives under /h/<code>; its addresses all start
+  // there. The page's own links are rebased by the server, but what this
+  // file and data-do write are not.
+  const BASE = document.body.dataset.base ?? "";
+  const at = (path) => (BASE && path.startsWith("/") && !path.startsWith(`${BASE}/`) ? BASE + path : path);
   const map = svg.closest(".map");
   const myId = me.dataset.person;
   const view = svg.viewBox.baseVal;
@@ -226,7 +231,7 @@
     } catch {
       // you'll start back at your spot instead
     }
-    zoom([0, 0, W, H], () => location.assign("/"));
+    zoom([0, 0, W, H], () => location.assign(at("/")));
   }
 
   /* ---------- Shinzo ---------- */
@@ -387,7 +392,7 @@
   // The room pages' own Pet and Treat buttons, too.
   document.addEventListener("submit", (event) => {
     const action = event.target.getAttribute("action");
-    if (action === "/garden/dog" || action === "/garden/treat") rememberPup();
+    if (action === at("/garden/dog") || action === at("/garden/treat")) rememberPup();
   });
 
   /* ---------- where you are ---------- */
@@ -402,7 +407,7 @@
     kept = [x, y];
     sent = performance.now();
     try {
-      navigator.sendBeacon("/here", new URLSearchParams({ x: x.toFixed(0), y: y.toFixed(0) }));
+      navigator.sendBeacon(at("/here"), new URLSearchParams({ x: x.toFixed(0), y: y.toFixed(0) }));
     } catch {
       // kept the next time you stop instead
     }
@@ -611,7 +616,7 @@
     const there = t.hug ? undefined : rooms.find((r) => r.place === (fields.at ?? t.place));
     const go = () => {
       if (d.href) {
-        const to = new URL(d.href, location.href);
+        const to = new URL(at(d.href), location.href);
         if (to.pathname !== location.pathname) return location.assign(to);
         // Already here: just scroll to it.
         busy = false;
@@ -622,7 +627,7 @@
       }
       const form = document.createElement("form");
       form.method = "post";
-      form.action = d.post;
+      form.action = at(d.post);
       form.hidden = true;
       for (const [name, value] of Object.entries(fields)) {
         const input = document.createElement("input");

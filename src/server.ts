@@ -49,13 +49,12 @@ type Headers = Record<string, string>;
 
 // In a made house (src/houses.ts), every page's own links, forms and scripts
 // start with /h/<code>, so nothing written for Rithika's house at `/` needs to
-// know there's more than one.
+// know there's more than one. The scripts are files of their own, which this
+// never sees: they read the base from the page's `data-base` instead.
 function rebase(html: string): string {
   const { base } = house();
   if (!base) return html;
-  return html
-    .replace(/\b(href|action|src)="\/(?!\/|h\/|art\/|avatar\/|style\.css|make\b)/g, `$1="${base}/`)
-    .replace(/(["'])\/(here|live|live\.js|house\.js)\b/g, `$1${base}/$2`);
+  return html.replace(/\b(href|action|src)="\/(?!\/|h\/|art\/|avatar\/|style\.css|make\b)/g, `$1="${base}/`);
 }
 
 function send(res: ServerResponse, status: number, body: string | Buffer, type = "text/html; charset=utf-8"): void {
