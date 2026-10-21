@@ -2548,3 +2548,21 @@ weren't keeping things between friends properly.
 **Correction:** none.
 
 **Commits:** [`2696224`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/2696224).
+
+### 56. "open live site, and ship all the chnages" (21 Oct 2026)
+
+**Asked:** "open live site, and ship all the chnages".
+
+**Agent:**
+- Everything from entry 55 was already pushed. Two untracked files were
+  waiting: `reflections/crit-11.md` and `image.png`.
+- Committed Rithika's crit 11 reflection unchanged,
+  [`b7810fc`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/b7810fc).
+- Left `image.png` out: a 2 MB screenshot in the repo root of a made house
+  from before the picture set (paper tags), which nothing refers to. Asked
+  her whether to keep it.
+- Pushed, watched CI, checked the live site and opened it.
+
+**Correction:** none.
+
+**Commits:** `b7810fc`; this entry's commit.
