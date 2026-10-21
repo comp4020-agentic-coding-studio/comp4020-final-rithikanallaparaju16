@@ -2444,3 +2444,21 @@ untracked `image.png` in the repo root alone.
 **Correction:** none.
 
 **Commits:** this entry's commit.
+
+### 52. "how can we create images then" (21 Oct 2026)
+
+**Asked:** "how can we create images then", after hearing Claude runs on
+Anthropic's servers and can't reach the API from Fly.
+
+**Agent:** Answered, no code change. Read the course's "Generating images"
+page: the course key generates images through strproxy
+(`/api/images/generations`), $0.10 each from a $30 course budget that never
+resets, with URLs that expire, and the same ANU-network-only rule. Checked
+`/api/images/models`: five models (flux-schnell, flux-dev, flux-1.1-pro,
+ideogram-v3-quality, recraft-v3), $30 left, nothing spent. Suggested making a
+set of room-thing pictures once on her laptop and committing them, since Fly
+can't reach the proxy, and asked before building.
+
+**Correction:** none.
+
+**Commits:** this entry's commit.
