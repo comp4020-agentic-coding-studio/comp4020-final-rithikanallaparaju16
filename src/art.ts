@@ -84,7 +84,7 @@ export function plantSvg(key: string): string {
 
 export type Plot = { owner: Person; plant?: string; stage: number };
 
-// The five patches side by side, big enough to see what's growing on a phone.
+// A patch each, side by side, big enough to see what's growing on a phone.
 // Just after watering, drops fall on every patch; just after planting, a
 // sprout pops up in yours (`did` and `me`).
 export function patchesSvg(plots: Plot[], thirsty: boolean, did?: string, me?: string): string {
@@ -96,7 +96,8 @@ export function patchesSvg(plots: Plot[], thirsty: boolean, did?: string, me?: s
     const done = did === "water" || (did === "plant" && p.owner.id === me) ? pop(did, [x + 48, 46], 26, i * 0.15) : "";
     return `<rect x="${x}" y="14" width="96" height="88" rx="6" fill="#8a5a3c"/><rect x="${x + 6}" y="20" width="84" height="76" rx="4" fill="${soil}"/><g transform="translate(${x + 48} ${p.plant ? 84 : 80})">${plantArt(p.plant, p.stage, thirsty)}</g><text class="plot-name" x="${x + 48}" y="128" text-anchor="middle"${fit}>${esc(name)}</text>${done}`;
   }).join("");
-  return `<svg class="patches-svg" viewBox="0 0 570 140" role="img" aria-label="The five patches up close"><rect width="570" height="140" rx="10" fill="#9cc77a"/>${beds}</svg>`;
+  const w = 10 + plots.length * 112;
+  return `<svg class="patches-svg" viewBox="0 0 ${w} 140" role="img" aria-label="The patches up close"><rect width="${w}" height="140" rx="10" fill="#9cc77a"/>${beds}</svg>`;
 }
 
 /* ---------- Shinzo, up and about ---------- */

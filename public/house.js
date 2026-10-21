@@ -907,7 +907,8 @@
 
   // In a room, every way back to the whole house zooms out on the way.
   if (current) {
-    for (const link of document.querySelectorAll('a[href="/"]')) {
+    // In a made house, the house is at its own address (data-base).
+    for (const link of document.querySelectorAll(`a[href="${BASE}/"]`)) {
       link.addEventListener("click", (event) => {
         if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || still) return;
         event.preventDefault();

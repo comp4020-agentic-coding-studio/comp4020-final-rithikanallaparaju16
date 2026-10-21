@@ -73,7 +73,7 @@ When you come home, **While you were away** lists what's new since your last vis
 
 ## A house for your own friends
 
-This house is for the five of us, but anyone can make one for their own five at `/make` (there's a link at the door). Tell it each friend's name, where she lives and a few things about her, pick what's in her room from a set of pictures (a guitar, fairy lights, too many plants, a cat bed and more), and add the memories you'd pin on the living room wall. It builds a house of your own at its own private address: the same picture, with a room each named for your friends, their things pictured in their rooms, your memories on the wall, and everyone's own clock. When Claude can be reached it writes each room's description from what you said; otherwise the house is built straight from your words. Everything else works the same in your house: walking, hugs, UNO, the wall, Shinzo. Our five's own things (the KitKats, the face masks, the kettle) stay in our house.
+This house is for the five of us, but anyone can make one for their own friends at `/make` (there's a link at the door), for two to seven of you. Tell it each friend's name, where she lives and a few things about her, pick what's in her room from a set of pictures (a guitar, fairy lights, too many plants, a cat bed and more), and add the memories you'd pin on the living room wall. It builds a house of your own at its own private address: our picture for five, or a house drawn for your number, with a room each named for your friends, their things pictured in their rooms, your memories on the wall, and everyone's own clock. When Claude can be reached it writes each room's description from what you said; otherwise the house is built straight from your words. Everything else works the same in your house: walking, hugs, UNO (at the coffee table, if you aren't five), the wall, Shinzo. Our five's own things (the KitKats, the face masks, the kettle) stay in our house.
 
 It's a prototype: five friends only for now, because more friends means more rooms, and more rooms means new art.
 
@@ -143,9 +143,10 @@ Run it locally with `pnpm start` (it keeps its data in `./data`), then run `pnpm
 - an open UNO table keeps up with friends' moves, and a card goes down without leaving the page
 - each UNO player gets twenty seconds a turn, then the others play on without her
 - leaving the house takes you out of your UNO game
-- anyone can make a house for five friends, and it's built from what they said
-- each made house keeps to itself: its own five, its own wall, its own sign-in
-- a made house gives its five their own rooms and memories, and none of ours
+- anyone can make a house for two to seven friends, and it's built from what they said
+- a made house has a bedroom for each friend, and up to seven can play UNO at its coffee table
+- each made house keeps to itself: its own friends, its own wall, its own sign-in
+- a made house gives its friends their own rooms and memories, and none of ours
 - making houses is capped, and a house with a missing friend is turned down
 - the house only takes things it has
 

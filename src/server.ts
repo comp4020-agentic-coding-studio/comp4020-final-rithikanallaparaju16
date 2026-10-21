@@ -29,6 +29,7 @@ import {
   type Visit,
 } from "./pages.ts";
 import { PEOPLE, personById, type Person } from "./people.ts";
+import { layout, matWords } from "./layouts.ts";
 import { isPlace, placeAt } from "./scene.ts";
 import * as store from "./store.ts";
 import { birthday, fromLocal } from "./time.ts";
@@ -226,7 +227,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   // now. Coming in as someone else lets go of whoever you were.
   if (route === "POST /me") {
     const who = personById((await readForm(req))?.get("who") ?? undefined);
-    if (!who) return send(res, 400, messagePage("Who's that?", "That isn't one of the five of us."));
+    if (!who) return send(res, 400, messagePage("Who's that?", "That isn't one of the friends in this house."));
     if (mine?.me.id === who.id) return redirect(res, "/");
     if (held(who.id)) {
       return send(res, 409, messagePage(`${who.name}'s already home`, `Someone's in the house as ${who.name} right now. ${cap(their(who))} window opens again once they leave.`));
@@ -275,7 +276,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
 
   const roomMatch = pathname.match(/^\/room\/([^/]+)(\/leave|\/tidy|\/mask|\/kettle|\/nap|\/wish)?$/);
   const owner = roomMatch ? personById(roomMatch[1]) : undefined;
-  if (roomMatch && !owner) return send(res, 404, messagePage("No such room", "There are five rooms in this house, and that isn't one of them."));
+  if (roomMatch && !owner) return send(res, 404, messagePage("No such room", `There are ${PEOPLE.length} rooms in this house, and that isn't one of them.`));
   // The face mask powder is in Rithanya's room, and the kettle in Amirdhavarshini's.
   // A made house (src/houses.ts) has neither: they're Rithika's five's own.
   if ((roomMatch?.[2] === "/mask" && (owner?.id !== MASK_ROOM || made())) || (roomMatch?.[2] === "/kettle" && (owner?.id !== KETTLE_ROOM || made()))) {
@@ -402,8 +403,9 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   // you're one of them and not alone.
   if (pathname === "/uno") {
     const who = dealFor(me.id, resting(store.things(), Date.now(), store.whereabouts(), store.arrivals()));
-    if (!who) return send(res, 400, messagePage("Not yet", `Sit on the mat in ${personById(KETTLE_ROOM)?.name ?? "the big"}'s room with a friend first, then deal.`, `/room/${KETTLE_ROOM}`));
-    store.leave({ author: me.id, kind: "uno", place: roomPlace(KETTLE_ROOM), item: who.join(","), body: String(randomInt(1, 2 ** 31)) });
+    const mat = matWords();
+    if (!who) return send(res, 400, messagePage("Not yet", `${mat.sit} with a friend first, then deal.`, mat.href));
+    store.leave({ author: me.id, kind: "uno", place: layout().mat.place, item: who.join(","), body: String(randomInt(1, 2 ** 31)) });
     return redirect(res, "/uno?did=uno");
   }
 

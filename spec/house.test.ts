@@ -847,6 +847,39 @@ describe.skipIf(!throwaway)("living in the house", () => {
     }
   });
 
+  // Two to seven friends, each size drawn on a house with a bedroom each
+  // (src/layouts.ts, ADR 0021). UNO is round the coffee table there, so the
+  // friends sitting at it can deal.
+  it("makes a house for two to seven friends, with a room each", async () => {
+    const form = parse(await (await fetch(new URL("/make?friends=3", baseUrl))).text());
+    expect(form.querySelectorAll(".friend-block").length, "asking for three didn't give three friends to fill in").toBe(3);
+    for (const names of [["Ivy", "Rae", "Kit"], ["Ivy", "Rae", "Kit", "Bo", "Dee", "Fen", "Gus"]]) {
+      const { res, code } = await makeHouse(names, { friends: String(names.length) });
+      expect(res.status, `a house for ${names.length} wasn't made`).toBe(201);
+      const base = `/h/${code}`;
+      const door = parse(await (await fetch(new URL(`${base}/`, baseUrl))).text());
+      expect(door.querySelectorAll("button[name=who]").length, `the door for ${names.length} doesn't have a window each`).toBe(names.length);
+      const sign = (who: string): Promise<Response> => fetch(new URL(`${base}/me`, baseUrl), { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: `who=${who}`, redirect: "manual" });
+      const [a, b] = [sessionOf(await sign("1"))!, sessionOf(await sign(String(names.length)))!];
+      try {
+        const home = parse(await (await fetch(new URL(`${base}/`, baseUrl), { headers: { cookie: a } })).text());
+        expect(home.querySelector(".house-svg image")?.getAttribute("href"), `the house for ${names.length} isn't drawn on its own picture`).toContain(`house-${names.length}.jpg`);
+        const bedrooms = [...home.querySelectorAll("a.room-link")].filter((l) => l.getAttribute("data-place")?.startsWith("room:"));
+        expect(bedrooms.length, `the house for ${names.length} doesn't have a bedroom each`).toBe(names.length);
+        const last = await fetch(new URL(`${base}/room/${names.length}`, baseUrl), { headers: { cookie: a } });
+        expect(last.status, "the last friend's room isn't there").toBe(200);
+
+        const post = (cookie: string, path: string, body: string): Promise<Response> =>
+          fetch(new URL(`${base}${path}`, baseUrl), { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", cookie }, body, redirect: "manual" });
+        expect((await post(a, "/sit", "seat=mat")).headers.get("location"), "sitting at the table didn't go to the living room").toContain("/living");
+        await post(b, "/sit", "seat=mat");
+        expect((await post(a, "/uno", "")).status, "two friends at the coffee table couldn't deal UNO").toBe(303);
+      } finally {
+        for (const cookie of [a, b]) await fetch(new URL(`${base}/leave`, baseUrl), { method: "POST", headers: { cookie }, redirect: "manual" });
+      }
+    }
+  });
+
   it("only puts the pictured things in a made house's rooms", async () => {
     const maker = parse(await (await fetch(new URL("/make", baseUrl))).text());
     const offered = [...maker.querySelectorAll("input[name=things-1]")].map((i) => i.getAttribute("value"));

@@ -1,4 +1,4 @@
-import { KETTLE_ROOM } from "./house.ts";
+import { layout } from "./layouts.ts";
 import type { Thing } from "./store.ts";
 
 // UNO on Amirdhavarshini's mat, worked out from the log like everything else
@@ -21,7 +21,8 @@ export const COLOR_NAME: Record<Color, string> = { r: "red", y: "yellow", g: "gr
 // D (draw two). Wilds have no colour: W, and W4 (wild draw four).
 export type Card = string;
 
-export const MAX_PLAYERS = 5;
+// Everyone in the biggest house (src/layouts.ts): 49 cards dealt of 108.
+export const MAX_PLAYERS = 7;
 const HAND = 7;
 export const TURN = 20_000;
 
@@ -285,11 +286,11 @@ export function replay(start: Thing, things: Thing[], now: number, fresh = false
 // Whether `who` is still playing a game that isn't over.
 export const stillIn = (g: Game, who: string): boolean => !g.winner && g.players.includes(who);
 
-// Everyone sitting on Amirdhavarshini's mat right now, by id, from
-// house.ts resting().
+// Everyone sitting on Amirdhavarshini's mat (or, in a made house's own
+// picture, at the coffee table) right now, by id, from house.ts resting().
 export function onTheMat(rests: Map<string, Thing>): string[] {
   return [...rests.values()]
-    .filter((t) => t.kind === "sit" && t.item === "mat" && t.place === `room:${KETTLE_ROOM}`)
+    .filter((t) => t.kind === "sit" && t.item === "mat" && t.place === layout().mat.place)
     .map((t) => t.author)
     .sort();
 }

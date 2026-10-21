@@ -44,9 +44,10 @@ import {
 } from "./house.ts";
 import { house, made } from "./houses.ts";
 import { esc } from "./html.ts";
+import { layout, matWords } from "./layouts.ts";
 import { PEOPLE, personById, type Person } from "./people.ts";
 import { their, them, they, theyre, verb } from "./words.ts";
-import { DOG_SPOTS, houseSvg, HUG_REACH, isPlace, KENNEL, placeAt, standingSpots, type Doing, type Figure, type Scene, type Spot } from "./scene.ts";
+import { dogSpots, houseSvg, HUG_REACH, isPlace, kennel, placeAt, standingSpots, type Doing, type Figure, type Scene, type Spot } from "./scene.ts";
 import type { Thing } from "./store.ts";
 import { ago, asleep, birthday, birthdayLabel, clock, dayLabel, hello, localInput, phase, ymd, type Phase } from "./time.ts";
 import {
@@ -104,6 +105,11 @@ const nameHtml = (p: Person): string =>
 
 const names = (list: string[]): string => new Intl.ListFormat("en-AU", { type: "conjunction" }).format(list);
 
+// How many live here, in words: "all five of you", "both of you", "six friends".
+const NUMBER = ["", "one", "two", "three", "four", "five", "six", "seven"];
+const allOfYou = (): string => (PEOPLE.length === 2 ? "both of you" : `all ${NUMBER[PEOPLE.length] ?? PEOPLE.length} of you`);
+const friendsWord = (): string => `${NUMBER[PEOPLE.length] ?? PEOPLE.length} friends`;
+
 const isNew = (t: Thing, v: Visit): boolean => t.author !== v.me.id && t.createdAt > v.seenUntil;
 
 function homeNow(p: Person, v: Visit): boolean {
@@ -148,7 +154,7 @@ type Laddoo = { place: string; with?: Person; until?: number; last?: Thing; plan
 function laddooAt(v: Visit): Laddoo {
   const d = dog(v.things, v.now);
   const friend = d.with ? personById(d.with) : undefined;
-  const plan = wander(DOG_SPOTS, v.now, v.now + DOG_PLAN);
+  const plan = wander(dogSpots(), v.now, v.now + DOG_PLAN);
   const own = along(plan, v.now);
   if (friend) return { place: placeOf(friend, v), with: friend, until: d.until, last: d.last, plan, at: own.at, pose: "stand" };
   return { place: placeAt(own.at) ?? "garden", last: d.last, plan, at: own.at, pose: own.pose };
@@ -173,6 +179,7 @@ function restText(r: Thing, p: Person, v: Visit): string {
   if (r.kind === "nap") return `asleep in ${whose} bed`;
   if (r.item === "sofa") return "on the sofa in the living room";
   if (r.item === "yoga") return `meditating on ${whose} yoga mat`;
+  if (r.place === "living") return "at the coffee table in the living room";
   return `on ${p.id === v.me.id ? "your" : their(p)} cushion on ${whose} mat`;
 }
 
@@ -208,7 +215,7 @@ export function shell(title: string, body: string, light: Phase, kind: string): 
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&display=swap">
 <link rel="stylesheet" href="/style.css">
-<style>:root { --house: url("${art("house.jpg")}"); }</style>
+<style>:root { --house: url("${art(layout().picture)}"); }</style>
 <script src="/house.js" defer></script>
 <script src="/live.js" defer></script>
 </head>
@@ -428,11 +435,11 @@ export function doorPage(seen: Map<string, number>, now: number, taken: Set<stri
 <main class="door">
   <header class="top">
     <h1>Five Windows</h1>
-    <p class="greeting">A little house for five friends who live far apart. Come in whenever you like, leave something for someone, and see what the others left while you were away.</p>
+    <p class="greeting">A little house for ${friendsWord()} who live far apart. Come in whenever you like, leave something for someone, and see what the others left while you were away.</p>
   </header>
   <form method="post" action="/me">
     <h2 class="ask">Who's coming home?</h2>
-    <ul class="people" data-live="door">
+    <ul class="people" data-live="door" style="--n:${PEOPLE.length}">
 ${people}
     </ul>
   </form>
@@ -555,6 +562,7 @@ function happening(t: Thing, me: Person, all: Thing[]): Happening | undefined {
     }
     case "sit": {
       if (t.item === "sofa") return { text: `${by} sat on the sofa in the living room`, href: "/living", forYou: false, at };
+      if (t.place === "living") return { text: `${by} sat at the coffee table in the living room`, href: "/living", forYou: false, at };
       const owner = ownerOf(t.place);
       if (!owner) return undefined;
       const href = `/room/${owner.id}`;
@@ -718,7 +726,7 @@ function upTo(d: Laddoo, v: Visit): string {
   const round = placeName(d.place, v.me).replace(/^in /, "round ");
   if (d.pose === "walk") return `wandering ${round}`;
   if (d.pose === "stand") return `having a sniff ${round}`;
-  if (d.at[0] === KENNEL[0] && d.at[1] === KENNEL[1]) return "having a nap on his blanket under the tree";
+  if (d.at[0] === kennel()[0] && d.at[1] === kennel()[1]) return "having a nap on his blanket under the tree";
   return `curled up on his blanket for a nap ${placeName(d.place, v.me)}`;
 }
 
@@ -844,6 +852,7 @@ function unoCard(v: Visit): string {
   const g = mine && replay(mine, v.things, v.now);
   const playing = g && stillIn(g, v.me.id);
   const mat = onTheMat(rests);
+  const w = matWords();
   const others = (ids: string[]): string => names(ids.filter((p) => p !== v.me.id).map(nameOf));
   const game = !g ? ""
     : playing ? `<p class="uno-now${whoseTurn(g) === v.me.id ? " yours" : ""}"><a href="/uno">Your game with ${esc(others(g.players))}</a>. ${esc(turnLine(g, v))}</p>`
@@ -852,9 +861,9 @@ function unoCard(v: Visit): string {
   const deal = dealt
     ? `<form method="post" action="/uno" class="inline"><button class="soft">${emoji("uno")} ${playing ? "Deal a new game" : "Deal UNO"} for you and ${esc(others(dealt))}</button></form>
     <p class="small">Seven cards each, and twenty seconds a turn. Whoever lets ${made() ? "their" : "her"} time run out, or leaves the house, is out, and the rest play on.</p>`
-    : playing ? "" : `<p class="empty">Sit on the mat with a friend to play.${mat.length ? ` ${esc(cap(names(mat.map((p) => whoName(p, v)))))} ${mat.length === 1 && mat[0] !== v.me.id ? "is" : "are"} on the mat right now.` : ""}</p>`;
+    : playing ? "" : `<p class="empty">${esc(w.sit)} with a friend to play.${mat.length ? ` ${esc(cap(names(mat.map((p) => whoName(p, v)))))} ${mat.length === 1 && mat[0] !== v.me.id ? "is" : "are"} ${w.on} right now.` : ""}</p>`;
   return `<section class="card uno-card-room" aria-labelledby="uno-heading">
-    <h2 id="uno-heading">UNO on the mat</h2>
+    <h2 id="uno-heading">UNO ${w.on}</h2>
     ${game}
     ${deal}
   </section>`;
@@ -970,19 +979,21 @@ export function unoPage(v: Visit, did?: Done): string {
   const g = start && replay(start, v.things, v.now);
   const playing = g?.players.includes(v.me.id);
   const gone = g?.left.some((l) => l.who === v.me.id);
-  const owner = personById(KETTLE_ROOM)!;
+  const w = matWords();
+  const owner = layout().mat.place === "living" ? undefined : personById(KETTLE_ROOM);
+  const where = owner ? `${owner.name}'s mat` : "the coffee table";
   const body = !g
-    ? `<section class="card"><p class="empty">Nobody's dealt a game yet. Sit on ${esc(owner.name)}'s mat with a friend, and deal.</p><p><a href="/room/${KETTLE_ROOM}">Go to the mat ›</a></p></section>`
+    ? `<section class="card"><p class="empty">Nobody's dealt a game yet. ${owner ? `Sit on ${esc(where)}` : "Sit at the coffee table"} with a friend, and deal.</p><p><a href="${w.href}">Go to the ${w.table} ›</a></p></section>`
     : `${unoTable(g, v)}
-  ${g.winner ? `<p class="uno-again"><a href="/room/${KETTLE_ROOM}">Back to the mat for another round ›</a></p>` : ""}
-  ${playing ? unoHand(g, v) : gone ? `<p class="small">${esc(outLine(g, v))} Sit on the mat with a friend to deal another.</p>` : `<p class="small">You're not in this game. Sit on the mat with a friend to deal one of your own.</p>`}
+  ${g.winner ? `<p class="uno-again"><a href="${w.href}">Back to the ${w.table} for another round ›</a></p>` : ""}
+  ${playing ? unoHand(g, v) : gone ? `<p class="small">${esc(outLine(g, v))} ${esc(w.sit)} with a friend to deal another.</p>` : `<p class="small">You're not in this game. ${esc(w.sit)} with a friend to deal one of your own.</p>`}
   ${unoPlayers(g, v)}`;
   return shell("UNO · Five Windows", `
 ${bar(v, "home")}
 <main class="list uno">
-  <header class="room-head" style="--accent:${owner.color}">
-    <h1>UNO on the mat</h1>
-    <p class="local">On ${esc(owner.name)}'s mat, like old times. Seven cards each, and twenty seconds a turn: whoever's away is out, and the rest play on.</p>
+  <header class="room-head" style="--accent:${owner?.color ?? "#8a5a3c"}">
+    <h1>UNO ${w.on}</h1>
+    <p class="local">${owner ? `On ${esc(where)}, like old times.` : "Round the coffee table in the living room."} Seven cards each, and twenty seconds a turn: whoever's away is out, and the rest play on.</p>
   </header>
   ${done(did)}
   <div class="uno-game" data-live="uno-game">
@@ -1062,7 +1073,8 @@ export function bedroomPage(owner: Person, v: Visit, did?: Done): string {
   // own; a made house (src/houses.ts) has the mat and cushions, which are in
   // the picture.
   const ours = !made();
-  const seat = owner.id === KETTLE_ROOM ? sitButton("mat", "Sit on your cushion on the mat")
+  const onMat = layout().mat.place === roomPlace(owner.id);
+  const seat = onMat ? sitButton("mat", "Sit on your cushion on the mat")
     : owner.id === YOGA_ROOM && ours ? sitButton("yoga", "Meditate on the yoga mat")
     : "";
 
@@ -1102,7 +1114,7 @@ export function bedroomPage(owner: Person, v: Visit, did?: Done): string {
   ${slot("dog", laddooCard(roomPlace(owner.id), v))}
   ${owner.id === MASK_ROOM && ours ? slot("mask", maskCard(owner, v)) : ""}
   ${owner.id === KETTLE_ROOM && ours ? slot("kettle", kettleCard(owner, v)) : ""}
-  ${owner.id === KETTLE_ROOM ? slot("uno", unoCard(v)) : ""}
+  ${onMat ? slot("uno", unoCard(v)) : ""}
   <section class="card" id="desk" aria-labelledby="desk-heading" data-live="desk">
 
     <h2 id="desk-heading">${mine ? "On your desk" : `On ${esc(owner.name)}'s desk`}</h2>
@@ -1151,14 +1163,17 @@ export function livingPage(v: Visit, did?: Done): string {
   const notes = wall(v.things);
   const big = notes.filter((t) => t.item === "big");
   const everyday = notes.filter((t) => t.item !== "big");
+  // In a made house's own picture, UNO is round the coffee table here.
+  const table = layout().mat.place === "living";
 
   return roomPage(v, "living", "The living room", `
-  ${roomHead("The living room", "Everyone's room. The wall is for all five of you: something funny from today, a good-luck wish, big news.", undefined, "#8a5a3c")}
+  ${roomHead("The living room", `Everyone's room. The wall is for ${allOfYou()}: something funny from today, a good-luck wish, big news.`, undefined, "#8a5a3c")}
   ${done(did)}
   <p class="sofa" data-live="sofa"><a href="/movies">${night ? esc(`Movie night on these sofas: “${night.movie.title}”, ${dayLabel(v.me.tz, night.at)}`) : "Movie night happens on these sofas"} ›</a></p>
   ${slot("resting", restingIn("living", v))}
   ${slot("hugs", hugButtons(v))}
-  <div class="doings">${sitButton("sofa", "Sit on the sofa")}</div>
+  <div class="doings">${sitButton("sofa", "Sit on the sofa")}${table ? sitButton("mat", "Sit at the coffee table") : ""}</div>
+  ${table ? slot("uno", unoCard(v)) : ""}
   ${slot("dog", laddooCard("living", v))}
   <form method="post" action="/wall" class="card compose" id="write">
     <label for="body">Write on the wall</label>

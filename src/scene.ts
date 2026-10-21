@@ -6,11 +6,13 @@ import { BOX, drawingShapes, type Drawing } from "./drawings.ts";
 import { along, DOG, KETTLE_ROOM, MASK_ROOM, rejoin, YOGA_ROOM, type DogSpot, type Pose, type Waypoint } from "./house.ts";
 import { made } from "./houses.ts";
 import { esc } from "./html.ts";
+import { layout, matWords, oval, type Pt } from "./layouts.ts";
 import type { Person } from "./people.ts";
 import type { Phase } from "./time.ts";
 
-// The house is the Google Stitch illustration (public/art/house.jpg, made by
-// scripts/cut-art.py), with an SVG layer drawn on top in the image's own
+// The house is a picture (src/layouts.ts): the Google Stitch illustration
+// (public/art/house.jpg, made by scripts/cut-art.py) or a made house's own,
+// with an SVG layer drawn on top in the image's own
 // pixels: each room's outline as a link, its light for the time of day, what
 // people left, the things you can do something with, Shinzo the dog, and the
 // five of us. A room's page is the same drawing with a viewBox around that
@@ -20,184 +22,30 @@ import type { Phase } from "./time.ts";
 export const W = 1376;
 export const H = 768;
 
-type Pt = [number, number];
+// Rithika's five, and any made house for five, are drawn on the Stitch
+// picture; a made house for 2, 3, 4, 6 or 7 on its own (src/layouts.ts, ADR
+// 0021). Everything below reads where things are from the layout.
 
-type Room = {
-  name: string;
-  outline: Pt[];
-  // Top-left corner of the room's name tag.
-  tag: Pt;
-  // Where people stand, feet first: the first is where you arrive, and
-  // friends in the same room take the next ones.
-  walk: Pt[];
-  // The room page's viewBox: x, y, width, height.
-  view: [number, number, number, number];
-  // Bedrooms only: the pillow, the desk, clear floor for clutter, and where
-  // Shinzo naps.
-  bed?: Pt;
-  desk?: Pt[];
-  mess?: Pt[];
-  dog?: Pt;
-  // Bedrooms only: the outlines of the bed and the study table, which light up
-  // when you walk up to them.
-  bedArea?: Pt[];
-  deskArea?: Pt[];
-  // Bedrooms only: in her birthday month, bunting from `from` to `to`
-  // (sagging by `sag`) and balloons tied down at `balloons`.
-  party?: { from: Pt; to: Pt; sag: number; balloons: Pt };
-  // Bedrooms only, in a made house: where the first of her things is pinned
-  // up, on a bit of wall or floor clear of her name tag and the bunting
-  // (src/houses.ts); the rest go down below it.
-  pins?: Pt;
-};
-
-export const ROOMS: Record<string, Room> = {
-  "room:3": {
-    name: "Amirdhavarshini's room",
-    outline: [[22, 42], [318, 42], [330, 122], [445, 245], [445, 432], [22, 432]],
-    tag: [40, 48],
-    walk: [[200, 330], [330, 300], [270, 410]],
-    view: [10, 30, 450, 415],
-    bed: [138, 198],
-    desk: [[225, 185], [280, 190]],
-    mess: [[95, 345], [395, 330]],
-    dog: [350, 395],
-    bedArea: [[80, 168], [196, 168], [198, 296], [80, 296]],
-    deskArea: [[205, 170], [302, 170], [302, 240], [205, 240]],
-    party: { from: [30, 125], to: [312, 120], sag: 10, balloons: [74, 300] },
-    pins: [322, 150],
-  },
-  kitchen: {
-    name: "Kitchen",
-    outline: [[445, 45], [615, 2], [785, 50], [790, 140], [700, 200], [650, 280], [560, 290], [470, 260], [445, 240]],
-    tag: [468, 44],
-    walk: [[495, 240], [600, 292]],
-    view: [425, 0, 400, 320],
-  },
-  living: {
-    name: "Living room",
-    outline: [[785, 50], [890, 72], [1060, 132], [1145, 290], [700, 445], [595, 350], [560, 290], [650, 280], [700, 200], [790, 140]],
-    tag: [835, 66],
-    walk: [[640, 330], [985, 335], [745, 415]],
-    view: [560, 40, 600, 420],
-  },
-  garden: {
-    name: "Garden",
-    outline: [[895, 0], [1376, 0], [1376, 560], [1312, 500], [1150, 288], [1062, 132], [890, 70]],
-    tag: [1200, 178],
-    walk: [[1215, 300], [1320, 330], [1150, 235]],
-    view: [880, 0, 496, 420],
-  },
-  "room:1": {
-    name: "Rithika's room",
-    outline: [[22, 440], [356, 440], [356, 738], [22, 738]],
-    tag: [36, 448],
-    walk: [[135, 600], [215, 580], [250, 715]],
-    view: [10, 425, 360, 335],
-    bed: [75, 655],
-    desk: [[310, 610], [330, 660]],
-    mess: [[175, 615], [290, 722]],
-    dog: [175, 585],
-    bedArea: [[42, 636], [230, 636], [230, 728], [42, 728]],
-    deskArea: [[280, 572], [352, 572], [352, 700], [280, 700]],
-    party: { from: [26, 512], to: [352, 512], sag: 9, balloons: [298, 566] },
-    pins: [236, 588],
-  },
-  "room:4": {
-    name: "Rithanya's room",
-    outline: [[360, 440], [652, 440], [700, 515], [726, 738], [360, 738]],
-    tag: [462, 392],
-    walk: [[540, 565], [612, 605], [625, 705]],
-    view: [345, 385, 395, 375],
-    bed: [425, 515],
-    desk: [[510, 680], [545, 690]],
-    mess: [[600, 652], [400, 715]],
-    dog: [580, 600],
-    bedArea: [[366, 490], [482, 490], [482, 650], [366, 650]],
-    deskArea: [[460, 645], [602, 645], [602, 705], [460, 705]],
-    party: { from: [364, 470], to: [648, 470], sag: 9, balloons: [600, 562] },
-    pins: [612, 462],
-  },
-  "room:5": {
-    name: "Aswathy's room",
-    outline: [[704, 452], [968, 405], [1060, 738], [730, 738]],
-    tag: [800, 440],
-    walk: [[985, 668], [902, 640], [868, 548]],
-    view: [690, 390, 385, 370],
-    bed: [770, 522],
-    // Her one study table now, at the foot of the bed (scripts/cut-art.py).
-    desk: [[766, 683], [798, 684]],
-    mess: [[845, 705], [965, 578]],
-    dog: [905, 700],
-    bedArea: [[718, 488], [820, 488], [852, 645], [718, 645]],
-    deskArea: [[738, 642], [856, 642], [858, 692], [740, 692]],
-    party: { from: [712, 515], to: [962, 500], sag: 8, balloons: [940, 585] },
-    pins: [836, 548],
-  },
-  "room:2": {
-    name: "Neha's room",
-    outline: [[970, 402], [1000, 350], [1145, 295], [1305, 480], [1312, 738], [1064, 738]],
-    tag: [1150, 318],
-    walk: [[1035, 500], [1085, 590], [1090, 705]],
-    view: [945, 280, 390, 480],
-    bed: [1180, 466],
-    desk: [[1145, 655], [1250, 670]],
-    mess: [[1035, 560], [1130, 595]],
-    dog: [1050, 640],
-    bedArea: [[1128, 442], [1220, 442], [1272, 575], [1270, 612], [1172, 612], [1128, 525]],
-    deskArea: [[1120, 630], [1262, 630], [1288, 700], [1120, 712]],
-    party: { from: [992, 410], to: [1222, 400], sag: 10, balloons: [1015, 530] },
-    pins: [1168, 520],
-  },
-};
-
-// Where things left in the kitchen sit, on the island.
-const COUNTER: Pt[] = [[560, 203], [602, 214], [646, 204]];
 // The low round table on Amirdhavarshini's mat, where the kettle goes.
 const MAT_TABLE: Pt = [292, 300];
-// Shinzo's blanket in the garden, where the illustration had him.
-export const KENNEL: Pt = [1249, 122];
-const FIREPLACE: Pt = [835, 205];
-
-// Where Shinzo stops for a sniff or a sit when he's off on his own, besides
-// the rooms' own spots for him: by his bowls, on the stepping stones, the
-// kitchen floor, the rug and beside the sofas, and a clear bit of floor in
-// each bedroom.
-const DOG_STOPS: Pt[] = [
-  [1300, 182], [1060, 45], [1290, 385], [1330, 255],
-  [512, 236], [590, 270],
-  [905, 292], [985, 332], [745, 412],
-  [110, 335], [240, 700], [400, 668], [900, 600], [1060, 520],
-];
-
-// Everywhere he goes on his own (src/house.ts wander): his blanket and the
-// foot of each bed to nap on, mostly the blanket, and the stops above.
-export const DOG_SPOTS: DogSpot[] = [
-  { at: KENNEL, nap: 5 },
-  ...Object.values(ROOMS).flatMap((r): DogSpot[] => (r.dog ? [{ at: r.dog, nap: 1 }] : [])),
-  ...DOG_STOPS.map((at): DogSpot => ({ at })),
-];
-
-// An oval as a polygon, for the round things that light up.
-const oval = (cx: number, cy: number, rx: number, ry: number): Pt[] =>
-  Array.from({ length: 16 }, (_, i): Pt => [Math.round(cx + rx * Math.cos((i * Math.PI) / 8)), Math.round(cy + ry * Math.sin((i * Math.PI) / 8))]);
-
-// The things in the picture you can do something with, besides beds and desks.
-// Amirdhavarshini's round mat has a cushion for each of us, by colour.
-const MAT = oval(270, 340, 125, 76);
-const CUSHIONS: Record<string, Pt> = { "1": [326, 299], "2": [205, 346], "3": [270, 376], "4": [340, 352], "5": [227, 297] };
-// The living room's sofas and armchair, and where you sit on them.
-const SOFAS: Pt[] = [[668, 215], [790, 205], [905, 235], [965, 240], [960, 395], [805, 405], [660, 400]];
-const SOFA_SEATS: Pt[] = [[730, 342], [892, 343], [735, 252], [932, 268], [700, 258]];
+// Aswathy's yoga mat and Rithanya's mirror and face mask powder (RITHANYA
+// below): only in Rithika's house, so only in the Stitch picture.
 const YOGA: Pt[] = [[945, 608], [1003, 608], [1036, 720], [980, 724]];
 const YOGA_SEATS: Pt[] = [[990, 672], [975, 632]];
-// Rithanya's mirror and face mask powder, in RITHANYA below.
 const MIRROR: Pt[] = [[500, 458], [554, 458], [554, 512], [500, 512]];
-// The memory wall, the board above the living room's armchair.
-const WALL_BOARD: Pt[] = [[910, 120], [1032, 156], [1032, 264], [910, 224]];
-const STOVE: Pt[] = [[538, 190], [610, 160], [745, 148], [748, 200], [650, 272], [538, 272]];
-// The sunflower bed by the living room wall, where the patches are.
-const PATCHES: Pt[] = [[1075, 138], [1150, 138], [1188, 200], [1180, 228], [1100, 228], [1075, 180]];
+
+// Everywhere Shinzo goes on his own (src/house.ts wander): his blanket and
+// the foot of each bed to nap on, mostly the blanket, and the layout's stops.
+export function dogSpots(): DogSpot[] {
+  const l = layout();
+  return [
+    { at: l.kennel, nap: 5 },
+    ...Object.values(l.rooms).flatMap((r): DogSpot[] => (r.dog ? [{ at: r.dog, nap: 1 }] : [])),
+    ...l.dogStops.map((at): DogSpot => ({ at })),
+  ];
+}
+
+export const kennel = (): Pt => layout().kennel;
 
 export type Spot = { key: string; color?: string; fresh: boolean };
 
@@ -267,7 +115,7 @@ export type Scene = {
   uno?: { seated: Doing[]; mat: Doing[] };
 };
 
-export const isPlace = (place: string): boolean => Object.hasOwn(ROOMS, place);
+export const isPlace = (place: string): boolean => Object.hasOwn(layout().rooms, place);
 
 const pts = (list: Pt[]): string => list.map(([x, y]) => `${x},${y}`).join(" ");
 
@@ -293,7 +141,7 @@ const fromEdge = ([px, py]: Pt, outline: Pt[]): number =>
 // walk straight through walls, public/house.js), the nearer one, as long as
 // it's about a wall's width away; anywhere else isn't in the house.
 export function placeAt(p: Pt): string | undefined {
-  const rooms = Object.entries(ROOMS);
+  const rooms = Object.entries(layout().rooms);
   const room = rooms.find(([, r]) => inside(p, r.outline));
   if (room) return room[0];
   const [place, gap] = rooms.map(([place, r]): [string, number] => [place, fromEdge(p, r.outline)]).sort((a, b) => a[1] - b[1])[0];
@@ -314,13 +162,14 @@ const dark = (phase: Phase): boolean => phase === "night" || phase === "dusk";
 // by the visitor's clock the fire is lit, but nothing gets darker.
 function light(s: Scene): string {
   const bedrooms = s.bedrooms.map((b) => {
-    const room = ROOMS[`room:${b.owner.id}`];
+    const room = layout().rooms[`room:${b.owner.id}`];
     const shade = SHADE[b.phase];
     const fill = shade ? `<polygon points="${pts(room.outline)}" fill="${shade[0]}" opacity="${shade[1]}"/>` : "";
     const lamp = b.lamp && dark(b.phase) && room.desk ? `<circle cx="${room.desk[0][0]}" cy="${room.desk[0][1]}" r="120" fill="url(#glow)"/>` : "";
     return fill + lamp;
   }).join("");
-  const fire = dark(s.light) ? `<circle cx="${FIREPLACE[0]}" cy="${FIREPLACE[1]}" r="140" fill="url(#glow)"/>` : "";
+  const [fx, fy] = layout().fireplace;
+  const fire = dark(s.light) ? `<circle cx="${fx}" cy="${fy}" r="140" fill="url(#glow)"/>` : "";
   return `<g class="light" aria-hidden="true">${bedrooms}${fire}</g>`;
 }
 
@@ -330,12 +179,13 @@ function left(spot: Spot, [x, y]: Pt, scale: number): string {
 
 function things(s: Scene): string {
   const rooms = s.bedrooms.map((b) => {
-    const room = ROOMS[`room:${b.owner.id}`];
+    const room = layout().rooms[`room:${b.owner.id}`];
     const clutter = (room.mess ?? []).slice(0, b.mess).map(([x, y], i) => messItem(Number(b.owner.id) + i, x, y, 1.4)).join("");
     const desk = b.desk.slice(0, room.desk?.length ?? 0).map((spot, i) => left(spot, room.desk![i], 1.3)).join("");
     return clutter + desk;
   }).join("");
-  const dishes = s.dishes.slice(0, COUNTER.length).map((spot, i) => left(spot, COUNTER[i], 1.2)).join("");
+  const { counter } = layout();
+  const dishes = s.dishes.slice(0, counter.length).map((spot, i) => left(spot, counter[i], 1.2)).join("");
   return `<g class="things" aria-hidden="true">${rooms}${dishes}</g>`;
 }
 
@@ -389,7 +239,7 @@ function kettleMaggi(s: Scene): string {
 // day itself, a cake on her desk and confetti on the floor.
 function party(s: Scene): string {
   return s.bedrooms.map((b) => {
-    const room = ROOMS[`room:${b.owner.id}`];
+    const room = layout().rooms[`room:${b.owner.id}`];
     if (!b.birthday || !room.party) return "";
     const { from, to, sag, balloons: [bx, by] } = room.party;
     const day = b.birthday === 2;
@@ -414,12 +264,12 @@ function dogState(s: Scene, standing: Map<string, Pt>): { at: Pt; pose: Pose; fa
   const d = s.dog;
   if (d.with) {
     const beside = standing.get(d.with);
-    const at: Pt = beside ? [beside[0] + 50, beside[1] + 6] : ROOMS[d.place]?.dog ?? KENNEL;
+    const at: Pt = beside ? [beside[0] + 50, beside[1] + 6] : layout().rooms[d.place]?.dog ?? kennel();
     const after = d.until !== undefined && d.until < d.now + HOUR ? rejoin(at, d.until, d.plan) : [];
     return { at, pose: "stand", facing: 1, path: [[d.now, at[0], at[1], "stand"], ...after], lying: 0.62 };
   }
   const now = along(d.plan, d.now);
-  return { at: now.at, pose: now.pose, facing: now.facing, path: d.plan, lying: same(now.at, KENNEL) ? 1 : 0.62 };
+  return { at: now.at, pose: now.pose, facing: now.facing, path: d.plan, lying: same(now.at, kennel()) ? 1 : 0.62 };
 }
 
 // Up and about, he's drawn this much smaller than his drawing's own units.
@@ -429,7 +279,7 @@ const STANDS = 0.66;
 // it in his picture, wherever he's napping, so it's not under the tree too.
 function blanket(s: Scene, standing: Map<string, Pt>): string {
   const covered = dogState(s, standing).pose === "nap";
-  return `<g class="blanket${covered ? " covered" : ""}" data-at="${KENNEL.join(",")}" transform="translate(${KENNEL[0]} ${KENNEL[1]})" aria-hidden="true">${BLANKET}</g>`;
+  return `<g class="blanket${covered ? " covered" : ""}" data-at="${kennel().join(",")}" transform="translate(${kennel()[0]} ${kennel()[1]})" aria-hidden="true">${BLANKET}</g>`;
 }
 
 // public/house.js walks him along `data-path` (from `data-now`, the server's
@@ -452,12 +302,10 @@ function laddoo(s: Scene, standing: Map<string, Pt>): string {
 // What you just did pops up where you did it, once, on top of everything:
 // hearts over Shinzo, drops falling on the garden, a sprout, sparkles where
 // the clutter was, a letter on the desk, z's over you in bed.
-const GARDEN_BED: Pt = [1130, 160];
-const WALL_MIDDLE: Pt = [971, 180];
-
 function pops(s: Scene, standing: Map<string, Pt>): string {
   if (!s.did) return "";
-  const room = s.focus ? ROOMS[s.focus] : undefined;
+  const l = layout();
+  const room = s.focus ? l.rooms[s.focus] : undefined;
   const above = (p: Pt | undefined, dy: number): Pt[] => (p ? [[p[0], p[1] - dy]] : []);
   const you = standing.get(s.me.id);
   // Over his back, clear of whoever he's beside.
@@ -466,14 +314,14 @@ function pops(s: Scene, standing: Map<string, Pt>): string {
   const where: Record<string, Pt[]> = {
     play: pup,
     treat: pup,
-    water: [GARDEN_BED],
-    plant: above(GARDEN_BED, -10),
+    water: [l.gardenBed],
+    plant: above(l.gardenBed, -10),
     tidy: room?.mess ?? [],
     desk: above(room?.desk?.[0], 28),
     kettle: above(MAT_TABLE, 44),
-    wall: [WALL_MIDDLE],
-    sticker: [WALL_MIDDLE],
-    dish: above(COUNTER[1], 30),
+    wall: [l.wallMiddle],
+    sticker: [l.wallMiddle],
+    dish: above(l.counter[1], 30),
     // Over whoever ate it, who's usually standing in front of the counter.
     eat: above(you, 118),
     nap: above(you, 42),
@@ -496,7 +344,7 @@ function hotspots(s: Scene): string {
   for (const b of s.bedrooms) {
     const { id, name } = b.owner;
     const place = `room:${id}`;
-    const room = ROOMS[place];
+    const room = layout().rooms[place];
     const mine = id === s.me.id;
     // Anyone can sleep in anyone's bed.
     if (room.bedArea) spots.push({ place, area: room.bedArea, doings: [{ label: `Sleep in ${mine ? "your" : `${name}'s`} bed`, emoji: EMOJI.nap, post: `/room/${id}/nap` }] });
@@ -516,26 +364,28 @@ function hotspots(s: Scene): string {
   }
   // Rithika's five share kettle Maggi, Rithanya's face masks and Aswathy's
   // yoga mat; a made house's five don't. The mat and its cushions are in the
-  // picture, so they're everyone's.
+  // picture, so they're everyone's; in the other pictures, UNO is round the
+  // living room's coffee table (src/layouts.ts).
   const ours = !made();
+  const l = layout();
   spots.push(
-    { place: `room:${KETTLE_ROOM}`, area: MAT, doings: [{ label: "Sit on your cushion", emoji: EMOJI.sit, post: "/sit", fields: { seat: "mat" } }, ...(ours ? [{ label: "Make kettle Maggi", emoji: EMOJI.kettle, post: `/room/${KETTLE_ROOM}/kettle` }] : []), ...(s.uno?.mat ?? [])] },
+    { place: l.mat.place, area: l.mat.area, doings: [{ label: matWords().sit, emoji: EMOJI.sit, post: "/sit", fields: { seat: "mat" } }, ...(ours ? [{ label: "Make kettle Maggi", emoji: EMOJI.kettle, post: `/room/${KETTLE_ROOM}/kettle` }] : []), ...(s.uno?.mat ?? [])] },
     ...(ours ? [
       { place: `room:${MASK_ROOM}`, area: MIRROR, doings: [{ label: "Do a face mask", emoji: EMOJI.mask, post: `/room/${MASK_ROOM}/mask` }] },
       { place: `room:${YOGA_ROOM}`, area: YOGA, doings: [{ label: "Meditate on the yoga mat", emoji: EMOJI.yoga, post: "/sit", fields: { seat: "yoga" } }] },
     ] : []),
-    { place: "living", area: WALL_BOARD, doings: [{ label: "Write on the wall", emoji: EMOJI.write, href: "/living#write" }, { label: "Read the wall", emoji: EMOJI.read, href: "/living#wall" }] },
-    { place: "living", area: SOFAS, doings: [{ label: "Sit on the sofa", emoji: EMOJI.sit, post: "/sit", fields: { seat: "sofa" } }, { label: "Plan a movie night", emoji: EMOJI.night, href: "/movies" }] },
+    { place: "living", area: l.wallBoard, doings: [{ label: "Write on the wall", emoji: EMOJI.write, href: "/living#write" }, { label: "Read the wall", emoji: EMOJI.read, href: "/living#wall" }] },
+    ...l.sofas.map((area) => ({ place: "living", area, doings: [{ label: "Sit on the sofa", emoji: EMOJI.sit, post: "/sit", fields: { seat: "sofa" } }, { label: "Plan a movie night", emoji: EMOJI.night, href: "/movies" }] })),
     // Whatever's out on the counter can be eaten, which takes it away.
-    { place: "kitchen", area: STOVE, doings: [
+    { place: "kitchen", area: l.stove, doings: [
       { label: "Cook something", emoji: EMOJI.dish, href: "/kitchen#cook" },
-      ...s.dishes.slice(0, COUNTER.length).map((d): Doing => ({ label: d.label, emoji: EMOJI.eat, post: "/kitchen/eat", fields: { dish: String(d.id) } })),
+      ...s.dishes.slice(0, l.counter.length).map((d): Doing => ({ label: d.label, emoji: EMOJI.eat, post: "/kitchen/eat", fields: { dish: String(d.id) } })),
     ] },
-    { place: "garden", area: PATCHES, doings: [{ label: "Water the garden", emoji: EMOJI.water, post: "/garden/water" }, { label: "Plant something", emoji: EMOJI.plant, href: "/garden#plant" }] },
+    { place: "garden", area: l.patches, doings: [{ label: "Water the garden", emoji: EMOJI.water, post: "/garden/water" }, { label: "Plant something", emoji: EMOJI.plant, href: "/garden#plant" }] },
   );
-  // Sitting on the mat with friends, there's UNO. Only someone sitting down
+  // Sitting at the mat with friends, there's UNO. Only someone sitting down
   // is offered these (public/house.js); standing, the mat's own spot is there.
-  if (s.uno?.seated.length) spots.push({ place: `room:${KETTLE_ROOM}`, area: MAT, doings: s.uno.seated, seated: true });
+  if (s.uno?.seated.length) spots.push({ place: l.mat.place, area: l.mat.area, doings: s.uno.seated, seated: true });
   const svg = spots.map((h) => `<g class="act${h.seated ? " seated" : ""}" data-place="${h.place}" data-do="${esc(JSON.stringify(h.doings))}"><polygon class="halo" points="${pts(h.area)}"/><polygon class="edge" points="${pts(h.area)}"/></g>`);
   return `<g class="acts" aria-hidden="true">${svg.join("")}</g>`;
 }
@@ -551,7 +401,7 @@ const DRAWING = 46;
 const SPREAD: Pt[] = [[0, 0], [50, 18], [8, 52]];
 function roomThings(s: Scene): string {
   const tags = s.bedrooms.flatMap((b) => {
-    const room = ROOMS[`room:${b.owner.id}`];
+    const room = layout().rooms[`room:${b.owner.id}`];
     const at = room.pins;
     if (!at) return [];
     const pictures = b.belongings.filter((k) => belonging(k));
@@ -582,13 +432,13 @@ function roomThings(s: Scene): string {
 // keep their own names.
 const roomName = (place: string, s: Scene): string => {
   const owner = s.bedrooms.find((b) => `room:${b.owner.id}` === place)?.owner;
-  return owner ? `${owner.name}'s room` : ROOMS[place].name;
+  return owner ? `${owner.name}'s room` : layout().rooms[place].name;
 };
 
 // data-go is what the Go in button says when you walk yourself into the room,
 // and data-view is what to zoom to on the way in (public/house.js).
 function links(s: Scene): string {
-  return Object.entries(ROOMS).map(([place, room]) => {
+  return Object.entries(layout().rooms).map(([place, room]) => {
     const owner = s.bedrooms.find((b) => `room:${b.owner.id}` === place)?.owner;
     const href = owner ? `/room/${owner.id}` : `/${place}`;
     const name = roomName(place, s);
@@ -656,12 +506,12 @@ function restSpot(rest: Rest, who: string, taken: Map<string, number>): Pt | und
   const n = taken.get(key) ?? 0;
   taken.set(key, n + 1);
   if (rest.kind === "nap") {
-    const bed = ROOMS[rest.place]?.bed;
+    const bed = layout().rooms[rest.place]?.bed;
     const [dx, dy] = BED_SPOTS[n % BED_SPOTS.length];
     return bed && [bed[0] + dx, bed[1] + dy];
   }
-  if (rest.seat === "mat") return CUSHIONS[who];
-  const seats = rest.seat === "sofa" ? SOFA_SEATS : YOGA_SEATS;
+  if (rest.seat === "mat") return layout().mat.cushions[who];
+  const seats = rest.seat === "sofa" ? layout().sofaSeats : YOGA_SEATS;
   return seats[n % seats.length];
 }
 
@@ -702,7 +552,7 @@ function figures(s: Scene): { svg: string; standing: Map<string, Pt> } {
     const fixed = at ?? f.spot;
     const i = fixed ? 0 : count.get(f.place) ?? 0;
     if (!fixed) count.set(f.place, i + 1);
-    const spot: Pt = fixed ?? ROOMS[f.place].walk[i % ROOMS[f.place].walk.length];
+    const spot: Pt = fixed ?? layout().rooms[f.place].walk[i % layout().rooms[f.place].walk.length];
     standing.set(p.id, spot);
     const pose = !rest || !at ? "" : `<g class="pose">${rest.kind === "nap" ? lying(f) : sitting(f)}</g>`;
     if (!pose && hugging.has(p.id)) {
@@ -744,7 +594,7 @@ export const standingSpots = (s: Scene): Map<string, Pt> => figures(s).standing;
 const SPARKLE = "M0 -10L2.6 -2.6L10 0L2.6 2.6L0 10L-2.6 2.6L-10 0L-2.6 -2.6Z";
 
 function tags(s: Scene): string {
-  return Object.entries(ROOMS).map(([place, room]) => {
+  return Object.entries(layout().rooms).map(([place, room]) => {
     const b = s.bedrooms.find((r) => `room:${r.owner.id}` === place);
     const title = b?.owner.id === s.me.id ? "Your room" : roomName(place, s);
     const subText = b ? `${b.clock}${b.status ? ` · ${b.status}` : ""}` : "";
@@ -759,7 +609,7 @@ function tags(s: Scene): string {
 }
 
 export function houseSvg(s: Scene): string {
-  const [x, y, w, h] = s.focus ? ROOMS[s.focus].view : [0, 0, W, H];
+  const [x, y, w, h] = s.focus ? layout().rooms[s.focus].view : [0, 0, W, H];
   const people = figures(s);
   return `<svg class="house-svg" viewBox="${x} ${y} ${w} ${h}" role="group" aria-label="${s.focus ? "The room, and the house around it" : "The house. Tap a room to go in."}">
 <defs>
@@ -768,8 +618,8 @@ export function houseSvg(s: Scene): string {
 <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e6f4f8"/><stop offset="1" stop-color="#b9d6e2"/></linearGradient>
 <radialGradient id="glow"><stop offset="0" stop-color="#ffcf7a" stop-opacity=".6"/><stop offset="1" stop-color="#ffcf7a" stop-opacity="0"/></radialGradient>
 </defs>
-<image href="${art("house.jpg")}" width="${W}" height="${H}" aria-hidden="true"/>
-${made() ? COVERED : RITHANYA}
+<image href="${art(layout().picture)}" width="${W}" height="${H}" aria-hidden="true"/>
+${!made() ? RITHANYA : layout().picture === "house.jpg" ? COVERED : ""}
 ${made() ? "" : kettleMaggi(s)}
 ${blanket(s, people.standing)}
 ${light(s)}

@@ -888,9 +888,13 @@ main.door {
   font-size: 1.2rem;
 }
 
-.people {
+/* A window each, in one row: five in Rithika's house, two to seven in a made
+   one (--n, set on the list). On a phone, rows of three, the last row
+   centred. */
+ul.people {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(var(--n, 5), minmax(0, 140px));
+  justify-content: center;
   gap: 18px 10px;
   margin: 0;
   padding: 0;
@@ -898,17 +902,42 @@ main.door {
 }
 
 @media (max-width: 600px) {
-  .people {
-    grid-template-columns: repeat(6, 1fr);
+  ul.people {
+    display: flex;
+    flex-wrap: wrap;
   }
 
-  .people > li {
-    grid-column: span 2;
+  ul.people > li {
+    flex: 0 0 calc((100% - 20px) / 3);
   }
+}
 
-  .people > li:nth-child(4) {
-    grid-column: 2 / span 2;
-  }
+/* How many of you, on the form that makes a house */
+.size-pick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 0 4px;
+}
+
+.size-pick a,
+.size-pick strong {
+  display: inline-grid;
+  place-items: center;
+  min-width: 40px;
+  min-height: 40px;
+  border-radius: 20px;
+  border: 2px solid var(--wood);
+  background: var(--card);
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.size-pick strong {
+  background: var(--wood);
+  color: #fff;
 }
 
 .person {
