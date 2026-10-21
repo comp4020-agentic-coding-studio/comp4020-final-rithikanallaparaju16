@@ -119,3 +119,4 @@ Every prompt I gave the agent from 8 October, word for word, with the commit it 
 - "where is my LLM stored?": a question, no code change. Claude runs on Anthropic's servers; the app only holds the code that calls it, the key and what it made.
 - "how can we create images then": a question, no code change. My course key can make images, but only from the ANU network.
 - "when the user prompts in LLM, casn we use the course key to make those images?": a question, no code change. Only on my laptop with the VPN, not on the live site.
+- "lets do this, make a set of images that people will generally use, and when the user is making 5 rooms for thier friends, give these opetions only": 42 pictures of room things, picked on the form, [`8f71174`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/8f71174)

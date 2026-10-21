@@ -2478,3 +2478,39 @@ the live site.
 **Correction:** none.
 
 **Commits:** this entry's commit.
+
+### 54. "lets do this, make a set of images that people will generally use, and when the user is making 5 rooms for thier friends, give these opetions only" (21 Oct 2026)
+
+**Asked:** quoting the agent's option of a set of pictures made once and
+committed, "lets do this ... give these opetions only".
+
+**Agent:**
+- Tried one guitar with two models ($0.20): Flux gave a clean outlined
+  sticker like the friends' own; Recraft added stars and a wash. Chose
+  `flux-1.1-pro`.
+- `src/belongings.ts` lists 42 common bedroom things (key, words, prompt).
+  `scripts/make-belongings.py` makes each with the course endpoint, saves it
+  at once (the URLs expire), cuts away the white and writes
+  `public/art/thing-<key>.png`. python.org's Python has no certificates, so
+  it fetches through `curl`, with the key on stdin rather than the command
+  line.
+- Made two first ($0.20), then 40 ($4.00). Four came out wrong: posters as a
+  whole room, a tiny beanbag in a grey box, the journal and laptop on
+  background patches. Made their prompts specific and remade them ($0.40).
+  $4.60 of $30 in all. Shrank the set from 3.4 MB to 464 KB.
+- The form's "What's in their room" box is now a grid of ticks, up to six,
+  eight showing and the rest behind "Show all 42" (it ran to 11,000 px on a
+  phone with all of them open). Only keys in the set are kept.
+- A friend's `things` are now the words for the pictures ticked; the keys go
+  in `belongings`, and the first three stand in her room. Claude no longer
+  writes or draws the things; the code that asked it to draw is gone, but
+  older houses still show their drawings (checked on yesterday's test house:
+  all 15).
+- ADR 0020, superseding 0018 for new houses. README and CLAUDE.md updated.
+- `pnpm check`: 53 passed (one new: only pictured things get in). Looked at
+  the form at 390 px and 820 px, tapped pictures at both, and a made house at
+  1280 px and its room at 390 px.
+
+**Correction:** none.
+
+**Commits:** [`8f71174`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/8f71174).
