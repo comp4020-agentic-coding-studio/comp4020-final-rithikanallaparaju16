@@ -29,9 +29,11 @@ export type Friend = {
   about: string;
   // What's in her room, drawn on her desk and listed on her room page.
   things: string[];
-  // The first few of those, drawn by Claude when the house was made
-  // (src/drawings.ts). Houses made without Claude have none, and pin up
-  // paper tags instead.
+  // Since ADR 0020, the pictures picked for her room on the form, as keys
+  // into BELONGINGS (src/belongings.ts); `things` are their labels.
+  belongings?: string[];
+  // Before that, the first few things drawn by Claude when the house was
+  // made (src/drawings.ts, ADR 0018). Houses with neither pin up paper tags.
   drawings?: Drawing[];
   // A few words for who she is, as the maker described her.
   qualities: string;

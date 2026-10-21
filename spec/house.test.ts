@@ -746,7 +746,7 @@ describe.skipIf(!throwaway)("living in the house", () => {
 
   it("makes a house for any five friends from what you tell it", async () => {
     const five = ["Mia", "Jo", "Sam", "Ana", "Lee"].map((n) => unique(n).slice(0, 30));
-    const { res, code } = await makeHouse(five, { "city-1": "London", "things-1": "a record player, fairy lights", memories: "the road trip" });
+    const { res, code } = await makeHouse(five, { "city-1": "London", "things-1": "record-player", memories: "the road trip" });
     expect(res.status, "the house wasn't made").toBe(201);
     expect(code, "the made page doesn't say where the house is").toBeTruthy();
 
@@ -761,7 +761,7 @@ describe.skipIf(!throwaway)("living in the house", () => {
   // with ANTHROPIC_BASE_URL pointing nowhere, MAKER_UNREACHABLE=1); the usual
   // HOUSE_MAKER=fake server never calls Claude. ADR 0019.
   it.skipIf(process.env.MAKER_UNREACHABLE !== "1")("still makes the house when Claude can't be reached", async () => {
-    const { res, code } = await makeHouse(["Ivy", "Rae", "Kit", "Bo", "Dee"], { "things-1": "a guitar" });
+    const { res, code } = await makeHouse(["Ivy", "Rae", "Kit", "Bo", "Dee"], { "things-1": "guitar" });
     expect(res.status, "Claude failing stopped the house being made").toBe(201);
     expect(await res.text(), "the house says Claude wrote it").toContain("built from exactly what you wrote");
     expect(code).toBeTruthy();
@@ -808,6 +808,26 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect(text(parse(await res.text()).querySelector(".problem"))).toContain("missing");
   });
 
+  it("only puts the pictured things in a made house's rooms", async () => {
+    const maker = parse(await (await fetch(new URL("/make", baseUrl))).text());
+    const offered = [...maker.querySelectorAll("input[name=things-1]")].map((i) => i.getAttribute("value"));
+    expect(offered.length, "the form doesn't offer pictures to pick from").toBeGreaterThan(20);
+    expect(maker.querySelector("textarea[name=things-1]"), "the form still asks for things in words").toBeNull();
+
+    const form = new URLSearchParams({ "things-1": "guitar" });
+    form.append("things-1", "a <b>pony</b>");
+    ["Ivy", "Rae", "Kit", "Bo", "Dee"].forEach((n, i) => form.set(`name-${i + 1}`, n));
+    const made = await fetch(new URL("/make", baseUrl), { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", "fly-client-ip": unique("spec") }, body: form, redirect: "manual" });
+    const base = parse(await made.text()).querySelector("a.go-in")?.getAttribute("href") ?? "";
+    const cookie = sessionOf(await fetch(new URL(`${base}me`, baseUrl), { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: "who=2", redirect: "manual" }))!;
+    try {
+      const room = parse(await (await fetch(new URL(`${base}room/1`, baseUrl), { headers: { cookie } })).text());
+      expect([...room.querySelectorAll(".room-things-card li")].map(text), "something not on offer got into the room").toEqual(["a guitar"]);
+    } finally {
+      await fetch(new URL(`${base}leave`, baseUrl), { method: "POST", headers: { cookie }, redirect: "manual" });
+    }
+  });
+
   it("keeps Rithika's five's own things in their rooms", async () => {
     const five = await people();
     const named = (name: string): Person => five.find((p) => p.name === name)!;
@@ -827,7 +847,7 @@ describe.skipIf(!throwaway)("living in the house", () => {
     ["Mia", "Jo", "Sam", "Ana", "Lee"].forEach((name, i) => {
       form.set(`name-${i + 1}`, name);
       form.set(`city-${i + 1}`, "London");
-      form.set(`things-${i + 1}`, i === 0 ? "a monstera, fairy lights, a record player" : "a lamp");
+      for (const thing of i === 0 ? ["monstera", "fairy-lights", "record-player"] : ["books"]) form.append(`things-${i + 1}`, thing);
     });
     const made = await fetch(new URL("/make", baseUrl), { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", "fly-client-ip": unique("spec") }, body: form, redirect: "manual" });
     expect(made.status, "the house wasn't made").toBe(201);
@@ -845,10 +865,12 @@ describe.skipIf(!throwaway)("living in the house", () => {
     try {
       const mias = await inside("room/1");
       const listed = [...mias.querySelectorAll(".room-things-card li")].map(text);
-      expect(listed.join(" "), "Mia's things aren't in her room").toContain("monstera");
-      const pinned = [...mias.querySelectorAll(".house-svg g.room-thing[data-place='room:1'] .pin-text")].map(text);
-      expect(pinned.length, "nothing of hers is drawn in her room").toBeGreaterThan(0);
-      pinned.forEach((tag, i) => expect(listed[i]).toContain(tag.replace(/…$/, "")));
+      expect(listed, "Mia's things aren't in her room").toEqual(["a monstera", "fairy lights", "a record player"]);
+      const pictured = [...mias.querySelectorAll(".house-svg image.room-belonging[data-place='room:1']")].map((p) => text(p));
+      expect(pictured, "her things aren't pictured in her room").toEqual(listed);
+      for (const p of mias.querySelectorAll(".house-svg image.room-belonging")) {
+        expect((await fetch(new URL(p.getAttribute("href")!, baseUrl))).status, "a room thing's picture is missing").toBe(200);
+      }
       expect(text(mias.querySelector(".house-svg")), "her room has someone else's name on it").toContain("Mia's room");
 
       const living = await inside("living");
@@ -877,7 +899,7 @@ describe.skipIf(!throwaway)("living in the house", () => {
       form.set(`name-${i + 1}`, name);
       form.set(`gender-${i + 1}`, gender);
       form.set(`city-${i + 1}`, "Chennai");
-      form.set(`things-${i + 1}`, "a lamp");
+      form.set(`things-${i + 1}`, "books");
     });
     const made = await fetch(new URL("/make", baseUrl), { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", "fly-client-ip": unique("spec") }, body: form, redirect: "manual" });
     expect(made.status, "the house wasn't made").toBe(201);

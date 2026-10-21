@@ -159,6 +159,13 @@ accepted record.
   `src/assets.ts`, which adds a fingerprint of the file. Browsers keep art
   for a day, so without it a changed picture doesn't show. After moving
   anything, look at it over the picture before trusting the coordinates.
+- The pictures a made house's rooms are picked from,
+  `public/art/thing-<key>.png`, are made by `python3 -I
+  scripts/make-belongings.py` from the list in `src/belongings.ts` (ADR
+  0020), with the course's image endpoint: VPN only, $0.10 each from a $30
+  budget that never resets. It makes only the missing ones unless given
+  keys, so name the keys to remake one. Look at each new picture before
+  committing; about one in ten needs its prompt made more specific.
 - Client JavaScript is enhancement only: `public/house.js` builds the walking
   controls (arrow keys/WASD, the thumb stick, the Go in button), walks you to
   a tapped room, keeps a phone's view on you, zooms in going into a room and

@@ -1,6 +1,7 @@
 import { balloons, BLANKET, bunting, cake, confetti, CROWN, DOG_STANDING, EMOJI, icon, messItem, PARTY_HAT, pop } from "./art.ts";
 import { art } from "./assets.ts";
 import { avatarUrl } from "./avatars.ts";
+import { belonging, belongingArt } from "./belongings.ts";
 import { BOX, drawingShapes, type Drawing } from "./drawings.ts";
 import { along, DOG, KETTLE_ROOM, MASK_ROOM, rejoin, YOGA_ROOM, type DogSpot, type Pose, type Waypoint } from "./house.ts";
 import { made } from "./houses.ts";
@@ -218,7 +219,9 @@ export type Bedroom = {
   // pinned up by her desk. Empty in Rithika's house, where the picture
   // already has them.
   things: string[];
-  // The first few, drawn by Claude when the house was made; empty otherwise.
+  // The pictures picked for her room on the form (keys into BELONGINGS).
+  belongings: string[];
+  // In an older made house, the first few drawn by Claude; empty otherwise.
   drawings: Drawing[];
   phase: Phase;
   clock: string;
@@ -537,11 +540,12 @@ function hotspots(s: Scene): string {
   return `<g class="acts" aria-hidden="true">${svg.join("")}</g>`;
 }
 
-// In a made house, a few of what each friend said is in her room: drawn by
-// Claude when the house was made (ADR 0018), or else on little paper tags
-// pinned up in it, in her paper colour. The full list is on her room page.
+// In a made house, a few of what's in each friend's room: the pictures picked
+// for it (ADR 0020), or in an older house Claude's drawings (ADR 0018) or
+// little paper tags pinned up in it, in her paper colour. The full list is on
+// her room page.
 const PINNED = 3;
-// Where each drawing sits around the room's pin spot, and how big, in the
+// Where each picture sits around the room's pin spot, and how big, in the
 // picture's pixels.
 const DRAWING = 46;
 const SPREAD: Pt[] = [[0, 0], [50, 18], [8, 52]];
@@ -550,6 +554,13 @@ function roomThings(s: Scene): string {
     const room = ROOMS[`room:${b.owner.id}`];
     const at = room.pins;
     if (!at) return [];
+    const pictures = b.belongings.filter((k) => belonging(k));
+    if (pictures.length) {
+      return pictures.slice(0, PINNED).map((k, i) => {
+        const [dx, dy] = SPREAD[i];
+        return `<image class="room-belonging" data-place="room:${b.owner.id}" href="${art(belongingArt(k))}" x="${at[0] + dx}" y="${at[1] + dy}" width="${DRAWING}" height="${DRAWING}"><title>${esc(belonging(k)!.label)}</title></image>`;
+      });
+    }
     if (b.drawings.length) {
       return b.drawings.slice(0, PINNED).map((d, i) => {
         const [dx, dy] = SPREAD[i];

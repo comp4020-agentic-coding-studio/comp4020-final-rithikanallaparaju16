@@ -2,8 +2,9 @@ import Anthropic from "@anthropic-ai/sdk";
 import { jsonSchemaOutputFormat } from "@anthropic-ai/sdk/helpers/json-schema";
 import { randomInt } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { art } from "./assets.ts";
 import { lookFor } from "./avatars.ts";
-import { drawThings, newClient } from "./drawings.ts";
+import { belonging, belongingArt, BELONGINGS, MAX_BELONGINGS } from "./belongings.ts";
 import { saveHouse, type Friend, type HouseSpec } from "./houses.ts";
 import type { Gender } from "./people.ts";
 import { esc } from "./html.ts";
@@ -26,13 +27,14 @@ const MAX_CITY = 60;
 const MAX_TITLE = 60;
 
 // What one friend's block of the form says.
-type Answer = { name: string; city: string; gender: Gender; qualities: string; things: string; birthday: [number, number] };
+// `things` are keys from BELONGINGS (src/belongings.ts), the pictures ticked.
+type Answer = { name: string; city: string; gender: Gender; qualities: string; things: string[]; birthday: [number, number] };
 type Answers = { title: string; friends: Answer[]; memories: string };
 
 // What Claude (or the local maker) writes; tidied into a HouseSpec after.
 type Written = {
   title: string;
-  friends: { name: string; city: string; tz: string; sleep_from: number; sleep_to: number; color: string; paper: string; about: string; things: string[]; qualities: string }[];
+  friends: { name: string; city: string; tz: string; sleep_from: number; sleep_to: number; color: string; paper: string; about: string; qualities: string }[];
   memories: string[];
 };
 
@@ -44,6 +46,20 @@ const asGender = (v: string | null): Gender => (v === "boy" || v === "name" ? v 
 const PRONOUN: Record<Gender, string> = { girl: "she/her", boy: "he/him", name: "they/them, or just their name" };
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+// The pictures to pick a friend's things from: the first few showing, the
+// rest folded away, since the form shows all of them five times. Anything
+// already ticked stays in sight.
+const SHOWN = 8;
+function belongingsPick(n: number, ticked: string[]): string {
+  const tile = (key: string, label: string): string =>
+    `<label><input type="checkbox" name="things-${n}" value="${key}"${ticked.includes(key) ? " checked" : ""}><img src="${art(belongingArt(key))}" alt="" width="44" height="44" loading="lazy"><span>${esc(label)}</span></label>`;
+  const shown = BELONGINGS.filter((b, i) => i < SHOWN || ticked.includes(b.key));
+  const more = BELONGINGS.filter((b) => !shown.includes(b));
+  return `<fieldset class="picker belongings-pick"><legend>What's in their room? Pick up to ${MAX_BELONGINGS}</legend>${shown.map((b) => tile(b.key, b.label)).join("")}${more.length
+    ? `<details class="more-belongings"><summary>Show all ${BELONGINGS.length}</summary><div class="picker belongings-pick">${more.map((b) => tile(b.key, b.label)).join("")}</div></details>`
+    : ""}</fieldset>`;
+}
 
 function friendBlock(i: number, a?: Answer): string {
   const n = i + 1;
@@ -59,8 +75,7 @@ function friendBlock(i: number, a?: Answer): string {
     <input id="city-${n}" name="city-${n}" maxlength="${MAX_CITY}" placeholder="Canberra, New Jersey…" value="${esc(a?.city ?? "")}">
     <label for="qualities-${n}">A few things about them</label>
     <textarea id="qualities-${n}" name="qualities-${n}" rows="2" maxlength="${MAX_FIELD}" placeholder="always late, loves movies, gives the best hugs">${esc(a?.qualities ?? "")}</textarea>
-    <label for="things-${n}">What's in their room</label>
-    <textarea id="things-${n}" name="things-${n}" rows="2" maxlength="${MAX_FIELD}" placeholder="a yoga mat, too many plants, a box of KitKats">${esc(a?.things ?? "")}</textarea>
+    ${belongingsPick(n, a?.things ?? [])}
     <span class="birthday-pick"><label for="month-${n}">Birthday, if you like</label>
       <select id="month-${n}" name="month-${n}" aria-label="Birthday month"><option value="">Month</option>${months}</select>
       <select name="day-${n}" aria-label="Birthday day"><option value="">Day</option>${days}</select></span>
@@ -118,7 +133,7 @@ function read(form: URLSearchParams): Answers {
       city: field(form, `city-${n}`).replace(/\s+/g, " "),
       gender: asGender(form.get(`gender-${n}`)),
       qualities: field(form, `qualities-${n}`),
-      things: field(form, `things-${n}`),
+      things: [...new Set(form.getAll(`things-${n}`))].filter((k) => belonging(k) !== undefined),
       birthday: ok ? [month, day] : [0, 0],
     };
   });
@@ -132,7 +147,8 @@ function problemWith(a: Answers): string | undefined {
   if (a.friends.some((f) => f.name.length > MAX_NAME)) return `Names fit up to ${MAX_NAME} characters.`;
   if (a.friends.some((f) => f.city.length > MAX_CITY)) return `Places fit up to ${MAX_CITY} characters.`;
   if (a.title.length > MAX_TITLE) return `The house's name fits up to ${MAX_TITLE} characters.`;
-  const long = [a.memories, ...a.friends.flatMap((f) => [f.qualities, f.things])].some((t) => t.length > MAX_FIELD);
+  if (a.friends.some((f) => f.things.length > MAX_BELONGINGS)) return `Each room fits up to ${MAX_BELONGINGS} things. Untick a few and try again.`;
+  const long = [a.memories, ...a.friends.map((f) => f.qualities)].some((t) => t.length > MAX_FIELD);
   if (long) return "One of the answers is longer than fits. Shorten it a little and try again.";
   return undefined;
 }
@@ -156,10 +172,9 @@ const SCHEMA = {
           color: { type: "string", description: "their colour, #rrggbb, warm and readable on cream" },
           paper: { type: "string", description: "a very pale tint of their colour for their note paper, #rrggbb" },
           about: { type: "string", description: "one warm sentence describing their room" },
-          things: { type: "array", items: { type: "string" }, description: "3 to 6 short items in their room" },
           qualities: { type: "string", description: "a short phrase for who they are" },
         },
-        required: ["name", "city", "tz", "sleep_from", "sleep_to", "color", "paper", "about", "things", "qualities"],
+        required: ["name", "city", "tz", "sleep_from", "sleep_to", "color", "paper", "about", "qualities"],
         additionalProperties: false,
       },
     },
@@ -180,13 +195,15 @@ For each of the five friends, in the order given:
 - tz: the IANA time zone for that city or country; "UTC" if unknown or empty.
 - sleep_from / sleep_to: plausible local sleep hours, e.g. 23 and 7, nudged by their qualities if they say they're a night owl or an early riser.
 - color: a warm, distinct #rrggbb for them, different from the others; paper: a very pale tint of it.
-- about: one warm, specific sentence describing their room from their qualities and things, using the pronouns given for them, in this voice: "Shelves of little bottles and jars, a pink bed, and a desk where the laptop's always open." No names of other friends, no exclamation marks.
-- things: 3 to 6 short items in their room, kept close to the user's own words.
+- about: one warm, specific sentence describing their room from their qualities and the things in it, using the pronouns given for them, in this voice: "Shelves of little bottles and jars, a pink bed, and a desk where the laptop's always open." Mention only things that were given; no names of other friends, no exclamation marks.
 - qualities: a short phrase summing them up, from what was given.
 
 memories: tidy the given memories into 3 to 8 short notes for the wall, keeping the friends' own words. If none were given, write 3 gentle, general ones about the five of them being friends, without inventing events.
 
 title: the house's name as given; if empty, "<first friend's name>'s house".`;
+
+// The words for the pictures ticked, as the room page lists them.
+const labels = (keys: string[]): string[] => keys.map((k) => belonging(k)!.label);
 
 function prompt(a: Answers): string {
   const friends = a.friends.map((f, i) => `<friend n="${i + 1}">
@@ -194,7 +211,7 @@ name: ${f.name}
 pronouns: ${PRONOUN[f.gender]}
 city: ${f.city}
 qualities: ${f.qualities}
-things in their room: ${f.things}
+things in their room: ${labels(f.things).join(", ")}
 </friend>`).join("\n");
   return `<answers>
 house name: ${a.title}
@@ -274,7 +291,7 @@ export function writeOffline(a: Answers): Written {
   return {
     title: a.title,
     friends: a.friends.map((f, i) => {
-      const things = items(f.things).slice(0, 6);
+      const things = labels(f.things);
       const qualities = items(f.qualities).slice(0, 3).join(", ");
       const list = sentence(things.slice(0, 4));
       const about = things.length
@@ -289,7 +306,6 @@ export function writeOffline(a: Answers): Written {
         color: PALETTE[i % PALETTE.length][0],
         paper: PALETTE[i % PALETTE.length][1],
         about,
-        things: things.length ? things : ["a bed", "a desk"],
         qualities,
       };
     }),
@@ -325,7 +341,6 @@ export function tidy(w: Written, a: Answers, code: string): HouseSpec {
     const f = w.friends?.[i];
     const [color, paper] = PALETTE[i % PALETTE.length];
     const tz = clip(f?.tz, 60);
-    const things = (Array.isArray(f?.things) ? f.things : []).map((t) => clip(t, 60)).filter(Boolean).slice(0, 6);
     return {
       id: String(i + 1),
       name: given.name,
@@ -336,7 +351,8 @@ export function tidy(w: Written, a: Answers, code: string): HouseSpec {
       color: HEX.test(String(f?.color)) ? String(f!.color) : color,
       paper: HEX.test(String(f?.paper)) ? String(f!.paper) : paper,
       about: clip(f?.about, 240) || "A cosy room, waiting for their things.",
-      things: things.length ? things : ["a bed", "a desk"],
+      things: labels(given.things),
+      belongings: given.things,
       qualities: clip(f?.qualities, 120),
       gender: given.gender,
       look: lookFor(given.gender, code, i + 1),
@@ -428,14 +444,6 @@ export async function make(req: IncomingMessage, res: ServerResponse): Promise<v
     }
   }
   const spec = tidy(written ?? writeOffline(answers), answers, newCode());
-  if (by === "claude") {
-    const client = newClient();
-    const drawn = await Promise.all(spec.friends.map((f) => drawThings(client, f.things)));
-    spec.friends.forEach((f, i) => {
-      if (drawn[i].length) f.drawings = drawn[i];
-    });
-    console.log(`drew ${drawn.reduce((n, d) => n + d.length, 0)} things for house ${spec.code}`);
-  }
   saveHouse(spec);
   made.push({ at: Date.now(), visitor });
   console.log(`made house ${spec.code} for ${spec.friends.length} friends (${by}) in ${Date.now() - began}ms`);

@@ -1,6 +1,7 @@
 import { crownSvg, emoji, EMOJI, iconSvg, patchesSvg, plantSvg, POP } from "./art.ts";
 import { art } from "./assets.ts";
 import { avatarUrl } from "./avatars.ts";
+import { belonging, belongingArt } from "./belongings.ts";
 import { drawingSvg, type Drawing } from "./drawings.ts";
 import {
   along,
@@ -96,6 +97,7 @@ const nameOf = (id: string): string => personById(id)?.name ?? "someone";
 // Rithika's five have theirs in the picture.
 const thingsOf = (p: Person): string[] => house().spec?.friends.find((f) => f.id === p.id)?.things ?? [];
 const drawingsOf = (p: Person): Drawing[] => house().spec?.friends.find((f) => f.id === p.id)?.drawings ?? [];
+const belongingsOf = (p: Person): string[] => house().spec?.friends.find((f) => f.id === p.id)?.belongings ?? [];
 
 const nameHtml = (p: Person): string =>
   p.breakAfter ? `${esc(p.name.slice(0, p.breakAfter))}<wbr>${esc(p.name.slice(p.breakAfter))}` : esc(p.name);
@@ -323,6 +325,7 @@ function scene(v: Visit, focus?: string, did?: string): Scene {
         birthday: birthday(owner, v.now),
         things: thingsOf(owner),
         drawings: drawingsOf(owner),
+        belongings: belongingsOf(owner),
       };
     }),
     figures: PEOPLE.map((p): Figure => {
@@ -1066,12 +1069,18 @@ export function bedroomPage(owner: Person, v: Visit, did?: Done): string {
   // What she said is in her room, when a made house was told.
   const stuff = thingsOf(owner);
   const drawn = new Map(drawingsOf(owner).map((d) => [d.thing, d]));
+  const pictured = new Map(belongingsOf(owner).flatMap((k) => {
+    const b = belonging(k);
+    return b ? [[b.label, b.key] as const] : [];
+  }));
   const inRoom = stuff.length
     ? `<section class="card room-things-card" aria-labelledby="things-heading" style="--accent:${owner.color}">
     <h2 id="things-heading">${mine ? "In your room" : `In ${esc(owner.name)}'s room`}</h2>
     <ul class="plain-list">${stuff.map((t) => {
+      const key = pictured.get(t);
       const d = drawn.get(t);
-      return `<li${d ? ` class="drawn-thing"` : ""}>${d ? drawingSvg(d) : ""}${esc(t)}</li>`;
+      const pic = key ? `<img class="belonging" src="${art(belongingArt(key))}" alt="" width="44" height="44">` : d ? drawingSvg(d) : "";
+      return `<li${pic ? ` class="drawn-thing"` : ""}>${pic}${esc(t)}</li>`;
     }).join("")}</ul>
   </section>`
     : "";
