@@ -2514,3 +2514,37 @@ committed, "lets do this ... give these opetions only".
 **Correction:** none.
 
 **Commits:** [`8f71174`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/8f71174).
+
+### 55. "the images work good, but the persistence is weird whwn we use an LLM, pls check that, its not doing the "multiuser" part very well" (21 Oct 2026)
+
+**Asked:** after switching the session to Opus 5.5 with `/model`: made houses
+weren't keeping things between friends properly.
+
+**Agent:**
+- Found the cause: the page scripts call some addresses by fixed paths, and
+  the server's `rebase()` only rewrites the HTML it sends, never the script
+  files. In a made house:
+  - `public/live.js` listened on `/live`, Rithika's house's live line, so
+    friends never saw each other move or leave things until they reloaded;
+  - `public/house.js` sent steps to `/here`, so where you stopped was never
+    kept in your own house (and was refused, since the sign-in only works in
+    its own house);
+  - the house's buttons (`data-do`: nap, tidy, sit, Shinzo, hugs, UNO)
+    posted to `/room/1/nap` and so on, outside the house;
+  - walking out of a room went to `/`, Rithika's door.
+  `rebase()` had a rule for `"/here"` and `"/live"` in scripts, but it only
+  ever ran on HTML, so it never applied.
+- Fix: each page carries its house's base in `<body data-base>`; both
+  scripts start their own addresses with it (`at()` in `house.js`). Removed
+  the dead script rule from `rebase()`.
+- A spec test makes a house, checks `data-base`, posts every `data-do`
+  button inside it (none 404 or 403), saves a step and finds it kept, and
+  opens the house's live line. Checked it fails on the old code (stashed the
+  fix, reran: fails), then passes. `pnpm check`: 54 passed.
+- Drove two headless Chromes as Asha and Ben in one made house: Asha walked
+  right with the arrow keys and Ben's page showed her move without a reload;
+  a fresh load showed where she stopped.
+
+**Correction:** none.
+
+**Commits:** [`2696224`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/2696224).
