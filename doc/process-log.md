@@ -2430,3 +2430,17 @@ had already pushed everything. Pushed only this entry and its prompts line.
 **Correction:** none.
 
 **Commits:** this entry's commit.
+
+### 51. "where is my LLM stored?" (21 Oct 2026)
+
+**Asked:** "where is my LLM stored?"
+
+**Agent:** Answered, no code change: Claude runs on Anthropic's servers and
+isn't stored in the app. The code that calls it is `src/maker.ts` and
+`src/drawings.ts`; the key is in `~/.claude/settings.json` and in Fly's
+secrets; what Claude writes and draws is saved in `houses.db`. Left an
+untracked `image.png` in the repo root alone.
+
+**Correction:** none.
+
+**Commits:** this entry's commit.

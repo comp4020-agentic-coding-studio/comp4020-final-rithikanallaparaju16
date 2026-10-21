@@ -116,3 +116,4 @@ Every prompt I gave the agent from 8 October, word for word, with the commit it 
 - "done": my key reached Fly, but the course proxy only answers the ANU network, so the live site can't use it; no code change.
 - "do 3 and ship it": when Claude can't be reached, the house is made from the answers instead of an error, [`1934d52`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/1934d52)
 - "push everything": it was all pushed already, [`29480f7`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/29480f7)
+- "where is my LLM stored?": a question, no code change. Claude runs on Anthropic's servers; the app only holds the code that calls it, the key and what it made.
