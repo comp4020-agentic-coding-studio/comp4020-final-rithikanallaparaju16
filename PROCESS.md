@@ -127,3 +127,5 @@ Every prompt I gave the agent from 8 October, word for word, with the commit it 
 - "continue": a matching set of all five sizes, with the right number of bedrooms; no code change.
 - "yes perfect rooms, continue": made houses for two to seven friends, each size on its own picture, with UNO at the coffee table, [`9289cc5`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/9289cc5)
 - "ship everything": the layouts on the live site, [`9289cc5`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/9289cc5)
+- "open the live site for this": opened the live site, no code change.
+- "so now when making your own house, we have an option in the end where we tell sumn that we did in a group, then ask them for like an inside joke or quote ab it and keep that in the living room, just sumn for them to giggle when they enter their home": the maker asks for it at the end and frames it in the living room, [`3aac38e`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/3aac38e)

@@ -2669,3 +2669,50 @@ and `image.png`/`image-1.png` in the repo root, which nothing refers to.
 **Correction:** none.
 
 **Commits:** `9289cc5`; this entry's commit.
+
+### 62. "open the live site for this" (28 Oct 2026)
+
+**Asked:** "open the live site for this".
+
+**Agent:** opened the live site in the browser. No code change.
+
+**Correction:** none.
+
+**Commits:** none.
+
+### 63. The inside joke (28 Oct 2026)
+
+**Asked:** "so now when making your own house, we have an option in the end
+where we tell sumn that we did in a group, then ask them for like an inside
+joke or quote ab it and keep that in the living room, just sumn for them to
+giggle when they enter their home".
+
+**Agent:**
+- `/make` ends with "One last thing, if you like": something you all did
+  together (up to 120 characters) and the inside joke or quote from it (up
+  to 280). Both are optional, but what you did together without a joke is
+  turned down, since the joke is the point.
+- They're saved word for word as `together` and `joke` on the house's spec
+  in `houses.db`. Claude never sees them, so nobody's joke gets tidied.
+  Houses made before have neither and look as they did.
+- A made house's living room shows the joke in a wooden frame under the
+  heading, with what you did together as its caption. Rithika's own house
+  has no frame. The ready page says it's framed by the door.
+- Product calls made without asking: the frame sits at the top of the
+  living room page rather than in the house picture; it's one joke per
+  house, fixed when the house is made, not something friends add later.
+- Spec test: the joke and caption come out exactly as typed, even when
+  they look like markup, and what you did together without a joke is
+  turned down. The "keeps everything you wrote" test now covers both new
+  fields. 56 passed in `house`, `drawings` and `invariants`. Looked at the
+  living room at 390, 820 (touch) and 1280 and the form's end at 390; the
+  first screenshots showed the movie-night link jammed under the frame and
+  a cut-off placeholder, both fixed. Tapped "Make our house" for real at
+  390 px.
+- CI has been red since `a34c5dc`, which committed the test agents' bug
+  specs (they fail on purpose), so nothing after it deploys until they're
+  fixed or skipped.
+
+**Correction:** none.
+
+**Commits:** [`3aac38e`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/3aac38e).
