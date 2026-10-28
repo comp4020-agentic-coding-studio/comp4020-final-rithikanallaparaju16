@@ -6,5 +6,8 @@ export default defineConfig({
   test: {
     include: ["spec/**/*.test.ts"],
     globalSetup: ["./spec/global-setup.ts"],
+    // One file at a time: they share the one running house, and two files
+    // signing in as the same friend lock each other out (ADR 0011).
+    fileParallelism: false,
   },
 });
