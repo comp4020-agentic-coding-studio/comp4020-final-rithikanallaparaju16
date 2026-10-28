@@ -2716,3 +2716,26 @@ giggle when they enter their home".
 **Correction:** none.
 
 **Commits:** [`3aac38e`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/3aac38e).
+
+### 64. "skip those tests and ship it, then open live" (28 Oct 2026)
+
+**Asked:** "skip those tests and ship it, then open live".
+
+**Agent:**
+- CI had failed since `a34c5dc`, which committed the four test agents'
+  files. Most of CI's failures weren't the bugs: the files ran at the same
+  time against one server and signed in as the same friends, so they
+  locked each other out ("someone else is in the house as 1"). Set
+  `fileParallelism: false` in `vitest.config.ts` so files run one at a
+  time.
+- Run that way, 21 tests still failed: the bugs the agents found. Marked
+  each `it.skip`, by exact title, and changed nothing else in them.
+  `pnpm check` against a fresh throwaway server: 96 passed, 23 skipped.
+- Pushed; CI's check and deploy passed. Live: the door and `/readme/`
+  answer 200, `/make` has the new fields, and the read-only spec passes
+  (15 passed, the rest skipped as writes). Opened the live house maker.
+- Didn't tag: crit cutoffs past `crit-10` aren't tagged in this repo.
+
+**Correction:** none.
+
+**Commits:** [`b0daaf5`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/b0daaf5), with the inside joke ([`3aac38e`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/3aac38e)) and its log; this entry's commit.
