@@ -30,11 +30,13 @@ const MAX_FORM = 96 * 1024;
 const MAX_NAME = 40;
 const MAX_CITY = 60;
 const MAX_TITLE = 60;
+const MAX_TOGETHER = 120;
+const MAX_JOKE = 280;
 
 // What one friend's block of the form says.
 // `things` are keys from BELONGINGS (src/belongings.ts), the pictures ticked.
 type Answer = { name: string; city: string; gender: Gender; qualities: string; things: string[]; birthday: [number, number] };
-type Answers = { title: string; friends: Answer[]; memories: string };
+type Answers = { title: string; friends: Answer[]; memories: string; together: string; joke: string };
 
 // What Claude (or the local maker) writes; tidied into a HouseSpec after.
 type Written = {
@@ -120,6 +122,14 @@ export function makePage(answers?: Answers, problem?: string, size = FRIENDS): s
     <section class="card compose">
       <label for="memories">Memories for the living room wall, one per line</label>
       <textarea id="memories" name="memories" rows="5" maxlength="${MAX_FIELD}" placeholder="the road trip where the car broke down&#10;3 am chai in the hostel">${esc(answers?.memories ?? "")}</textarea>
+    </section>
+    <section class="card compose inside-joke-ask">
+      <h2>One last thing, if you like</h2>
+      <label for="together">Something you all did together</label>
+      <input id="together" name="together" maxlength="${MAX_TOGETHER}" autocomplete="off" placeholder="the Goa trip, first-year hostel…" value="${esc(answers?.together ?? "")}">
+      <label for="joke">The inside joke or quote from it</label>
+      <textarea id="joke" name="joke" rows="2" maxlength="${MAX_JOKE}" placeholder="“it's just a small hill”">${esc(answers?.joke ?? "")}</textarea>
+      <p class="small">We'll frame it in your living room, just as you wrote it, for whoever comes in.</p>
       <button>Make our house</button>
       <p class="small">You'll get a link to share with the other${count === 2 ? "" : ` ${NUMBER[count - 1]}`}.</p>
     </section>
@@ -155,7 +165,13 @@ function read(form: URLSearchParams): Answers {
       birthday: ok ? [month, day] : [0, 0],
     };
   });
-  return { title: field(form, "title").replace(/\s+/g, " "), friends, memories: field(form, "memories") };
+  return {
+    title: field(form, "title").replace(/\s+/g, " "),
+    friends,
+    memories: field(form, "memories"),
+    together: field(form, "together").replace(/\s+/g, " "),
+    joke: field(form, "joke"),
+  };
 }
 
 // What's wrong with the answers, if anything, in words for the form.
@@ -165,6 +181,9 @@ function problemWith(a: Answers): string | undefined {
   if (a.friends.some((f) => f.name.length > MAX_NAME)) return `Names fit up to ${MAX_NAME} characters.`;
   if (a.friends.some((f) => f.city.length > MAX_CITY)) return `Places fit up to ${MAX_CITY} characters.`;
   if (a.title.length > MAX_TITLE) return `The house's name fits up to ${MAX_TITLE} characters.`;
+  if (a.together.length > MAX_TOGETHER) return `What you did together fits up to ${MAX_TOGETHER} characters.`;
+  if (a.joke.length > MAX_JOKE) return `The inside joke fits up to ${MAX_JOKE} characters.`;
+  if (a.together && !a.joke) return "What was the inside joke from it? Add it, or clear what you did together.";
   if (a.friends.some((f) => f.things.length > MAX_BELONGINGS)) return `Each room fits up to ${MAX_BELONGINGS} things. Untick a few and try again.`;
   const long = [a.memories, ...a.friends.map((f) => f.qualities)].some((t) => t.length > MAX_FIELD);
   if (long) return "One of the answers is longer than fits. Shorten it a little and try again.";
@@ -389,6 +408,7 @@ export function tidy(w: Written, a: Answers, code: string): HouseSpec {
     title: clip(a.title || w.title, MAX_TITLE) || `${friends[0].name}'s house`,
     friends,
     memories,
+    ...(a.joke ? { joke: a.joke, ...(a.together ? { together: a.together } : {}) } : {}),
     createdAt: Date.now(),
   };
 }
@@ -486,7 +506,7 @@ function readyPage(spec: HouseSpec, by: "claude" | "offline", host: string): str
 <main class="plain">
   <article class="paper message made">
     <h1>${esc(spec.title)} is ready</h1>
-    <p>A room each for ${esc(who)}, and your memories are pinned up in the living room.</p>
+    <p>A room each for ${esc(who)}, and your memories are pinned up in the living room${spec.joke ? ", with your inside joke framed by the door" : ""}.</p>
     ${note}
     <p class="small">Send this address to the others. Anyone with it can come in, so keep it between you.</p>
     <p class="made-url"><code>${esc(url)}</code></p>

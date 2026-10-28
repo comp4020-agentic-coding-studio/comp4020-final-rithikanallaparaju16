@@ -757,6 +757,24 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect(door.querySelector(`form[action="/h/${code}/me"]`), "the door's form leaves the house").not.toBeNull();
   });
 
+  it("frames the friends' inside joke in their living room, exactly as written", async () => {
+    const joke = `"it's just a small hill" <b class="typed">— Mia</b>`;
+    const together = "the Goa trip, 2023";
+    const { code } = await makeHouse(["Ivy", "Rae", "Kit", "Bo", "Dee"], { together, joke });
+    const house = (path: string): URL => new URL(`/h/${code}${path}`, baseUrl);
+    const res = await fetch(house("/me"), { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ who: "3" }), redirect: "manual" });
+    const cookie = res.headers.getSetCookie().find((c) => c.startsWith("who="))!.split(";")[0];
+    const living = parse(await (await fetch(house("/living"), { headers: { cookie } })).text());
+    expect(text(living.querySelector(".inside-joke blockquote")), "the inside joke isn't framed in the living room").toBe(joke);
+    expect(text(living.querySelector(".inside-joke figcaption"))).toBe(together);
+    expect(living.querySelector(".inside-joke b.typed"), "the joke ran as markup").toBeNull();
+    await fetch(house("/leave"), { method: "POST", headers: { cookie }, redirect: "manual" });
+
+    const half = await makeHouse(["Ivy", "Rae", "Kit", "Bo", "Dee"], { together });
+    expect(half.res.status, "what you did together was taken without the joke").toBe(400);
+    expect(text(parse(await half.res.text()).querySelector(".problem"))).toContain("inside joke");
+  });
+
   // Only checkable against a server whose Claude can't be reached (started
   // with ANTHROPIC_BASE_URL pointing nowhere, MAKER_UNREACHABLE=1); the usual
   // HOUSE_MAKER=fake server never calls Claude. ADR 0019.

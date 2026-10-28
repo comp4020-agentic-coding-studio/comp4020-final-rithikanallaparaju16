@@ -316,6 +316,8 @@ describe.skipIf(!throwaway)("making a house for any five friends", () => {
       "month-1": "10",
       "day-1": "21",
       memories: "the road trip\n3 am chai",
+      together: "the Goa trip",
+      joke: "it's just a small hill",
     });
     expect(res.status).toBe(400);
     const form = parse(await res.text());
@@ -331,6 +333,8 @@ describe.skipIf(!throwaway)("making a house for any five friends", () => {
     expect(value("#month-1")).toBe("10");
     expect(value("select[name=day-1]")).toBe("21");
     expect(value("#memories")).toBe("the road trip\n3 am chai");
+    expect(value("#together")).toBe("the Goa trip");
+    expect(value("#joke")).toBe("it's just a small hill");
   });
 
   // BUG: the whole form is capped at 32 KB of URL-encoded bytes

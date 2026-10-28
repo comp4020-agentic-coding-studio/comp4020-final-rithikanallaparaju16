@@ -2861,3 +2861,31 @@ g.room-drawing :is(circle, ellipse, rect, polygon, line) {
 .notes.memories .note .by {
   font-style: italic;
 }
+
+/* the inside joke a made house was made with, framed by the living room door */
+figure.inside-joke {
+  margin: 16px 6px 22px;
+  padding: 18px 20px 14px;
+  border: 8px solid var(--wood);
+  border-radius: 4px;
+  background: var(--card);
+  box-shadow: inset 0 0 0 2px #d9b98a, 0 6px 14px rgba(40, 20, 10, 0.25);
+  text-align: center;
+  transform: rotate(-0.8deg);
+}
+
+figure.inside-joke blockquote {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+figure.inside-joke figcaption {
+  margin-top: 8px;
+  font-size: 0.85rem;
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+.make-form .inside-joke-ask h2 {
+  font-size: 1.1rem;
+}

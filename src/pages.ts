@@ -1158,6 +1158,17 @@ function memoriesOnWall(): string {
   return `<h3 class="pinned">Memories</h3><ul class="notes memories">\n${notes}\n</ul>`;
 }
 
+// The inside joke a made house was made with, framed by the door so it's the
+// first thing anyone sees coming in. Word for word from the form.
+function insideJoke(): string {
+  const spec = house().spec;
+  if (!spec?.joke) return "";
+  return `<figure class="inside-joke">
+    <blockquote class="body hand">${esc(spec.joke)}</blockquote>
+    ${spec.together ? `<figcaption>${esc(spec.together)}</figcaption>` : ""}
+  </figure>`;
+}
+
 export function livingPage(v: Visit, did?: Done): string {
   const night = movieNight(v.things, v.now);
   const notes = wall(v.things);
@@ -1168,6 +1179,7 @@ export function livingPage(v: Visit, did?: Done): string {
 
   return roomPage(v, "living", "The living room", `
   ${roomHead("The living room", `Everyone's room. The wall is for ${allOfYou()}: something funny from today, a good-luck wish, big news.`, undefined, "#8a5a3c")}
+  ${insideJoke()}
   ${done(did)}
   <p class="sofa" data-live="sofa"><a href="/movies">${night ? esc(`Movie night on these sofas: “${night.movie.title}”, ${dayLabel(v.me.tz, night.at)}`) : "Movie night happens on these sofas"} ›</a></p>
   ${slot("resting", restingIn("living", v))}

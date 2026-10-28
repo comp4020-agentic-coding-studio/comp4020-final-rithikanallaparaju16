@@ -51,6 +51,11 @@ export type HouseSpec = {
   title: string;
   friends: Friend[];
   memories: string[];
+  // Something they all did together and the inside joke or quote from it,
+  // framed in the living room exactly as typed (Claude never sees them).
+  // Houses made before it was asked, or left blank, have neither.
+  together?: string;
+  joke?: string;
   createdAt: number;
 };
 
