@@ -61,6 +61,9 @@ export type Layout = {
   // garden patches.
   wallBoard: Pt[];
   wallMiddle: Pt;
+  // Where a made house's inside joke hangs, framed, on the living room wall:
+  // the middle of a small frame clear of the board, doors and shelves.
+  jokeFrame: Pt;
   stove: Pt[];
   patches: Pt[];
   gardenBed: Pt;
@@ -201,6 +204,7 @@ export const STITCH: Layout = {
   // The board above the living room's armchair.
   wallBoard: [[910, 120], [1032, 156], [1032, 264], [910, 224]],
   wallMiddle: [971, 180],
+  jokeFrame: [845, 128],
   stove: [[538, 190], [610, 160], [745, 148], [748, 200], [650, 272], [538, 272]],
   // The sunflower bed by the living room wall.
   patches: [[1075, 138], [1150, 138], [1188, 200], [1180, 228], [1100, 228], [1075, 180]],
@@ -300,6 +304,7 @@ const TWO = made(2, {
   sofaSeats: [[240, 345], [470, 345], [240, 405], [470, 405], [355, 425]],
   wallBoard: box(420, 128, 515, 195),
   wallMiddle: [467, 160],
+  jokeFrame: [258, 150],
   stove: [[640, 195], [835, 195], [835, 268], [810, 300], [810, 415], [650, 415], [650, 300], [640, 268]],
 });
 
@@ -320,6 +325,7 @@ const THREE = made(3, {
   sofaSeats: [[268, 320], [465, 320], [268, 370], [465, 370], [372, 392]],
   wallBoard: box(448, 143, 506, 196),
   wallMiddle: [477, 170],
+  jokeFrame: [445, 128],
   stove: [[615, 215], [810, 215], [870, 260], [880, 400], [820, 400], [800, 265], [615, 265]],
 });
 
@@ -341,6 +347,7 @@ const FOUR = made(4, {
   sofaSeats: [[292, 320], [528, 325], [292, 372], [528, 375], [210, 395]],
   wallBoard: box(494, 154, 566, 202),
   wallMiddle: [530, 178],
+  jokeFrame: [530, 140],
   stove: [[700, 195], [890, 195], [925, 385], [830, 385], [830, 290], [700, 290]],
 });
 
@@ -364,6 +371,7 @@ const SIX = made(6, {
   sofaSeats: [[380, 440], [460, 440], [332, 500], [560, 505], [420, 445]],
   wallBoard: box(386, 278, 498, 350),
   wallMiddle: [442, 314],
+  jokeFrame: [540, 300],
   stove: [[712, 350], [884, 350], [958, 380], [958, 516], [740, 516], [712, 430]],
 });
 
@@ -388,6 +396,7 @@ const SEVEN = made(7, {
   sofaSeats: [[480, 430], [550, 430], [384, 490], [634, 490], [515, 435]],
   wallBoard: box(398, 266, 526, 346),
   wallMiddle: [462, 306],
+  jokeFrame: [300, 300],
   stove: [[646, 340], [860, 340], [860, 400], [646, 400]],
 });
 

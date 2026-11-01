@@ -757,18 +757,40 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect(door.querySelector(`form[action="/h/${code}/me"]`), "the door's form leaves the house").not.toBeNull();
   });
 
-  it("frames the friends' inside joke in their living room, exactly as written", async () => {
+  it("frames the friends' inside joke at their door and in their living room, exactly as written, under their house's name", async () => {
     const joke = `"it's just a small hill" <b class="typed">— Mia</b>`;
     const together = "the Goa trip, 2023";
-    const { code } = await makeHouse(["Ivy", "Rae", "Kit", "Bo", "Dee"], { together, joke });
+    const { code } = await makeHouse(["Ivy", "Rae", "Kit", "Bo", "Dee"], { together, joke, title: "The Hill House" });
     const house = (path: string): URL => new URL(`/h/${code}${path}`, baseUrl);
+
+    // The door: the house's name, and the joke, before anyone's even in.
+    const door = parse(await (await fetch(house("/"))).text());
+    expect(text(door.querySelector("h1")), "the door doesn't have the house's name").toBe("The Hill House");
+    expect(text(door.querySelector(".top .inside-joke blockquote")), "the inside joke isn't framed at the door").toBe(joke);
+    expect(text(door.querySelector(".top .inside-joke figcaption"))).toBe(together);
+
     const res = await fetch(house("/me"), { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ who: "3" }), redirect: "manual" });
     const cookie = res.headers.getSetCookie().find((c) => c.startsWith("who="))!.split(";")[0];
     const living = parse(await (await fetch(house("/living"), { headers: { cookie } })).text());
-    expect(text(living.querySelector(".inside-joke blockquote")), "the inside joke isn't framed in the living room").toBe(joke);
-    expect(text(living.querySelector(".inside-joke figcaption"))).toBe(together);
+    expect(text(living.querySelector("main .inside-joke blockquote")), "the inside joke isn't framed in the living room").toBe(joke);
+    expect(text(living.querySelector("main .inside-joke figcaption"))).toBe(together);
     expect(living.querySelector(".inside-joke b.typed"), "the joke ran as markup").toBeNull();
+    expect(text(living.querySelector(".bar .brand")), "the bar doesn't have the house's name").toBe("The Hill House");
+    expect(text(living.querySelector("title"))).toBe("The living room · The Hill House");
+
+    // In the picture, it hangs on the living room wall, and walking up to it
+    // offers to read it.
+    const home = parse(await (await fetch(house("/"), { headers: { cookie } })).text());
+    expect(home.querySelector(".house-svg g.joke-frame[data-place=living]"), "the joke doesn't hang on the wall in the picture").not.toBeNull();
+    const reads = [...home.querySelectorAll<SVGGElement>(".house-svg g.act[data-place=living]")].flatMap((g) => JSON.parse(g.getAttribute("data-do") ?? "[]") as { label: string; href?: string }[]);
+    expect(reads.find((d) => d.label === "Read the inside joke")?.href, "walking up to the frame doesn't offer to read it").toBe("/living#inside-joke");
+    expect(living.querySelector("#inside-joke"), "reading it doesn't land on the joke").not.toBeNull();
     await fetch(house("/leave"), { method: "POST", headers: { cookie }, redirect: "manual" });
+
+    // A house made without a joke has no frame, anywhere.
+    const plain = await makeHouse(["Ivy", "Rae", "Kit", "Bo", "Dee"]);
+    const plainDoor = parse(await (await fetch(new URL(`/h/${plain.code}/`, baseUrl))).text());
+    expect(plainDoor.querySelector(".inside-joke"), "a house without a joke has an empty frame at its door").toBeNull();
 
     const half = await makeHouse(["Ivy", "Rae", "Kit", "Bo", "Dee"], { together });
     expect(half.res.status, "what you did together was taken without the joke").toBe(400);

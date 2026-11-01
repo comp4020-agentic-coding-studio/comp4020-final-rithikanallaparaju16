@@ -502,7 +502,7 @@ function readyPage(spec: HouseSpec, by: "claude" | "offline", host: string): str
   const note = by === "offline"
     ? `<p class="small">Every room is built from exactly what you wrote about each of them.</p>`
     : `<p class="small">Claude wrote each room from what you said about each of them.</p>`;
-  return shell(`${spec.title} · Five Windows`, `
+  return shell(spec.title, `
 <main class="plain">
   <article class="paper message made">
     <h1>${esc(spec.title)} is ready</h1>

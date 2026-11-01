@@ -147,7 +147,7 @@ describe.skipIf(!throwaway)("making a house for any five friends", () => {
   it("shows every name, place and memory exactly as written, even when it looks like code", async () => {
     const h = await strangeHouse();
     expect(text(h.ready.querySelector("h1"))).toBe(`${STRANGE.title} is ready`);
-    expect(text(h.ready.querySelector("title"))).toBe(`${STRANGE.title} · Five Windows`);
+    expect(text(h.ready.querySelector("title"))).toBe(STRANGE.title);
     expect(injected(h.ready), "the ready page ran what was typed").toEqual([]);
 
     const door = parse(await (await fetch(new URL(h.base, baseUrl))).text());
@@ -215,10 +215,7 @@ describe.skipIf(!throwaway)("making a house for any five friends", () => {
     }
   });
 
-  // BUG: the form asks for "A name for your house", but only the ready page
-  // ever shows it; inside the house the door and every page say "Five Windows"
-  // (spec.title is read only in src/maker.ts readyPage).
-  it.skip("shows the name you gave your house at its door", async () => {
+  it("shows the name you gave your house at its door", async () => {
     const h = await strangeHouse();
     const door = parse(await (await fetch(new URL(h.base, baseUrl))).text());
     expect(`${text(door.querySelector("title"))} ${text(door.body)}`, "the house's name is gone once it's made").toContain(STRANGE.title);

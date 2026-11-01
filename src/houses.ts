@@ -73,6 +73,11 @@ export const house = (): House => current.getStore() ?? ORIGINAL;
 // house has its own five, and none of those.
 export const made = (): boolean => house().spec !== undefined;
 
+// The house's name, on its door, in the bar and in every page's title: Five
+// Windows for Rithika's five, and for a made house the name it was given on
+// the form ("<first friend>'s house" if it was left empty).
+export const houseName = (): string => house().spec?.title || "Five Windows";
+
 export const inHouse = <T>(h: House, fn: () => T): T => current.run(h, fn);
 
 // A made house's code: short, unguessable enough that a stranger doesn't

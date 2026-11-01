@@ -2886,6 +2886,25 @@ figure.inside-joke figcaption {
   color: var(--ink-soft);
 }
 
+/* framed at the door too, so it's the first thing anyone reads coming home */
+.top figure.inside-joke {
+  max-width: 26em;
+  margin: 16px auto 4px;
+  padding: 12px 16px 10px;
+  border-width: 6px;
+  color: var(--ink);
+  transform: rotate(1deg);
+}
+
+.top figure.inside-joke blockquote {
+  font-size: 1.35rem;
+}
+
+/* in the picture: a little frame on the living room wall (src/scene.ts) */
+g.joke-frame {
+  pointer-events: none;
+}
+
 .make-form .inside-joke-ask h2 {
   font-size: 1.1rem;
 }

@@ -5,6 +5,9 @@
 //
 //   node scripts/shot.ts <url> <out.png> [width=390] [who=1|none] [tap=<selector>]
 //
+// SHOT_COOKIE uses a session that's already in (see below), and
+// SHOT_MAX_HEIGHT cuts a long page's picture off that many css px down.
+//
 // With a selector, it taps the middle of that element with a real mouse event
 // first, says what was actually under the finger, and screenshots wherever
 // the tap led. element.click() skips hit-testing, so it can't catch something
@@ -25,8 +28,12 @@ const origin = new URL(url).origin;
 // A made house's url starts /h/<code>: you come in at that house's door, and
 // its cookie only goes to its own pages.
 const door = `${origin}${new URL(url).pathname.match(/^\/h\/[^/]+/)?.[0] ?? ""}`;
-let session: string | undefined;
-if (who !== "none") {
+// SHOT_COOKIE is a session already in the house as `who` (scripts/tour.ts
+// keeps the five in while it takes its pictures): used as it is, with no
+// coming in at the door and no leaving at the end.
+const given = process.env.SHOT_COOKIE;
+let session: string | undefined = given;
+if (!given && who !== "none") {
   const res = await fetch(`${door}/me`, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
@@ -108,15 +115,17 @@ if (tap) {
 const { cssContentSize, cssLayoutViewport } = await cdp("Page.getLayoutMetrics");
 // Capturing past the screen lays the page out again, which shifts a phone's
 // sideways-scrolled house off you. A page that fits is captured as it is.
-const beyond = cssContentSize.height > cssLayoutViewport.clientHeight + 1;
+// SHOT_MAX_HEIGHT stops a long page's picture that many css px down.
+const height = Math.min(Math.ceil(cssContentSize.height), Number(process.env.SHOT_MAX_HEIGHT ?? Infinity));
+const beyond = height > cssLayoutViewport.clientHeight + 1;
 const shot = await cdp("Page.captureScreenshot", {
   format: "png",
   ...(beyond
-    ? { captureBeyondViewport: true, clip: { x: 0, y: 0, width: Math.ceil(cssContentSize.width), height: Math.ceil(cssContentSize.height), scale: 1 } }
+    ? { captureBeyondViewport: true, clip: { x: 0, y: 0, width: Math.ceil(cssContentSize.width), height, scale: 1 } }
     : {}),
 });
 writeFileSync(out, Buffer.from(shot.data, "base64"));
 console.log(`${out}: ${Math.ceil(cssContentSize.width)}x${Math.ceil(cssContentSize.height)} css px`);
 socket.close();
 chrome.kill();
-if (session) await fetch(`${door}/leave`, { method: "POST", headers: { cookie: `who=${session}` }, redirect: "manual" });
+if (session && !given) await fetch(`${door}/leave`, { method: "POST", headers: { cookie: `who=${session}` }, redirect: "manual" });

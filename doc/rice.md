@@ -75,7 +75,8 @@ Ties are broken by confidence, then impact.
   friend>'s house", and only the page after making it shows it. Inside, the
   door says "Five Windows". Small, but it's what makes the house theirs.
   Test: `spec/made-houses.test.ts`, "shows the name you gave your house at
-  its door".
+  its door". Done on 1 November: the name is on the door, in the top bar and
+  in every page's title, and the test passes.
 - **C.** Nothing brings anyone back; that's the biggest risk in the PRFAQ.
   A button after leaving something, such as "Tell Kavya there's something
   on her desk", would open the phone's share sheet or copy a link and a line

@@ -42,7 +42,7 @@ import {
   type Pose,
   type Waypoint,
 } from "./house.ts";
-import { house, made } from "./houses.ts";
+import { house, houseName, made } from "./houses.ts";
 import { esc } from "./html.ts";
 import { layout, matWords } from "./layouts.ts";
 import { PEOPLE, personById, type Person } from "./people.ts";
@@ -251,7 +251,7 @@ function bar(v: Visit, current: Tab): string {
   const c = clock(v.me.tz, v.now);
   return `<header class="bar">
   <div class="hello">
-    <a class="brand" href="/">Five Windows</a>
+    <a class="brand" href="/">${esc(houseName())}</a>
     <p class="greeting">${esc(`${hello(c)}, ${v.me.name}.`)} <span class="when">It's ${esc(c.weekday)}, <span class="clock" data-tz="${esc(v.me.tz)}">${esc(c.label)}</span> in ${esc(v.me.city)}.</span></p>
   </div>
   ${tabs(current, v)}
@@ -431,11 +431,12 @@ export function doorPage(seen: Map<string, number>, now: number, taken: Set<stri
     </button></li>`;
   }).join("\n");
 
-  return shell("Five Windows", `
+  return shell(houseName(), `
 <main class="door">
   <header class="top">
-    <h1>Five Windows</h1>
+    <h1>${esc(houseName())}</h1>
     <p class="greeting">A little house for ${friendsWord()} who live far apart. Come in whenever you like, leave something for someone, and see what the others left while you were away.</p>
+    ${insideJoke("door-joke")}
   </header>
   <form method="post" action="/me">
     <h2 class="ask">Who's coming home?</h2>
@@ -670,7 +671,7 @@ function everyone(v: Visit, full: boolean): string {
 
 export function housePage(v: Visit): string {
   const light = phase(clock(v.me.tz, v.now));
-  return shell("Five Windows", `
+  return shell(houseName(), `
 ${bar(v, "home")}
 <main class="home">
   ${news(v)}
@@ -686,7 +687,7 @@ ${bar(v, "home")}
 }
 
 export function updatesPage(v: Visit): string {
-  return shell("Updates · Five Windows", `
+  return shell(`Updates · ${houseName()}`, `
 ${bar(v, "updates")}
 <main class="list">
   ${away(v, 40)}
@@ -695,7 +696,7 @@ ${bar(v, "updates")}
 }
 
 export function everyonePage(v: Visit): string {
-  return shell("Everyone · Five Windows", `
+  return shell(`Everyone · ${houseName()}`, `
 ${bar(v, "everyone")}
 <main class="list">
   ${everyone(v, true)}
@@ -706,7 +707,7 @@ ${bar(v, "everyone")}
 /* ---------- rooms ---------- */
 
 function roomPage(v: Visit, place: string, title: string, side: string, d?: Done): string {
-  return shell(`${title} · Five Windows`, `
+  return shell(`${title} · ${houseName()}`, `
 ${bar(v, "home")}
 <main class="room">
   <div class="room-grid">
@@ -988,7 +989,7 @@ export function unoPage(v: Visit, did?: Done): string {
   ${g.winner ? `<p class="uno-again"><a href="${w.href}">Back to the ${w.table} for another round ›</a></p>` : ""}
   ${playing ? unoHand(g, v) : gone ? `<p class="small">${esc(outLine(g, v))} ${esc(w.sit)} with a friend to deal another.</p>` : `<p class="small">You're not in this game. ${esc(w.sit)} with a friend to deal one of your own.</p>`}
   ${unoPlayers(g, v)}`;
-  return shell("UNO · Five Windows", `
+  return shell(`UNO · ${houseName()}`, `
 ${bar(v, "home")}
 <main class="list uno">
   <header class="room-head" style="--accent:${owner?.color ?? "#8a5a3c"}">
@@ -1158,12 +1159,14 @@ function memoriesOnWall(): string {
   return `<h3 class="pinned">Memories</h3><ul class="notes memories">\n${notes}\n</ul>`;
 }
 
-// The inside joke a made house was made with, framed by the door so it's the
-// first thing anyone sees coming in. Word for word from the form.
-function insideJoke(): string {
+// The inside joke a made house was made with, word for word from the form:
+// framed at the door, so it's the first thing anyone reads coming home, and
+// again in the living room, where it hangs on the wall in the picture too
+// (src/scene.ts).
+function insideJoke(id = "inside-joke"): string {
   const spec = house().spec;
   if (!spec?.joke) return "";
-  return `<figure class="inside-joke">
+  return `<figure class="inside-joke" id="${id}">
     <blockquote class="body hand">${esc(spec.joke)}</blockquote>
     ${spec.together ? `<figcaption>${esc(spec.together)}</figcaption>` : ""}
   </figure>`;
@@ -1325,7 +1328,7 @@ export function moviesPage(v: Visit, did?: Done): string {
     <button>${emoji("night")} Plan it</button>
   </form>` : "";
 
-  return shell("Movies · Five Windows", `
+  return shell(`Movies · ${houseName()}`, `
 ${bar(v, "movies")}
 <main class="list movies">
   <header class="room-head" style="--accent:${made() ? "#8e7cc3" : personById(MOVIE_LOVER)?.color ?? "#8e7cc3"}">
@@ -1353,7 +1356,7 @@ ${bar(v, "movies")}
 /* ---------- plain pages ---------- */
 
 export function readmePage(html: string): string {
-  return shell("About Five Windows", `
+  return shell(`About ${houseName()}`, `
 <main class="plain">
   <nav class="crumbs"><a href="/">‹ Back to the house</a></nav>
   <article class="paper readme">

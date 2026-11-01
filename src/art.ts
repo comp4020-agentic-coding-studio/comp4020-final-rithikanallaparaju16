@@ -247,6 +247,7 @@ export const EMOJI: Record<string, string> = {
   wish: "🎂",
   uno: "🃏",
   sticker: "🌟",
+  joke: "😂",
 };
 
 // What pops up where you did it, once it's done.

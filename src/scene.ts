@@ -4,7 +4,7 @@ import { avatarUrl } from "./avatars.ts";
 import { belonging, belongingArt } from "./belongings.ts";
 import { BOX, drawingShapes, type Drawing } from "./drawings.ts";
 import { along, DOG, KETTLE_ROOM, MASK_ROOM, rejoin, YOGA_ROOM, type DogSpot, type Pose, type Waypoint } from "./house.ts";
-import { made } from "./houses.ts";
+import { house, made } from "./houses.ts";
 import { esc } from "./html.ts";
 import { layout, matWords, oval, type Pt } from "./layouts.ts";
 import type { Person } from "./people.ts";
@@ -336,6 +336,32 @@ function pops(s: Scene, standing: Map<string, Pt>): string {
   return all ? `<g class="pops" aria-hidden="true">${all}</g>` : "";
 }
 
+// A made house's inside joke hangs in a little wooden frame on the living
+// room wall (src/layouts.ts jokeFrame), with a few scribbled lines standing
+// for the words: too small to read in the picture, so walking up to it offers
+// to read it (hotspots below), and its words are on the door and the living
+// room page. The house's own picture has no frame unless there's a joke.
+const FRAME: Pt = [40, 30];
+function jokeFrame(): string {
+  if (!house().spec?.joke) return "";
+  const [cx, cy] = layout().jokeFrame;
+  const [w, h] = FRAME;
+  const x = cx - w / 2;
+  const y = cy - h / 2;
+  const lines = [0.32, 0.5, 0.68].map((t, i) => {
+    const ly = Math.round(y + h * t);
+    const end = x + w - 9 - (i === 2 ? 9 : 0);
+    return `<path d="M${x + 9} ${ly}q${(end - x - 9) / 4} -2 ${(end - x - 9) / 2} 0t${(end - x - 9) / 2} 0" />`;
+  }).join("");
+  return `<g class="joke-frame" data-place="living" aria-hidden="true">
+<title>The inside joke</title>
+<rect x="${x - 2}" y="${y - 2}" width="${w + 4}" height="${h + 4}" rx="2" fill="#5a3418" opacity=".35" transform="translate(2 3)"/>
+<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="2" fill="#8a5a2b" stroke="#4e2c12" stroke-width="1.5"/>
+<rect x="${x + 4}" y="${y + 4}" width="${w - 8}" height="${h - 8}" fill="#fffaf0" stroke="#d9b98a"/>
+<g fill="none" stroke="#6b4a3a" stroke-width="1.6" stroke-linecap="round">${lines}</g>
+</g>`;
+}
+
 // Everything in the picture you can do something with, each lit up when you
 // walk up to it (public/house.js). Every one of these is also a button or a
 // form on its room's page, so nothing needs the script.
@@ -375,6 +401,7 @@ function hotspots(s: Scene): string {
       { place: `room:${YOGA_ROOM}`, area: YOGA, doings: [{ label: "Meditate on the yoga mat", emoji: EMOJI.yoga, post: "/sit", fields: { seat: "yoga" } }] },
     ] : []),
     { place: "living", area: l.wallBoard, doings: [{ label: "Write on the wall", emoji: EMOJI.write, href: "/living#write" }, { label: "Read the wall", emoji: EMOJI.read, href: "/living#wall" }] },
+    ...(house().spec?.joke ? [{ place: "living", area: oval(l.jokeFrame[0], l.jokeFrame[1], 30, 24), doings: [{ label: "Read the inside joke", emoji: EMOJI.joke, href: "/living#inside-joke" }] }] : []),
     ...l.sofas.map((area) => ({ place: "living", area, doings: [{ label: "Sit on the sofa", emoji: EMOJI.sit, post: "/sit", fields: { seat: "sofa" } }, { label: "Plan a movie night", emoji: EMOJI.night, href: "/movies" }] })),
     // Whatever's out on the counter can be eaten, which takes it away.
     { place: "kitchen", area: l.stove, doings: [
@@ -623,6 +650,7 @@ ${!made() ? RITHANYA : layout().picture === "house.jpg" ? COVERED : ""}
 ${made() ? "" : kettleMaggi(s)}
 ${blanket(s, people.standing)}
 ${light(s)}
+${jokeFrame()}
 ${things(s)}
 ${roomThings(s)}
 ${party(s)}
