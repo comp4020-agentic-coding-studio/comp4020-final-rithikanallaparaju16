@@ -2684,6 +2684,29 @@ main.make {
   font-size: 1.05rem;
 }
 
+/* "You are / They are": the three choices on one line, each radio beside its
+   words (the full-width inputs above stretched them away from their labels). */
+.make-form .gender-pick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  padding: 0;
+}
+
+.make-form .gender-pick label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.make-form .gender-pick input {
+  width: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  accent-color: var(--accent);
+}
+
 .make-form input:focus,
 .make-form select:focus {
   outline: none;
