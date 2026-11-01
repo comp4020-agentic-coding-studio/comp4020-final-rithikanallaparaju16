@@ -74,7 +74,7 @@ The corrections that mattered changed a rule, not just the code.
  data was not persistent, i tried to fix that.
   ([`8c0b81e`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/8c0b81e)).
 
-## How the house works, in screenshots
+## Overview of the website
 
 Taken on 1 November 2026 by `scripts/tour.ts` ([`cac59be`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/cac59be)) at laptop, phone
 and iPad widths. They're from a throwaway copy of the house, filled with a few
