@@ -74,6 +74,78 @@ The corrections that mattered changed a rule, not just the code.
  data was not persistent, i tried to fix that.
   ([`8c0b81e`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/8c0b81e)).
 
+## How the house works, in screenshots
+
+Taken on 1 November 2026 by `scripts/tour.ts` ([`cac59be`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/cac59be)) at laptop, phone
+and iPad widths. They're from a throwaway copy of the house, filled with a few
+days of us coming and going; the real house is never written to.
+
+**The door.** Pick your window. Each one shows the sky where that friend is,
+her clock, and when she was last home. Neha's is dark because it's 1 am in New
+Jersey and she's asleep. One of us at a time: a window someone's using can't
+be picked.
+
+![The door at laptop width](doc/screenshots/01-door.jpg)
+
+![The door on a phone](doc/screenshots/02-door-phone.jpg) ![Updates on a phone, coming home after two days](doc/screenshots/03-updates-phone.jpg)
+
+**Coming home** (above, right). I was last here two days ago, so Updates
+starts with what was left for me (Neha's chai, Rithanya's KitKat), then who
+came by and what they did.
+
+**The house.** Everyone stands where they last stopped, and friends who are
+home now glow. You walk yourself with the arrow keys, and whatever you walk
+up to lights up, with its buttons above Go in (here, tidying my room).
+
+![The whole house at laptop width](doc/screenshots/04-house.jpg)
+
+**On a phone** the house fills the screen, and you walk with the thumb stick.
+Standing by Neha offers a hug; by the sofa, a seat or a movie night. In my
+room, notes left on my desk are mine alone.
+
+![The house on a phone, next to Neha](doc/screenshots/05-house-phone.jpg)
+
+![My room, with notes on my desk](doc/screenshots/06-your-room.jpg)
+
+**The living room.** Big news is pinned at the top of the wall, with stickers
+from friends (each one named, never counted). Shinzo follows whoever petted
+him.
+
+![The living room and the wall](doc/screenshots/07-living-room.jpg)
+
+**The kitchen and garden.** Food stays out for three days or until someone
+eats it. Anyone can water the garden, and the plants get thirsty but never
+die.
+
+![The kitchen on a phone](doc/screenshots/08-kitchen-phone.jpg) ![The garden on a phone](doc/screenshots/09-garden-phone.jpg)
+
+**Movies and UNO.** Suggest a movie or plan a movie night on the sofas. UNO is
+on Amirdhavarshini's mat: seven cards each, twenty seconds a turn.
+
+![Movie time on a phone](doc/screenshots/10-movies-phone.jpg) ![UNO on the mat, mid-game](doc/screenshots/11-uno-phone.jpg)
+
+**Everyone, and an iPad.** Where each of us is, on her own clock.
+
+![Everyone, right now](doc/screenshots/12-everyone.jpg)
+
+![The house on an iPad](doc/screenshots/13-house-ipad.jpg)
+
+**A house for your own friends.** Anyone can make one at `/make` for two to
+seven friends. While taking these I fixed the form's "You are" choices, which
+had drifted away from their words ([`ce186f9`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/ce186f9)).
+
+![Making a house](doc/screenshots/14-make.jpg)
+
+The name you give a house is on its door and at the top of every page. The
+inside joke is framed at the door and in the living room, and a little frame
+hangs on the living room wall in the picture ([`3aac38e`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/3aac38e), [`cac59be`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/cac59be)).
+
+![A made house's door, with its name and inside joke](doc/screenshots/15-made-door.jpg)
+
+![A house made for six, with its name in the bar](doc/screenshots/16-made-house.jpg)
+
+![The made house's living room on a phone, with the joke framed](doc/screenshots/17-made-living-phone.jpg)
+
 ## Prompts
 
 Every prompt I gave the agent from 8 October, word for word, with the commit it led to.
@@ -132,3 +204,4 @@ Every prompt I gave the agent from 8 October, word for word, with the commit it 
 - "skip those tests and ship it, then open live": the test sweep's 21 known-bug tests are skipped until fixed, and the spec files run one at a time so they stop locking each other out; the inside joke is on the live site, [`b0daaf5`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/b0daaf5)
 - "The three main frameworks / PRFAQ / Personas: five realistic people, each with a background, a reason to use the product and a quote. They test who the product is for and whether it works for each person. / RICE: (Reach × Impact × Confidence) ÷ Effort. It ranks what to build next. / Supporting tools" (pasted), then "do these for this app": a PRFAQ, five personas and a RICE ranking of what to build next, in `doc/`, [`63f3629`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/63f3629)
 - "what features do you suggest to add": a question, no code change.
+- "house name,inside joke shoiuld be incorporated somewhere, then paste some screenshots of how the whole website workds in process.md": a made house's name is on its door, in the top bar and in every page's title, and its inside joke is framed at the door and on the living room wall; screenshots of the whole site are above, [`cac59be`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/cac59be), [`ce186f9`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/ce186f9)

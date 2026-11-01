@@ -2801,3 +2801,58 @@ there.
 **Correction:** none.
 
 **Commits:** this entry's commit.
+
+### 67. The house's name, the inside joke, and screenshots in PROCESS.md (1 Nov 2026)
+
+**Asked:** "house name,inside joke shoiuld be incorporated somewhere, then
+paste some screenshots of how the whole website workds in process.md".
+
+**Agent:**
+
+- **House name** (RICE row B). A made house's name, typed on the form or
+  "<first friend>'s house", is now its door's heading, the top bar's name
+  and every page's title (`houseName()` in `src/houses.ts`). Rithika's five
+  stay "Five Windows". The skipped test for it passes now.
+- **Inside joke.** Framed at the door as well as in the living room, and a
+  little frame on the living room wall in each house picture (`jokeFrame` in
+  each layout in `src/layouts.ts`, drawn by `src/scene.ts`), with a "Read the
+  inside joke" hotspot (😂) that goes to it. Each frame's spot was checked
+  over its picture: Rithika's is on the chimney breast. A house made without
+  a joke has neither. The joke test now covers the door, the bar, the title
+  and the hotspot.
+- **Screenshots.** Wrote `scripts/tour.ts`. It starts its own server on a
+  throwaway `DATA_DIR` with `HOUSE_MAKER=fake`, fills the five's house through
+  its own forms, and moves a few timestamps back so the house has a past:
+  plants from three days ago, Rithika last home two days ago. It makes a
+  house for six, then screenshots seventeen pages at laptop, phone and iPad
+  widths into `doc/screenshots/` as JPEGs (about 2.5 MB).
+  - `scripts/shot.ts` gained `SHOT_COOKIE`, to reuse a session the tour
+    already holds, and `SHOT_MAX_HEIGHT`.
+  - The first run's pictures were wrong. Everyone showed as in the house at
+    the door, Updates said "Welcome home", the UNO game was already over, and
+    the house maker's page was 4,800 px tall. Fixed in the tour, then looked
+    at every picture again.
+  - Added a screenshot section to PROCESS.md before "Prompts", with a caption
+    for each part of the house.
+- **Found on the way.** The house maker's "You are" radio buttons floated
+  apart from their words (since `17c0351`): the full-width style for its text
+  inputs stretched them too. Fixed in `ce186f9`, and a real tap selects the
+  right one.
+- **Checks:**
+  - Spec against a throwaway server (`HOUSE_MAKER=fake`): 97 passed, 22
+    skipped, one fewer skipped than before.
+  - Typecheck and `check:evidence` pass.
+  - Real taps on the five's door and a made house's door both go in.
+  - Looked at the made door at 390 px and on iPad.
+- Not pushed, so not deployed.
+
+**Product calls named in the reply:**
+
+- The joke now also shows at the door, which anyone with the address sees
+  before picking a window.
+- The frame's spot in each picture was chosen by the agent.
+- README's description of made houses was updated to match.
+
+**Correction:** none.
+
+**Commits:** [`cac59be`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/cac59be), [`ce186f9`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/ce186f9); this entry's commit.
