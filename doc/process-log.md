@@ -2781,3 +2781,23 @@ build next") and a "Supporting tools" heading with nothing under it, then
 **Correction:** none.
 
 **Commits:** [`63f3629`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/63f3629); this entry's commit.
+
+### 66. "what features do you suggest to add" (1 Nov 2026)
+
+**Asked:** "what features do you suggest to add".
+
+**Agent:** a question, no code change. Suggested five features, scored with
+`doc/rice.md`'s assumptions (scores are guesses until someone tries them):
+sealed birthday cards, opened on the friend's day (Aswathy's is 8 November,
+so this one has a deadline); leaving the light on for a friend who isn't
+here, as a hug that waits for her; a "tell them I was here" nudge you send
+the group yourself; a song left playing in the living room; and a question
+pinned on the wall. Said the two quarter-day bugs at the top of the RICE
+table outscore all of them, and named what it wouldn't add (photos and
+voice notes before the deadline, emails, streaks, likes). Checked first that
+a birthday wish carries no message today and that hugs need both friends
+there.
+
+**Correction:** none.
+
+**Commits:** this entry's commit.
