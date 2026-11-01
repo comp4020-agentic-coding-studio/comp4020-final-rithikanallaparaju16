@@ -2871,3 +2871,31 @@ committed with it. Not pushed.
 **Correction:** the heading. Rithika named the section herself.
 
 **Commits:** [`591336a`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/591336a); this entry's commit.
+
+### 69. Push everything; the screenshots weren't showing (1 Nov 2026)
+
+**Asked:** "push everything, and i cant see any screen shots in process.md".
+
+**Agent:**
+
+- **Why the screenshots didn't show.** All 17 were committed (`git
+  ls-files`), and every image path in PROCESS.md pointed at a file that
+  exists. But the eight commits since entry 64 hadn't been pushed, so
+  PROCESS.md on GitHub had neither the section nor the pictures.
+- **Pushed.** `803aab1..e2eaaca` to `main`. CI's `check` and `deploy`
+  passed (run 41276203989).
+- **On GitHub.** Rendered PROCESS.md through GitHub's API: all 17
+  `<img>`s are under "Overview of the website", and GitHub lists all 17
+  files in `doc/screenshots/`.
+- **Live.** The door and `/readme/` answer 200, and `/readme/` has the new
+  line about the joke. The read-only spec passes against the live site (15
+  passed, 104 skipped). No house was made on the live site to check the name
+  and joke, since that writes to the real app; CI's check ran those tests
+  against its own throwaway server.
+- **No tag.** Crit 10's cutoff (week 11) has passed and `crit-10` stays
+  where it is; the final project (due 9 November) isn't a crit.
+
+**Correction:** none. The screenshots' absence was the push still to come,
+not a missing file.
+
+**Commits:** this entry's commit.
