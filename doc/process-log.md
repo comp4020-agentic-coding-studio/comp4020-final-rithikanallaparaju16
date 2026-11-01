@@ -2856,3 +2856,18 @@ paste some screenshots of how the whole website workds in process.md".
 **Correction:** none.
 
 **Commits:** [`cac59be`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/cac59be), [`ce186f9`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/ce186f9); this entry's commit.
+
+### 68. The screenshots under "Overview of the website" (1 Nov 2026)
+
+**Asked:** "add these screen shots in process.md under the heading overview
+of the website".
+
+**Agent:** renamed the screenshot section added in entry 67 ("How the house
+works, in screenshots") to "Overview of the website". It stays where it was,
+after "step by step" and before "Prompts". The pictures and captions are
+unchanged. PROCESS.md had no uncommitted draft, so nothing of Rithika's was
+committed with it. Not pushed.
+
+**Correction:** the heading. Rithika named the section herself.
+
+**Commits:** [`591336a`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/591336a); this entry's commit.
