@@ -2739,3 +2739,45 @@ giggle when they enter their home".
 **Correction:** none.
 
 **Commits:** [`b0daaf5`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/b0daaf5), with the inside joke ([`3aac38e`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/3aac38e)) and its log; this entry's commit.
+
+### 65. PRFAQ, personas and RICE (1 Nov 2026)
+
+**Asked:** pasted a list of "The three main frameworks" (PRFAQ; personas:
+"five realistic people, each with a background, a reason to use the product
+and a quote. They test who the product is for and whether it works for each
+person"; RICE: "(Reach × Impact × Confidence) ÷ Effort. It ranks what to
+build next") and a "Supporting tools" heading with nothing under it, then
+"do these for this app".
+
+**Agent:**
+- The course site doesn't mention PRFAQ, personas or RICE, so each follows
+  its usual form. Did nothing for "Supporting tools", since it listed none.
+- `doc/prfaq.md`: a press release for the house and the house maker, a
+  customer FAQ and an internal FAQ, written for the app as it is, gaps
+  included (no notifications, desk notes aren't locked, the live maker waits
+  on a Claude it can't reach). Rithika's quotes are word for word from her
+  crit 8 and 10 reflections; a persona's quote is marked as invented.
+- `doc/personas.md`: five made-up people, each walked through the app: Kavya
+  (Toronto, always asleep), Arjun (Kerala, quiet, on a phone) and Meera
+  (Bangalore, wants everyone live) share one five-friend house; Priya makes
+  a house for six; Lea uses one for two with her partner. Product call made
+  without asking: none of them is one of Rithika's five, since details about
+  the real friends come only from her, so all five live in made houses.
+- `doc/rice.md`: 26 candidates, the test sweep's skipped bugs alongside the
+  ideas the personas raised, scored and sorted. Reach comes from an assumed
+  population (about 45 people a month), because reading the live volume to
+  count houses was refused by Claude Code's permission check; it says to
+  swap in real counts. Top: Home's line on a phone saying nobody came by
+  when someone did (100), and a made house's name missing from its door
+  (80). It names two of Rithika's calls: a "tell them I was here" nudge you
+  send yourself, and taking the unreachable course key off Fly. It puts a
+  front door key after the final project is marked.
+- Checked the claims against the code on the way: the cap, the 42 room
+  things, what Claude is sent, which width hides "While you were away",
+  that the course key is still a Fly secret (names only), and that Node
+  knows `Asia/Dubai` and `Australia/Perth` for the clock fix it suggests.
+- No code change, and nothing deployed.
+
+**Correction:** none.
+
+**Commits:** [`63f3629`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/63f3629); this entry's commit.
