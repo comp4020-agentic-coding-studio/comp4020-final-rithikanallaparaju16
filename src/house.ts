@@ -72,8 +72,18 @@ const DAY = 24 * HOUR;
 export const latest = (things: Thing[], kind: Thing["kind"], place?: string): Thing | undefined =>
   things.find((t) => t.kind === kind && (place === undefined || t.place === place));
 
+// What's on a friend's desk: things left for her, and notes written back to
+// her, newest first.
 export const desk = (things: Thing[], id: string): Thing[] =>
-  things.filter((t) => t.kind === "desk" && t.place === roomPlace(id));
+  things.filter((t) => (t.kind === "desk" || t.kind === "reply") && t.place === roomPlace(id));
+
+// The note a reply answers, if it's still there.
+export const answers = (things: Thing[], reply: Thing): Thing | undefined =>
+  reply.kind === "reply" ? things.find((t) => String(t.id) === reply.item && (t.kind === "desk" || t.kind === "reply")) : undefined;
+
+// Whether you've written back to a note on your desk already.
+export const answered = (things: Thing[], note: Thing, by: string): boolean =>
+  things.some((t) => t.kind === "reply" && t.item === String(note.id) && t.author === by);
 
 export const wall = (things: Thing[]): Thing[] => things.filter((t) => t.kind === "note" && t.place === "wall");
 
@@ -117,14 +127,21 @@ export function mess(things: Thing[], id: string, now: number): 0 | 1 | 2 {
   return days < 2 ? 0 : days < 5 ? 1 : 2;
 }
 
-// Food stays out on the counter for three days, or until someone eats it.
+// Food stays out on the counter for three days, or until someone eats it. A
+// plate saved for a friend (a dish whose item is "<food>:for:<id>", ADR 0022)
+// waits, covered, until she eats it, however long she's away: being away
+// never means missing out.
 export function counter(things: Thing[], now: number): Thing[] {
   const eaten = new Set(things.filter((t) => t.kind === "eat").map((t) => t.place));
-  return things.filter((t) => t.kind === "dish" && now - t.createdAt < 3 * DAY && !eaten.has(`dish:${t.id}`));
+  return things.filter((t) => t.kind === "dish" && (savedFor(t) !== undefined || now - t.createdAt < 3 * DAY) && !eaten.has(`dish:${t.id}`));
 }
 
+// Who a dish was saved for, if anyone, and what the food itself is.
+export const savedFor = (t: Thing): string | undefined => t.item.split(":for:")[1] || undefined;
+export const food = (t: Thing): string => t.item.split(":for:")[0];
+
 // What a dish is called after "ate your": "dosa", "mango".
-export const dishName = (t: Thing): string => (find(FOOD, t.item)?.short ?? "food").replace(/^a /, "");
+export const dishName = (t: Thing): string => (find(FOOD, food(t))?.short ?? "food").replace(/^a /, "");
 
 export function plants(things: Thing[]): Map<string, Thing> {
   const mine = new Map<string, Thing>();

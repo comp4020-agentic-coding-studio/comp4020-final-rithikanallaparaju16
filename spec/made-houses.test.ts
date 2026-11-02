@@ -222,6 +222,18 @@ describe.skipIf(!throwaway)("making a house for any five friends", () => {
     expect(injected(door)).toEqual([]);
   });
 
+  it("goes on a phone's home screen as its own house, under its own name", async () => {
+    const h = await makeHouse({ friends: "4", ...named(["Ivy", "Rae", "Kit", "Bo"]), title: "The Chai Corner" });
+    const door = parse(await (await fetch(new URL(h.base, baseUrl))).text());
+    const linked = door.querySelector("link[rel=manifest]")?.getAttribute("href");
+    expect(linked, "the made house points at Rithika's five's manifest").toBe(`${h.base}manifest.webmanifest`);
+    const manifest = await (await fetch(new URL(linked!, baseUrl))).json();
+    expect(manifest.name).toBe("The Chai Corner");
+    expect(manifest.start_url, "the icon opens someone else's house").toBe(h.base);
+    expect(manifest.scope).toBe(h.base);
+    expect(door.querySelector("meta[name=apple-mobile-web-app-title]")?.getAttribute("content")?.length, "the name under an iPhone icon is too long to fit").toBeLessThanOrEqual(12);
+  });
+
   // BUG: /h/<code>// answers 500 (route() hands handle() "//" as the path;
   // src/server.ts:509 then :211).
   it.skip("answers odd addresses inside a made house without a crash", async () => {

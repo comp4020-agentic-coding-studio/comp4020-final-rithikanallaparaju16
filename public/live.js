@@ -203,3 +203,72 @@
     soon();
   });
 })();
+
+// Picking a time for all of you (the movie-night planner): a clock for each
+// friend. Change any one and the others follow, each in her own time zone,
+// with a note when it lands in her usual sleep. Without this, your own clock
+// is the one the house reads; this only fills in the rest. Kept apart from
+// the live updates above, so it runs even where those don't.
+(() => {
+  const ZONE = new Map();
+  const parts = (tz, at) => {
+    let f = ZONE.get(tz);
+    if (!f) {
+      f = new Intl.DateTimeFormat("en-AU", { timeZone: tz, year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", hourCycle: "h23" });
+      ZONE.set(tz, f);
+    }
+    return Object.fromEntries(f.formatToParts(at).map((x) => [x.type, x.value]));
+  };
+  // The wall-clock time in `tz` at `at`, read back as if it were UTC
+  // (src/time.ts does the same on the server).
+  const wall = (tz, at) => {
+    const p = parts(tz, at);
+    return Date.UTC(Number(p.year), Number(p.month) - 1, Number(p.day), Number(p.hour) % 24, Number(p.minute));
+  };
+  const pad = (n) => String(n).padStart(2, "0");
+  const field = (tz, at) => {
+    const d = new Date(wall(tz, at));
+    return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
+  };
+  // A date-and-time field filled in by someone in `tz`, as a moment; the
+  // second pass settles it across a daylight-saving change.
+  const moment = (value, tz) => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value);
+    if (!m) return undefined;
+    const target = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
+    let at = target - (wall(tz, target) - target);
+    at += target - wall(tz, at);
+    return at;
+  };
+  const asleep = (row, at) => {
+    const [from, to] = row.dataset.sleep.split(",").map(Number);
+    const p = parts(row.dataset.tz, at);
+    const h = (Number(p.hour) % 24) + Number(p.minute) / 60;
+    return from > to ? h >= from || h < to : h >= from && h < to;
+  };
+
+  function sync(changed) {
+    const rows = [...changed.closest(".when-rows").querySelectorAll(".when-row")];
+    const from = changed.closest(".when-row");
+    const at = moment(changed.value, from.dataset.tz);
+    if (at === undefined) return;
+    for (const row of rows) {
+      const input = row.querySelector("input");
+      if (row !== from) input.value = field(row.dataset.tz, at);
+      const late = asleep(row, at);
+      row.classList.toggle("late", late);
+      // The house wrote the words for each friend (she, he or they).
+      const note = row.querySelector(".sleep-note");
+      note.textContent = late ? note.dataset.says : "";
+    }
+  }
+
+  document.addEventListener("input", (event) => {
+    const input = event.target;
+    if (input instanceof HTMLInputElement && input.closest(".when-rows")) sync(input);
+  });
+  document.addEventListener("change", (event) => {
+    const input = event.target;
+    if (input instanceof HTMLInputElement && input.closest(".when-rows")) sync(input);
+  });
+})();

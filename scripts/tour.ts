@@ -93,7 +93,9 @@ const here = (who: string, x: number, y: number, door = ""): Promise<void> => po
 // everyone else stays where they are. A phone shot is one phone screen, as
 // someone holding it sees it (a longer one would leave the fixed tab bar
 // floating halfway down); a long desktop page stops 2200 css px down.
-async function shot(path: string, file: string, width: number, who: string, opts: { touch?: boolean; door?: string } = {}): Promise<void> {
+// `js` runs on the page just before the picture (scripts/shot.ts's SHOT_JS):
+// to open something, fill something in, or scroll to it.
+async function shot(path: string, file: string, width: number, who: string, opts: { touch?: boolean; door?: string; js?: string } = {}): Promise<void> {
   const door = opts.door ?? "";
   const cookie = who === "none" ? undefined : (await signIn(who, door)).slice("who=".length);
   const png = `${dataDir}/${file}.png`;
@@ -104,6 +106,7 @@ async function shot(path: string, file: string, width: number, who: string, opts
     SHOT_MAX_HEIGHT: width < 600 ? "844" : "2200",
     ...(cookie ? { SHOT_COOKIE: cookie } : {}),
     ...(opts.touch ? { TOUCH: "1" } : {}),
+    ...(opts.js ? { SHOT_JS: opts.js } : {}),
   };
   console.log(execFileSync(process.execPath, args, { env, encoding: "utf8" }).trim());
   // Chrome draws at twice the size; the repo keeps a JPEG at the page's own
@@ -118,8 +121,10 @@ const DAY = 24 * HOUR;
 // 1 Rithika, 2 Neha, 3 Amirdhavarshini, 4 Rithanya, 5 Aswathy.
 
 // Everyone has been home before (the door says when). Rithika was last here
-// two days ago, so coming back shows her what's new.
+// two days ago, so coming back shows her what's new. Before she went, she
+// left Neha a note for her interview.
 for (const who of ["1", "2", "3", "4", "5"]) await get(who, "/");
+await post("1", "/room/2/leave", { body: "you've got this. call me after the interview?" });
 await signOut("1");
 
 await post("2", "/wall", { body: "got the internship!!! 🎉", big: "1" });
@@ -133,7 +138,16 @@ await post("2", "/movies", { title: "Spirited Away" });
 await post("4", "/room/1/leave", { body: "saw this and thought of you", item: "kitkat" });
 await post("2", "/room/1/leave", { body: "good luck for the exam!! you've got this", item: "chai" });
 await post("3", "/kitchen", { item: "maggi", body: "kettle-style, for old times" });
-await post("5", "/kitchen", { item: "dosa" });
+// Plates saved for friends who are away: they wait, covered, however long.
+await post("5", "/kitchen", { item: "dosa", for: "1", body: "saved you the crispiest one, don't tell anyone" });
+await post("4", "/kitchen", { item: "cake", for: "2", body: "for after your shift" });
+// Neha writes back to Rithika's note, onto Rithika's desk.
+{
+  const db = new DatabaseSync(`${dataDir}/house.db`);
+  const note = db.prepare("SELECT id FROM things WHERE kind = 'desk' AND author = '1'").get();
+  db.close();
+  await post("2", "/room/1/reply", { note: String(note?.id), body: "it went SO well. I got it!! thank you for the pep talk 🥹" });
+}
 
 // The past: the house has been lived in for a few days.
 {
@@ -141,6 +155,7 @@ await post("5", "/kitchen", { item: "dosa" });
   const back = (kind: string, ms: number): void => void db.prepare("UPDATE things SET created_at = created_at - ? WHERE kind = ?").run(ms, kind);
   back("plant", 3 * DAY);
   back("movie", 2 * DAY);
+  db.prepare("UPDATE things SET created_at = created_at - ? WHERE kind = 'desk' AND author = '1'").run(2 * DAY + HOUR);
   db.prepare("UPDATE things SET created_at = created_at - ? WHERE kind = 'note' AND item = 'big'").run(DAY);
   db.prepare("UPDATE visits SET last_seen = last_seen - ?, seen_until = 0 WHERE person = '1'").run(2 * DAY);
   // The others came by at different times today; they come back in below.
@@ -185,11 +200,29 @@ await shot("/updates", "03-updates-phone", 390, "1");
 await shot("/", "04-house", 1280, "1");
 await here("1", 640, 330);
 await shot("/", "05-house-phone", 390, "1");
-await shot("/room/1", "06-your-room", 1280, "1");
+// Her desk, with Neha's answer to her note, and writing back to it open.
+await shot("/room/1", "06-your-room", 1280, "1", { js: `document.querySelector("li.desk-thing.reply details.write-back")?.setAttribute("open", "")` });
 await shot("/living", "07-living-room", 1280, "1");
-await shot("/kitchen", "08-kitchen-phone", 390, "1");
+// On a phone, scrolled to the counter: the plate Aswathy saved her first.
+const scrollTo = (selector: string): string => `(() => { const el = document.querySelector(${JSON.stringify(selector)}); if (el) window.scrollTo(0, el.getBoundingClientRect().top + scrollY - 80); return !!el; })()`;
+await shot("/kitchen", "08-kitchen-phone", 390, "1", { js: scrollTo("#counter") });
+await shot("/kitchen", "18-saved-plates", 1280, "1");
 await shot("/garden", "09-garden-phone", 390, "1");
 await shot("/movies", "10-movies-phone", 390, "1");
+// Planning from Neha's clock: 9:30 tomorrow night in New Jersey, and
+// everyone else's row follows.
+await shot("/movies", "19-planner-phone", 390, "1", {
+  js: `(() => {
+    const neha = document.getElementById("night-when-2");
+    const day = new Date(neha.value.slice(0, 10) + "T00:00Z");
+    day.setUTCDate(day.getUTCDate() + 1);
+    neha.value = day.toISOString().slice(0, 10) + "T21:30";
+    neha.dispatchEvent(new Event("input", { bubbles: true }));
+    const picker = document.querySelector("#plan .when-picker");
+    window.scrollTo(0, picker.getBoundingClientRect().top + scrollY - 80);
+    return [...document.querySelectorAll(".when-row input")].map((i) => i.value);
+  })()`,
+});
 // UNO, dealt just now for three, from Amirdhavarshini's side of the mat.
 await post("1", "/sit", { seat: "mat" });
 await post("3", "/uno");
@@ -237,7 +270,8 @@ await here("2", 520, 470, door);
 await get("3", "/", door);
 await here("3", 560, 455, door);
 await shot("/", "16-made-house", 1280, "1", { door });
-await shot("/living", "17-made-living-phone", 390, "1", { door });
+// The memory wall, with their inside joke framed at the top.
+await shot("/living", "17-made-living-phone", 390, "1", { door, js: scrollTo("#wall") });
 for (const who of ["1", "2", "3"]) await signOut(who, door);
 
 server.kill();

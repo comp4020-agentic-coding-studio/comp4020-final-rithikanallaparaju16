@@ -5,12 +5,15 @@ import { belonging, belongingArt } from "./belongings.ts";
 import { drawingSvg, type Drawing } from "./drawings.ts";
 import {
   along,
+  answered,
+  answers,
   counter,
   desk,
   dishName,
   dog,
   DOG,
   find,
+  food,
   FOOD,
   GIFTS,
   gifts,
@@ -29,6 +32,7 @@ import {
   plants,
   resting,
   roomPlace,
+  savedFor,
   stage,
   thirsty,
   STICKERS,
@@ -204,6 +208,44 @@ function slot(key: string, html: string): string {
 
 /* ---------- the frame every page shares ---------- */
 
+// The name under the icon on a phone's home screen, which fits about twelve
+// letters: the house's own name if it's short enough, else its first word or
+// two.
+export function shortName(): string {
+  const name = houseName();
+  if (name.length <= 12) return name;
+  const words = name.split(/\s+/);
+  let out = words[0];
+  for (const w of words.slice(1)) {
+    if (`${out} ${w}`.length > 12) break;
+    out = `${out} ${w}`;
+  }
+  return out.slice(0, 12);
+}
+
+// What Android needs to put the house on a home screen: its name, its icon,
+// where it opens, and the colours around it while it loads. Opened from there,
+// it's a window of its own with no browser bar (`standalone`). A made house's
+// manifest has its own name and opens at its own door.
+export function manifest(): string {
+  const base = house().base;
+  return JSON.stringify({
+    name: houseName(),
+    short_name: shortName(),
+    description: made() ? `${houseName()}: a little house for friends who live far apart.` : "A little house for five friends who live far apart.",
+    start_url: `${base}/`,
+    scope: `${base}/`,
+    display: "standalone",
+    background_color: "#f3e6cf",
+    theme_color: "#a8d8f0",
+    icons: [
+      { src: art("icon-192.png"), sizes: "192x192", type: "image/png" },
+      { src: art("icon-512.png"), sizes: "512x512", type: "image/png" },
+      { src: art("icon-512.png"), sizes: "512x512", type: "image/png", purpose: "maskable" },
+    ],
+  }, null, 2);
+}
+
 export function shell(title: string, body: string, light: Phase, kind: string): string {
   return `<!doctype html>
 <html lang="en-AU">
@@ -211,6 +253,16 @@ export function shell(title: string, body: string, light: Phase, kind: string): 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>${esc(title)}</title>
+<!-- On a phone's home screen: Android reads the manifest, an iPhone the
+     apple- tags. Each house installs under its own name, and opens at its own door. -->
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="${art("icon-192.png")}">
+<link rel="apple-touch-icon" sizes="180x180" href="${art("icon-180.png")}">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="${esc(shortName())}">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#a8d8f0">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&display=swap">
@@ -351,12 +403,18 @@ function scene(v: Visit, focus?: string, did?: string): Scene {
       };
     }),
     hugs: hugs(v.things, v.now, v.arrived).map((h) => ({ by: h.by, people: h.people })),
-    dishes: counter(v.things, v.now).map((t) => ({
-      key: t.item,
-      fresh: isNew(t, v),
-      id: t.id,
-      label: `Eat ${t.author === v.me.id ? "your" : `${nameOf(t.author)}'s`} ${dishName(t)}`,
-    })),
+    dishes: counter(v.things, v.now).map((t) => {
+      const forWhom = savedFor(t);
+      const mine = forWhom === v.me.id;
+      return {
+        key: food(t),
+        fresh: isNew(t, v),
+        id: t.id,
+        saved: forWhom ? personById(forWhom)?.color ?? "#c4553c" : undefined,
+        // A saved plate is only hers to eat.
+        label: forWhom && !mine ? "" : mine ? `Eat the ${dishName(t)} ${nameOf(t.author)} saved you` : `Eat ${t.author === v.me.id ? "your" : `${nameOf(t.author)}'s`} ${dishName(t)}`,
+      };
+    }),
     kettle: kettle(v.things, v.now) !== undefined,
     dog: { place: d.place, with: d.with?.id, until: d.until, plan: d.plan, now: v.now },
     fresh: freshPlaces(v),
@@ -508,6 +566,14 @@ function happening(t: Thing, me: Person, all: Thing[]): Happening | undefined {
       const what = t.body && gift ? `a note and ${gift}` : t.body ? "a note" : (gift ?? "something");
       return { text: `${by} left ${what} on your desk`, href, forYou: true, at };
     }
+    // Writing back is news for whoever it's written back to.
+    case "reply": {
+      const owner = ownerOf(t.place);
+      if (!owner) return undefined;
+      const href = `/room/${owner.id}#desk-${t.id}`;
+      if (owner.id === me.id) return { text: `${by} wrote back to your note`, href, forYou: true, at };
+      return { text: mine ? `You wrote back to ${owner.name}` : `${by} wrote back to ${owner.name}`, href: `/room/${owner.id}`, forYou: false, at };
+    }
     case "tidy": {
       const owner = ownerOf(t.place);
       if (!owner) return undefined;
@@ -516,13 +582,21 @@ function happening(t: Thing, me: Person, all: Thing[]): Happening | undefined {
       if (owner.id === t.author) return { text: `${by} tidied up ${their(personById(t.author))} own room`, href, forYou: false, at };
       return { text: `${by} tidied ${owner.name}'s room`, href, forYou: false, at };
     }
-    case "dish":
-      return { text: `${by} made ${find(FOOD, t.item)?.short ?? "something"} for everyone`, href: "/kitchen", forYou: false, at };
+    case "dish": {
+      const what = find(FOOD, food(t))?.short ?? "something";
+      const forWhom = savedFor(t);
+      if (!forWhom) return { text: `${by} made ${what} for everyone`, href: "/kitchen", forYou: false, at };
+      if (forWhom === me.id) return { text: `${by} saved you a plate of ${what.replace(/^a /, "")}`, href: "/kitchen#counter", forYou: true, at };
+      return { text: `${by} saved ${nameOf(forWhom)} a plate of ${what.replace(/^a /, "")}`, href: "/kitchen", forYou: false, at };
+    }
     case "eat": {
       // The cook hears who ate what she made.
       const dish = all.find((d) => `dish:${d.id}` === t.place);
       if (!dish) return undefined;
       if (dish.author === t.author) return { text: `${by} finished ${mine ? "your" : their(personById(t.author))} own ${dishName(dish)}`, href: "/kitchen", forYou: false, at };
+      // A saved plate: the cook hears she found it.
+      if (savedFor(dish) && dish.author === me.id) return { text: `${by} found the plate of ${dishName(dish)} you saved ${them(personById(t.author))}`, href: "/kitchen", forYou: true, at };
+      if (savedFor(dish)) return { text: mine ? `You ate the ${dishName(dish)} ${nameOf(dish.author)} saved you` : `${by} ate the ${dishName(dish)} ${nameOf(dish.author)} saved ${them(personById(t.author))}`, href: "/kitchen", forYou: false, at };
       if (dish.author === me.id) return { text: `${by} ate your ${dishName(dish)}`, href: "/kitchen", forYou: true, at };
       return { text: `${by} ate ${nameOf(dish.author)}'s ${dishName(dish)}`, href: "/kitchen", forYou: false, at };
     }
@@ -782,18 +856,46 @@ const sitButton = (seat: string, label: string): string =>
 
 const DESK_SHOWN = 12;
 
+// A note's first few words, for "wrote back to your note “…”". Cut by
+// characters, not code units, so an emoji is never split in half.
+const snippet = (body: string, n = 36): string => {
+  const chars = [...body.replace(/\s+/g, " ").trim()];
+  return chars.length > n ? `${chars.slice(0, n).join("").trimEnd()}…` : chars.join("");
+};
+
 function deskThing(t: Thing, owner: Person, v: Visit): string {
   const canRead = v.me.id === owner.id || v.me.id === t.author;
-  const gift = find(GIFTS, t.item);
+  const reply = t.kind === "reply";
+  const gift = reply ? undefined : find(GIFTS, t.item);
   const icons = [t.body ? iconSvg("note") : "", gift ? iconSvg(gift.key) : ""].join("");
   const from = `from ${by(t, v)}, ${ago(t.createdAt, v.now)}`;
+  // What a reply answers, quoted for whoever can read both.
+  const original = reply ? answers(v.things, t) : undefined;
+  const answering = reply && canRead
+    ? `<p class="reply-to">${original ? `Writing back to ${original.author === v.me.id ? "your" : `${esc(nameOf(original.author))}'s`} note “${esc(snippet(original.body))}”` : "Writing back"}</p>`
+    : "";
   let text: string;
   if (!t.body) text = `<p class="body">${esc(cap(gift?.label ?? "something"))}</p>`;
-  else if (canRead) text = `<p class="body hand">${esc(t.body)}</p>${gift ? `<p class="with">with ${esc(gift.label)}</p>` : ""}`;
+  else if (canRead) text = `${answering}<p class="body hand">${esc(t.body)}</p>${gift ? `<p class="with">with ${esc(gift.label)}</p>` : ""}`;
   else text = `<p class="body">A folded note for ${esc(owner.name)}${gift ? `, and ${esc(gift.label)}` : ""}.</p>`;
-  const cls = ["desk-thing", isNew(t, v) ? "new" : "", t.author === v.me.id ? "mine" : ""].filter(Boolean).join(" ");
+  // On your own desk, a friend's note can be written back to, once, from
+  // here: the answer goes on her desk.
+  const writeBack = owner.id === v.me.id && t.author !== v.me.id && t.body && personById(t.author)
+    ? answered(v.things, t, v.me.id)
+      ? `<p class="small wrote-back">You wrote back to ${esc(nameOf(t.author))}.</p>`
+      : `<details class="write-back" id="write-back-${t.id}"><summary>${emoji("reply")} Write back to ${esc(nameOf(t.author))}</summary>
+        <form method="post" action="/room/${esc(t.author)}/reply" class="compose">
+          <input type="hidden" name="note" value="${t.id}">
+          <label for="reply-${t.id}">Your note, for ${esc(nameOf(t.author))}'s desk</label>
+          <textarea id="reply-${t.id}" name="body" rows="3" maxlength="${MAX_NOTE}" required placeholder="aww thank you, I needed that…"></textarea>
+          <p class="small">Only ${esc(nameOf(t.author))} can read it.</p>
+          <button>${emoji("reply")} Leave it on ${esc(nameOf(t.author))}'s desk</button>
+        </form>
+      </details>`
+    : "";
+  const cls = ["desk-thing", reply ? "reply" : "", isNew(t, v) ? "new" : "", t.author === v.me.id ? "mine" : ""].filter(Boolean).join(" ");
   const paper = personById(t.author)?.paper ?? "#fff";
-  return `<li class="${cls}" style="--paper:${paper}">${isNew(t, v) ? `<span class="tag">new</span>` : ""}<span class="icons">${icons}</span><div>${text}<p class="by">${esc(from)}</p></div></li>`;
+  return `<li class="${cls}" id="desk-${t.id}" style="--paper:${paper}">${isNew(t, v) ? `<span class="tag">new</span>` : ""}<span class="icons">${icons}</span><div>${text}<p class="by">${esc(from)}</p>${writeBack}</div></li>`;
 }
 
 // Rithanya always has face mask powder for everyone, by her mirror.
@@ -1148,21 +1250,22 @@ function wallNote(t: Thing, v: Visit): string {
 }
 
 // A made house (src/houses.ts) moves in with the memories it was made with,
-// pinned at the top of the wall. They come from the house's spec, not the
-// log, so they're the same for everyone and nobody wrote them; each is on one
-// of the five's paper, in turn.
+// pinned at the top of the wall, with its inside joke framed among them. They
+// come from the house's spec, not the log, so they're the same for everyone
+// and nobody wrote them; each is on one of the five's paper, in turn.
 function memoriesOnWall(): string {
   const memories = house().spec?.memories ?? [];
-  if (!memories.length) return "";
+  const joke = insideJoke();
+  if (!memories.length && !joke) return "";
   const papers = PEOPLE.map((p) => p.paper);
   const notes = memories.map((m, i) => `<li class="note memory" style="--paper:${papers[i % papers.length] ?? "#fff8e6"}"><p class="body hand">${esc(m)}</p><p class="by">from the house</p></li>`).join("\n");
-  return `<h3 class="pinned">Memories</h3><ul class="notes memories">\n${notes}\n</ul>`;
+  return `<h3 class="pinned">Memories</h3>${joke}${notes ? `<ul class="notes memories">\n${notes}\n</ul>` : ""}`;
 }
 
 // The inside joke a made house was made with, word for word from the form:
 // framed at the door, so it's the first thing anyone reads coming home, and
-// again in the living room, where it hangs on the wall in the picture too
-// (src/scene.ts).
+// on the memory wall in the living room, where it hangs on the wall in the
+// picture too (src/scene.ts).
 function insideJoke(id = "inside-joke"): string {
   const spec = house().spec;
   if (!spec?.joke) return "";
@@ -1182,7 +1285,6 @@ export function livingPage(v: Visit, did?: Done): string {
 
   return roomPage(v, "living", "The living room", `
   ${roomHead("The living room", `Everyone's room. The wall is for ${allOfYou()}: something funny from today, a good-luck wish, big news.`, undefined, "#8a5a3c")}
-  ${insideJoke()}
   ${done(did)}
   <p class="sofa" data-live="sofa"><a href="/movies">${night ? esc(`Movie night on these sofas: “${night.movie.title}”, ${dayLabel(v.me.tz, night.at)}`) : "Movie night happens on these sofas"} ›</a></p>
   ${slot("resting", restingIn("living", v))}
@@ -1200,7 +1302,7 @@ export function livingPage(v: Visit, did?: Done): string {
     <h2 id="wall-heading">The wall</h2>
     ${memoriesOnWall()}
     ${big.length ? `<h3 class="pinned">Big news</h3><ul class="notes">\n${big.map((t) => wallNote(t, v)).join("\n")}\n</ul>` : ""}
-    ${everyday.length ? `<ul class="notes">\n${everyday.slice(0, WALL_SHOWN).map((t) => wallNote(t, v)).join("\n")}\n</ul>` : big.length || house().spec?.memories.length ? "" : `<p class="empty">The wall is bare. Be the first to pin something up.</p>`}
+    ${everyday.length ? `<ul class="notes">\n${everyday.slice(0, WALL_SHOWN).map((t) => wallNote(t, v)).join("\n")}\n</ul>` : big.length || house().spec?.memories.length || house().spec?.joke ? "" : `<p class="empty">The wall is bare. Be the first to pin something up.</p>`}
     ${everyday.length > WALL_SHOWN ? `<details class="drawer" id="memory-box"><summary>The memory box: older notes, taken down but kept</summary><ul class="notes">${everyday.slice(WALL_SHOWN).map((t) => wallNote(t, v)).join("\n")}</ul></details>` : ""}
   </section>`, did);
 }
@@ -1209,28 +1311,50 @@ export function livingPage(v: Visit, did?: Done): string {
 
 export function kitchenPage(v: Visit, did?: Done): string {
   const dishes = counter(v.things, v.now);
-  const list = dishes.map((t) => {
-    const dish = find(FOOD, t.item);
-    const cls = ["dish", isNew(t, v) ? "new" : "", t.author === v.me.id ? "mine" : ""].filter(Boolean).join(" ");
-    const eat = `<form method="post" action="/kitchen/eat" class="inline"><button class="soft" name="dish" value="${t.id}">${emoji("eat")} Eat it</button></form>`;
-    return `<li class="${cls}" data-id="${t.id}">${isNew(t, v) ? `<span class="tag">new</span>` : ""}<span class="icons">${iconSvg(t.item)}</span><div><p class="body">${esc(`${cap(by(t, v))} made ${dish?.short ?? "something"}`)}</p>${t.body ? `<p class="body hand">${esc(t.body)}</p>` : ""}<p class="by">${esc(ago(t.createdAt, v.now))}</p>${eat}</div></li>`;
-  }).join("\n");
+  const item = (t: Thing): string => {
+    const dish = find(FOOD, food(t));
+    const forWhom = savedFor(t);
+    const friend = forWhom ? personById(forWhom) : undefined;
+    const forMe = forWhom === v.me.id;
+    const cls = ["dish", forWhom ? "saved" : "", isNew(t, v) ? "new" : "", t.author === v.me.id ? "mine" : ""].filter(Boolean).join(" ");
+    // Anyone can eat what's out for everyone; a saved plate is only hers.
+    const eat = !forWhom || forMe
+      ? `<form method="post" action="/kitchen/eat" class="inline"><button class="soft" name="dish" value="${t.id}">${emoji("eat")} ${forMe ? "Eat it, it's yours" : "Eat it"}</button></form>`
+      : "";
+    const what = forWhom
+      ? forMe ? `${cap(by(t, v))} saved you ${dish?.label ?? "something"}` : `${cap(by(t, v))} saved ${friend?.name ?? "someone"} ${dish?.label ?? "something"}`
+      : `${cap(by(t, v))} made ${dish?.short ?? "something"}`;
+    const tag = forWhom ? `<span class="saved-tag" style="--accent:${friend?.color ?? "#c4553c"}">${forMe ? "for you" : `for ${esc(friend?.name ?? "someone")}`}</span>` : "";
+    const keeps = forWhom ? `<p class="small">${forMe ? "Covered and kept warm until you eat it." : `Covered and kept for ${esc(friend?.name ?? "them")}, however long ${they(friend)} ${verb(friend, "takes", "take")}.`}</p>` : "";
+    return `<li class="${cls}" data-id="${t.id}"${forWhom ? ` data-for="${esc(forWhom)}"` : ""}>${isNew(t, v) ? `<span class="tag">new</span>` : ""}<span class="icons">${iconSvg(food(t))}</span><div>${tag}<p class="body">${esc(what)}</p>${t.body ? `<p class="body hand">${esc(t.body)}</p>` : ""}<p class="by">${esc(ago(t.createdAt, v.now))}</p>${keeps}${eat}</div></li>`;
+  };
+  // Saved plates first, yours before anyone else's.
+  const saved = dishes.filter((t) => savedFor(t)).sort((a, b) => Number(savedFor(b) === v.me.id) - Number(savedFor(a) === v.me.id));
+  const out = dishes.filter((t) => !savedFor(t));
+  const others = PEOPLE.filter((p) => p.id !== v.me.id);
+  const forWho = `<fieldset class="for-who"><legend>Who's it for?</legend>
+      <label><input type="radio" name="for" value="" checked> Everyone</label>
+      ${others.map((p) => `<label><input type="radio" name="for" value="${esc(p.id)}"> Save a plate for ${esc(p.name)}</label>`).join("\n      ")}
+    </fieldset>
+    <p class="small">Food for everyone stays out for three days. A plate saved for a friend waits, covered, until that friend comes by and eats it.</p>`;
 
   return roomPage(v, "kitchen", "The kitchen", `
-  ${roomHead("The kitchen", "Cook something and leave it out for everyone. Food stays on the counter for three days, or until someone eats it.", undefined, "#c4553c")}
+  ${roomHead("The kitchen", "Cook something and leave it out for everyone, or save a plate for a friend who's away. Food for everyone stays on the counter for three days, or until someone eats it.", undefined, "#c4553c")}
   ${done(did)}
   ${slot("hugs", hugButtons(v))}
   ${slot("dog", laddooCard("kitchen", v))}
-  <section class="card" aria-labelledby="counter-heading" data-live="counter">
+  <section class="card" id="counter" aria-labelledby="counter-heading" data-live="counter">
     <h2 id="counter-heading">On the counter</h2>
-    ${dishes.length ? `<ul class="desk-list">\n${list}\n</ul>` : `<p class="empty">The counter's clean. Nobody has cooked in the last few days.</p>`}
+    ${saved.length ? `<h3 class="small-head">Saved plates</h3><ul class="desk-list saved-plates">\n${saved.map(item).join("\n")}\n</ul>` : ""}
+    ${out.length ? `${saved.length ? `<h3 class="small-head">Out for everyone</h3>` : ""}<ul class="desk-list">\n${out.map(item).join("\n")}\n</ul>` : saved.length ? "" : `<p class="empty">The counter's clean. Nobody has cooked in the last few days.</p>`}
   </section>
   <form method="post" action="/kitchen" class="card compose" id="cook">
     <h2>Cook something</h2>
     ${picker("item", "What are you making?", FOOD, iconSvg)}
+    ${forWho}
     <label for="body">A note to go with it, if you like</label>
     <textarea id="body" name="body" rows="2" maxlength="${MAX_DISH_NOTE}" placeholder="made too much, help yourselves"></textarea>
-    <button>${emoji("dish")} Leave it out for everyone</button>
+    <button>${emoji("dish")} Leave it on the counter</button>
   </form>`, did);
 }
 
@@ -1314,17 +1438,53 @@ function movieItem(m: Movie, v: Visit): string {
   </li>`;
 }
 
+// Picking a time for all of you: a row of clocks, one each, in your own
+// time first. Change any of them and the others follow (public/live.js), so
+// you can start from whoever's hours are tightest, Neha up late or you up
+// early. Each says if it's in that friend's usual sleep. Without the script,
+// your own row is the one the house reads.
+function whenPicker(v: Visit): string {
+  // Two hours from now, on the hour, as a starting point.
+  const start = Math.ceil((v.now + 2 * 60 * 60 * 1000) / (60 * 60 * 1000)) * 60 * 60 * 1000;
+  const rows = [v.me, ...PEOPLE.filter((p) => p.id !== v.me.id)].map((p) => {
+    const you = p.id === v.me.id;
+    const c = clock(p.tz, start);
+    const late = asleep(p, c);
+    const [from, to] = p.sleep;
+    const hours = `${hourLabel(from)} to ${hourLabel(to)}`;
+    const field = you ? `night-when` : `night-when-${p.id}`;
+    return `<li class="${["when-row", you ? "you" : "", late ? "late" : ""].filter(Boolean).join(" ")}" data-tz="${esc(p.tz)}" data-sleep="${from},${to}" style="--accent:${p.color}">
+      <label for="${field}"><span class="name">${you ? "You" : esc(p.name)}</span> <span class="where">in ${esc(p.city)}</span></label>
+      <input id="${field}" type="datetime-local" ${you ? `name="when" required min="${localInput(p.tz, v.now)}"` : `data-other`} value="${localInput(p.tz, start)}">
+      <span class="sleep-note" data-says="${esc(`${you ? "You're" : cap(theyre(p))} usually asleep then (${hours}).`)}">${late ? esc(`${you ? "You're" : cap(theyre(p))} usually asleep then (${hours}).`) : ""}</span>
+    </li>`;
+  }).join("\n");
+  return `<fieldset class="when-picker">
+      <legend>When? Pick it in anyone's time</legend>
+      <ul class="when-rows">\n${rows}\n</ul>
+      <p class="small when-help">Change any of these, and everyone else's clock moves with it. Someone up early or out late? Start from their row.</p>
+    </fieldset>`;
+}
+
+// "10 pm", "8 am", "11:30 pm", from a sleep hour like 22 or 23.5.
+function hourLabel(h: number): string {
+  const hour = Math.floor(h) % 24;
+  const min = Math.round((h - Math.floor(h)) * 60);
+  const h12 = hour % 12 === 0 ? 12 : hour % 12;
+  return `${h12}${min ? `:${String(min).padStart(2, "0")}` : ""} ${hour < 12 ? "am" : "pm"}`;
+}
+
 export function moviesPage(v: Visit, did?: Done): string {
   const list = movies(v.things);
   const choices = list.map((m) => `<option value="${m.thing.id}">${esc(m.title)}</option>`).join("");
+  // Live, so a friend's new suggestion shows up in the planner too.
   const plan = list.length ? `
-  <form method="post" action="/movies/night" class="card compose">
+  <form method="post" action="/movies/night" class="card compose plan-night" id="plan" data-live="plan">
     <h2>Plan a movie night</h2>
     <label for="night-movie">Which movie?</label>
     <select id="night-movie" name="movie" required>${choices}</select>
-    <label for="night-when">When, in your own time (${esc(v.me.city)})</label>
-    <input id="night-when" type="datetime-local" name="when" required min="${localInput(v.me.tz, v.now)}">
-    <p class="small">Everyone sees it in ${made() ? "their" : "her"} own time. A new plan replaces the old one.</p>
+    ${whenPicker(v)}
+    <p class="small">A new plan replaces the old one.</p>
     <button>${emoji("night")} Plan it</button>
   </form>` : "";
 

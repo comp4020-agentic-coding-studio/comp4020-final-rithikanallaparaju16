@@ -50,7 +50,9 @@ export const kennel = (): Pt => layout().kennel;
 export type Spot = { key: string; color?: string; fresh: boolean };
 
 // A dish on the counter, and what eating it is called ("Eat Neha's dosa").
-export type Dish = Spot & { id: number; label: string };
+// A plate saved for a friend (ADR 0022) is covered, with her colour on its
+// tag (`saved`), and only she is offered it (`label` empty for anyone else).
+export type Dish = Spot & { id: number; label: string; saved?: string };
 
 // Something you can do at a thing in the picture: post a form (with its
 // fields), or go to a page. public/house.js offers it when you walk up, with
@@ -177,6 +179,17 @@ function left(spot: Spot, [x, y]: Pt, scale: number): string {
   return `<g transform="translate(${x} ${y}) scale(${scale})"><g class="${spot.fresh ? "left fresh" : "left"}">${icon(spot.key, spot.color)}</g></g>`;
 }
 
+// A plate saved for a friend: under a cloche, with a tag in her colour.
+function covered(spot: Dish, [x, y]: Pt): string {
+  return `<g transform="translate(${x} ${y}) scale(1.2)"><g class="${spot.fresh ? "left fresh saved" : "left saved"}">
+<ellipse cy="6" rx="12" ry="3.5" fill="#fff" stroke="#c9bfb0"/>
+<path d="M-10 5a10 10 0 0 1 20 0z" fill="#e9e4dc" stroke="#a9a196"/>
+<circle cy="-6" r="1.8" fill="#a9a196"/>
+<path d="M-3 -2q-2 3 -1 6" stroke="#fff" stroke-width="1.3" fill="none" opacity=".8"/>
+<rect x="5" y="-1" width="9" height="6" rx="1" fill="${spot.saved}" stroke="#fff" stroke-width=".8" transform="rotate(12 9 2)"/>
+</g></g>`;
+}
+
 function things(s: Scene): string {
   const rooms = s.bedrooms.map((b) => {
     const room = layout().rooms[`room:${b.owner.id}`];
@@ -185,7 +198,7 @@ function things(s: Scene): string {
     return clutter + desk;
   }).join("");
   const { counter } = layout();
-  const dishes = s.dishes.slice(0, counter.length).map((spot, i) => left(spot, counter[i], 1.2)).join("");
+  const dishes = s.dishes.slice(0, counter.length).map((spot, i) => (spot.saved ? covered(spot, counter[i]) : left(spot, counter[i], 1.2))).join("");
   return `<g class="things" aria-hidden="true">${rooms}${dishes}</g>`;
 }
 
@@ -318,12 +331,15 @@ function pops(s: Scene, standing: Map<string, Pt>): string {
     plant: above(l.gardenBed, -10),
     tidy: room?.mess ?? [],
     desk: above(room?.desk?.[0], 28),
+    reply: above(room?.desk?.[0], 28),
     kettle: above(MAT_TABLE, 44),
     wall: [l.wallMiddle],
     sticker: [l.wallMiddle],
     dish: above(l.counter[1], 30),
+    saved: above(l.counter[1], 30),
     // Over whoever ate it, who's usually standing in front of the counter.
     eat: above(you, 118),
+    atesaved: above(you, 118),
     nap: above(you, 42),
     sit: above(you, 90),
     mask: above(you, 108),
@@ -406,7 +422,7 @@ function hotspots(s: Scene): string {
     // Whatever's out on the counter can be eaten, which takes it away.
     { place: "kitchen", area: l.stove, doings: [
       { label: "Cook something", emoji: EMOJI.dish, href: "/kitchen#cook" },
-      ...s.dishes.slice(0, l.counter.length).map((d): Doing => ({ label: d.label, emoji: EMOJI.eat, post: "/kitchen/eat", fields: { dish: String(d.id) } })),
+      ...s.dishes.slice(0, l.counter.length).filter((d) => d.label).map((d): Doing => ({ label: d.label, emoji: EMOJI.eat, post: "/kitchen/eat", fields: { dish: String(d.id) } })),
     ] },
     { place: "garden", area: l.patches, doings: [{ label: "Water the garden", emoji: EMOJI.water, post: "/garden/water" }, { label: "Plant something", emoji: EMOJI.plant, href: "/garden#plant" }] },
   );

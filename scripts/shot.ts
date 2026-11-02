@@ -5,8 +5,10 @@
 //
 //   node scripts/shot.ts <url> <out.png> [width=390] [who=1|none] [tap=<selector>]
 //
-// SHOT_COOKIE uses a session that's already in (see below), and
-// SHOT_MAX_HEIGHT cuts a long page's picture off that many css px down.
+// SHOT_COOKIE uses a session that's already in (see below),
+// SHOT_MAX_HEIGHT cuts a long page's picture off that many css px down, and
+// SHOT_JS runs a line of script on the page just before the picture (after any
+// tap) and prints what it returns: to fill something in, or to read it back.
 //
 // With a selector, it taps the middle of that element with a real mouse event
 // first, says what was actually under the finger, and screenshots wherever
@@ -111,6 +113,11 @@ if (tap) {
   await new Promise((r) => setTimeout(r, 2500));
   const where = await cdp("Runtime.evaluate", { expression: "location.pathname + location.search", returnByValue: true });
   console.log(`after the tap: ${where.result?.value}`);
+}
+if (process.env.SHOT_JS) {
+  const ran = await cdp("Runtime.evaluate", { expression: process.env.SHOT_JS, returnByValue: true, awaitPromise: true });
+  console.log(`script: ${JSON.stringify(ran.result?.value ?? ran.exceptionDetails?.exception?.description ?? null)}`);
+  await new Promise((r) => setTimeout(r, 500));
 }
 const { cssContentSize, cssLayoutViewport } = await cdp("Page.getLayoutMetrics");
 // Capturing past the screen lays the page out again, which shifts a phone's

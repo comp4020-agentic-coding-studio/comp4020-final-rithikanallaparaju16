@@ -250,6 +250,36 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect(text(peek.querySelector(".desk-thing"))).toContain(`A folded note for ${b.name}`);
   });
 
+  it("lets a friend write back to a note on her desk, onto the writer's desk, for her eyes only", async () => {
+    const [a, b, c] = await people();
+    const note = unique("good luck for the exam 🍀");
+    await post(`/room/${b.id}/leave`, { body: note }, a.id);
+    const onDesk = withText(await page(`/room/${b.id}`, b.id), ".desk-thing", note)!;
+    const id = onDesk.id.replace("desk-", "");
+    const form = onDesk.querySelector(`details.write-back form[action="/room/${a.id}/reply"]`);
+    expect(form, `${b.name} can't write back to ${a.name}'s note`).not.toBeNull();
+
+    // Only a note on your own desk, from whoever you're writing back to.
+    expect((await post(`/room/${a.id}/reply`, { note: id, body: "hi" }, c.id)).status, `${c.name} wrote back to a note on ${b.name}'s desk`).toBe(400);
+    expect((await post(`/room/${c.id}/reply`, { note: id, body: "hi" }, b.id)).status, `${b.name} wrote back to ${c.name} about ${a.name}'s note`).toBe(400);
+    expect((await post(`/room/${a.id}/reply`, { note: id, body: " " }, b.id)).status, "an empty reply was taken").toBe(400);
+
+    const answer = unique("thank you!! it went well");
+    const res = await post(`/room/${a.id}/reply`, { note: id, body: answer }, b.id);
+    expect(res.headers.get("location")).toBe(`/room/${b.id}?did=reply#desk-${id}`);
+
+    const reply = withText(await page(`/room/${a.id}`, a.id), ".desk-thing.reply", answer);
+    expect(reply, `${a.name} can't find ${b.name}'s reply on her desk`).toBeDefined();
+    expect(text(reply!.querySelector(".reply-to")), "the reply doesn't say which note it answers").toContain(`your note “${[...note].slice(0, 20).join("")}`);
+    expect(text(reply)).toContain(`from ${b.name}`);
+    expect(text((await page("/updates", a.id)).querySelector(".away"))).toContain(`${b.name} wrote back to your note`);
+
+    const peek = await page(`/room/${a.id}`, c.id);
+    expect(text(peek.body), `${c.name} can read ${b.name}'s reply`).not.toContain(answer);
+    expect(text(peek.body)).not.toContain(note);
+    expect(text(withText(await page(`/room/${b.id}`, b.id), ".desk-thing", note)?.querySelector(".wrote-back"))).toBe(`You wrote back to ${a.name}.`);
+  });
+
   it("puts food from the kitchen out for everyone", async () => {
     const [a, b] = await people();
     const note = unique("made too much");
@@ -271,6 +301,33 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect(withText(await page("/kitchen", c.id), ".dish", note), "the empty plate is still on the counter").toBeUndefined();
     expect(text((await page("/updates", a.id)).querySelector(".away"))).toContain(`${b.name} ate your biryani`);
     expect((await post("/kitchen/eat", { dish: id! }, c.id)).status, "the same biryani got eaten twice").toBe(400);
+  });
+
+  it("keeps a plate saved for a friend covered for her alone, and tells the cook she found it", async () => {
+    const [a, b, c] = await people();
+    const note = unique("saved you the last bowl");
+    expect((await post("/kitchen", { item: "maggi", body: note, for: a.id }, a.id)).status, "a plate got saved for its own cook").toBe(400);
+    expect((await post("/kitchen", { item: "maggi", body: note, for: "nobody" }, a.id)).status, "a plate got saved for someone who isn't one of us").toBe(400);
+    const saved = await post("/kitchen", { item: "maggi", body: note, for: b.id }, a.id);
+    expect(saved.headers.get("location")).toBe("/kitchen?did=saved");
+
+    // Everyone else sees it's hers, and can't take it.
+    const theirs = withText(await page("/kitchen", c.id), ".dish", note);
+    expect(theirs, `${c.name} can't see the plate saved for ${b.name}`).toBeDefined();
+    expect(text(theirs!.querySelector(".saved-tag"))).toBe(`for ${b.name}`);
+    expect(text(theirs)).toContain(`${a.name} saved ${b.name} a bowl of Maggi`);
+    expect(theirs!.querySelector("button[name=dish]"), `${c.name} is offered ${b.name}'s plate`).toBeNull();
+    const id = theirs!.getAttribute("data-id")!;
+    expect((await post("/kitchen/eat", { dish: id }, c.id)).status, `${c.name} ate the plate saved for ${b.name}`).toBe(400);
+
+    // She hears it's waiting, finds it first on the counter, and eats it.
+    expect(text((await page("/updates", b.id)).querySelector(".away"))).toContain(`${a.name} saved you a plate of Maggi`);
+    const hers = (await page("/kitchen", b.id)).querySelector("#counter .dish");
+    expect(hers?.getAttribute("data-id"), "a plate saved for her isn't first on the counter").toBe(id);
+    expect(text(hers!.querySelector(".saved-tag"))).toBe("for you");
+    expect((await post("/kitchen/eat", { dish: id }, b.id)).headers.get("location")).toBe("/kitchen?did=atesaved");
+    expect(withText(await page("/kitchen", c.id), ".dish", note), "the empty plate is still on the counter").toBeUndefined();
+    expect(text((await page("/updates", a.id)).querySelector(".away"))).toContain(`${b.name} found the plate of Maggi you saved her`);
   });
 
   it("tells a friend who tidied their room while they were away", async () => {
@@ -442,6 +499,35 @@ describe.skipIf(!throwaway)("living in the house", () => {
     for (const p of five) {
       const shown = text(night?.querySelector(`li[data-person="${p.id}"] .clock`));
       expect(shown, `${p.name}'s time for movie night`).toBe(localTime(ZONES[p.name], at));
+    }
+  });
+
+  it("lets you pick movie night in any friend's time, showing all five clocks at once", async () => {
+    const five = await people();
+    const neha = five.find((p) => p.name === "Neha")!;
+    await post("/movies", { title: unique("Spirited Away") }, neha.id);
+    // The picker starts two hours from now, on the hour, in every row.
+    const hour = 60 * 60 * 1000;
+    const startAt = (t: number): number => Math.ceil((t + 2 * hour) / hour) * hour;
+    const before = startAt(Date.now());
+    const picker = (await page("/movies", neha.id)).querySelector("#plan fieldset.when-picker");
+    const after = startAt(Date.now());
+    const rows = [...(picker?.querySelectorAll<HTMLLIElement>("li.when-row") ?? [])];
+    expect(rows.length, "the planner doesn't show everyone's clock").toBe(5);
+    expect(rows[0].classList.contains("you"), "your own clock isn't first").toBe(true);
+    expect(picker!.querySelectorAll("input[name=when]").length, "the house reads more than your own row").toBe(1);
+    expect(rows[0].querySelector("input[name=when]")).not.toBeNull();
+
+    const field = (tz: string, at: number): string => {
+      const p = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(at).map((x) => [x.type, x.value]));
+      return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
+    };
+    for (const row of rows) {
+      const name = text(row.querySelector(".name")) === "You" ? neha.name : text(row.querySelector(".name"));
+      expect(row.getAttribute("data-tz"), `${name}'s row isn't on her clock`).toBe(ZONES[name]);
+      expect(row.getAttribute("data-sleep"), `${name}'s row doesn't know when she sleeps`).toBe(SLEEP[name].join(","));
+      // Every row shows the same moment, each in her own time.
+      expect([field(ZONES[name], before), field(ZONES[name], after)], `${name}'s row`).toContain(row.querySelector("input")!.getAttribute("value"));
     }
   });
 
@@ -772,8 +858,8 @@ describe.skipIf(!throwaway)("living in the house", () => {
     const res = await fetch(house("/me"), { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ who: "3" }), redirect: "manual" });
     const cookie = res.headers.getSetCookie().find((c) => c.startsWith("who="))!.split(";")[0];
     const living = parse(await (await fetch(house("/living"), { headers: { cookie } })).text());
-    expect(text(living.querySelector("main .inside-joke blockquote")), "the inside joke isn't framed in the living room").toBe(joke);
-    expect(text(living.querySelector("main .inside-joke figcaption"))).toBe(together);
+    expect(text(living.querySelector("#wall .inside-joke blockquote")), "the inside joke isn't framed on the memory wall").toBe(joke);
+    expect(text(living.querySelector("#wall .inside-joke figcaption"))).toBe(together);
     expect(living.querySelector(".inside-joke b.typed"), "the joke ran as markup").toBeNull();
     expect(text(living.querySelector(".bar .brand")), "the bar doesn't have the house's name").toBe("The Hill House");
     expect(text(living.querySelector("title"))).toBe("The living room · The Hill House");
