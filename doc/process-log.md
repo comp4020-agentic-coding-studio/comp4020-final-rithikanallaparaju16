@@ -2899,3 +2899,40 @@ committed with it. Not pushed.
 not a missing file.
 
 **Commits:** this entry's commit.
+
+### 70. More features, from the personas, PRFAQ and RICE (2 Nov 2026)
+
+**Asked:** "from personas,prfaqs and rice, what more featues do you suggest".
+
+**Agent:** a question, no code change. Suggested six features. Each answers a
+gap one of the three documents names, none is in entry 66's list, and each is
+scored with `doc/rice.md`'s assumptions (guesses until someone tries them):
+
+- Save a plate for a friend who's away (45).
+- The writer hears her desk note was found (45).
+- Memories and an inside joke for Rithika's own five (32).
+- Adding the house to a phone's home screen (25).
+- Writing back from your desk (22.5).
+- The best time for all of us on movie night (10).
+
+Checked first:
+
+- Food lasts three days, and desk notes stay (the oldest go in a drawer).
+- A desk note's writer never hears it was found.
+- Rithika's house has no memories or joke (only made houses do).
+- The house has no icon or web app manifest.
+- Movie night shows each friend's time and who's asleep, but suggests no
+  time. By the five's sleep hours all five are never awake at once; four
+  are, 3 pm to 11 pm Canberra time, with Neha asleep.
+
+Dropped two ideas on checking: keeping a note you love (desk and wall notes
+are already kept, in a drawer and the memory box), and a per-friend link from
+the maker (picking your own name at the door is already easy).
+
+Said the RICE bug batch (A, F, K, L, N) still comes first. Named two calls for
+Rithika: the words for her five's memories and joke, and whether "found" is
+too close to a read receipt.
+
+**Correction:** none.
+
+**Commits:** this entry's commit.
