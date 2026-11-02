@@ -107,7 +107,9 @@ Ties are broken by confidence, then impact.
   desk note is a courtesy, not a lock. It matters most to a couple (Lea) and
   to anyone a link gets forwarded to. It changes the door, so it needs an
   ADR. **Do it after the final project is marked (9 November)**: markers and
-  crit visitors walk in through those windows.
+  crit visitors walk in through those windows. Rithika confirmed on 3
+  November: no passwords for now, so her tutor can check it, and PROCESS.md
+  says it's on purpose.
 - **H.** Leaving takes a friend out of her game (ADR 0016), but she still
   counts as sitting on the mat, so the next deal includes her and everyone
   waits out her twenty seconds. People often close the tab while sitting.
@@ -155,7 +157,8 @@ Ties are broken by confidence, then impact.
   stickers it, emoji and all".
 - **T.** The planner isn't one of the Movies page's live parts, so a suggestion
   made while it's open only shows in it after a reload. Test: "keeps an open
-  Movies page's movie-night planner up to date…".
+  Movies page's movie-night planner up to date…". Done on 3 November, with
+  the planner's clock for each friend: the test passes.
 - **U.** The server checks a move against when it arrives, but the replay
   plays stored moves half a second early, so a card played in that half
   second after the turn before ran out is accepted, then dropped. It's
