@@ -3542,7 +3542,9 @@ g.joke-frame {
 /* a photo on the memory wall (ADR 0024): pinned up like a polaroid, with
    what reminded her written underneath */
 .note.photo {
-  padding: 10px 10px 12px;
+  justify-self: center;
+  width: min(100%, 170px);
+  padding: 8px 8px 10px;
   background: #fffdf8;
 }
 
@@ -3562,7 +3564,12 @@ g.joke-frame {
 }
 
 .note.photo .body {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
+  line-height: 1.15;
+}
+
+.note.photo .by {
+  font-size: 0.78rem;
 }
 
 .pin-photo input[type="file"] {
@@ -3647,4 +3654,44 @@ g.joke-frame {
 .home-widget code {
   font-size: 0.78rem;
   word-break: break-all;
+}
+
+/* a photo from the wall, small, beside its line in Updates (ADR 0024) */
+.happenings li.with-photo {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.happenings .photo-thumb {
+  flex: none;
+  line-height: 0;
+}
+
+.happenings .photo-thumb img {
+  width: 44px;
+  height: 44px;
+  border: 3px solid #fffdf8;
+  border-bottom-width: 7px;
+  border-radius: 2px;
+  object-fit: cover;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  transform: rotate(-3deg);
+}
+
+/* On a phone the wall fits one note across, so a small photo would sit alone
+   in its row: photos go two side by side instead, and notes stay full width. */
+@media (max-width: 600px) {
+  .wall .notes {
+    grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+    gap: 14px;
+  }
+
+  .wall .notes > .note:not(.photo) {
+    grid-column: 1 / -1;
+  }
+}
+
+.note.photo .sticker-pick {
+  font-size: 0.78rem;
 }

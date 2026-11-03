@@ -256,6 +256,12 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect(src).toMatch(/^\/photo\/\d+$/);
     expect(text(note!.querySelector(".by"))).toContain(a.name);
     expect(text((await page("/updates", b.id)).body)).toContain(`${a.name} pinned a photo on the wall`);
+    // Small, around the house: beside its line in Updates, and pinned on the
+    // living room's board in the picture.
+    const line = withText(await page("/updates", b.id), ".happenings li", `${a.name} pinned a photo on the wall: “${caption.slice(0, 40)}`);
+    expect(line?.querySelector(".photo-thumb img")?.getAttribute("src"), "Updates doesn't show the photo small").toBe(src);
+    const board = [...(await page("/", b.id)).querySelectorAll(".house-svg g.board-photos image")].map((i) => i.getAttribute("href"));
+    expect(board, "the photo isn't pinned on the board in the house").toContain(src);
 
     // The photo itself, exactly as sent, for friends in the house only.
     const shown = await fetch(new URL(src, baseUrl), { headers: { cookie: await cookieFor(b.id) } });

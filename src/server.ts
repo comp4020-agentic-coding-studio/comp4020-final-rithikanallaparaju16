@@ -360,7 +360,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
       const id = Number(snap[1]);
       const pic = wall(store.things()).some((t) => photoOf(t) === id) ? store.photo(id) : undefined;
       if (!pic) return json(404, { error: "That photo isn't on the wall." });
-      res.writeHead(200, { "content-type": pic.type, "content-length": pic.data.length, "cache-control": "private, max-age=31536000, immutable", "x-content-type-options": "nosniff" });
+      res.writeHead(200, { "content-type": pic.type, "content-length": pic.data.length, "cache-control": "private, max-age=86400", "x-content-type-options": "nosniff" });
       return void res.end(pic.data);
     }
     return json(404, { error: "Nothing here." });
@@ -383,7 +383,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     const pinned = wall(store.things()).some((t) => photoOf(t) === id);
     const pic = pinned ? store.photo(id) : undefined;
     if (!pic) return send(res, 404, messagePage("Nothing here", "That photo isn't on the wall."));
-    res.writeHead(200, { "content-type": pic.type, "content-length": pic.data.length, "cache-control": "private, max-age=31536000, immutable", "x-content-type-options": "nosniff" });
+    res.writeHead(200, { "content-type": pic.type, "content-length": pic.data.length, "cache-control": "private, max-age=86400", "x-content-type-options": "nosniff" });
     return void res.end(pic.data);
   }
 

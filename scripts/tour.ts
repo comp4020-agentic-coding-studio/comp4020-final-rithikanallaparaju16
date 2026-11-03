@@ -29,6 +29,10 @@ const out = "doc/screenshots";
 rmSync(dataDir, { recursive: true, force: true });
 mkdirSync(dataDir, { recursive: true });
 mkdirSync(out, { recursive: true });
+// The screenshot browser's own profile (scripts/shot.ts), started afresh: a
+// fresh throwaway house gives its photos the same addresses as the last
+// one's, and a browser that kept the last ones would show them instead.
+rmSync(`/tmp/five-windows-shot-${port + 1000}`, { recursive: true, force: true });
 
 // The set that's there now goes to the archive first, named for when it was
 // taken (its newest picture), so retaking never overwrites a picture. A set
@@ -160,13 +164,17 @@ await post("5", "/wall", { body: "the bananas are still here. they're family now
 // Rithanya pins a photo on the memory wall (ADR 0024). For the tour it's a
 // crop of the house's own picture, the living room by the fire, cut out by
 // macOS's sips like the screenshots, so no new picture is kept in the repo.
-{
-  const snap = `${dataDir}/snap.jpg`;
-  execFileSync("sips", ["-c", "360", "450", "--cropOffset", "70", "660", "public/art/house.jpg", "--out", snap], { stdio: "ignore" });
+// Neha pins one too, of a corner of a bedroom, so two sit side by side.
+for (const [who, crop, words] of [
+  ["2", ["300", "330", "430", "30"], "this reminds me of you guys"],
+  ["4", ["360", "450", "70", "660"], "sofa, fire, all five of us"],
+] as const) {
+  const snap = `${dataDir}/snap-${who}.jpg`;
+  execFileSync("sips", ["-c", crop[0], crop[1], "--cropOffset", crop[2], crop[3], "public/art/house.jpg", "--out", snap], { stdio: "ignore" });
   const data = new FormData();
   data.set("photo", new Blob([readFileSync(snap)], { type: "image/jpeg" }), "snap.jpg");
-  data.set("body", "sofa, fire, all five of us. this reminds me of you guys");
-  const res = await send(`${base}/wall/photo`, { method: "POST", headers: { cookie: await signIn("4") }, body: data, redirect: "manual" });
+  data.set("body", words);
+  const res = await send(`${base}/wall/photo`, { method: "POST", headers: { cookie: await signIn(who) }, body: data, redirect: "manual" });
   if (res.status !== 303) throw new Error(`the tour's photo wasn't pinned (${res.status})`);
 }
 await post("4", "/garden/plant", { item: "sunflower" });
@@ -289,8 +297,10 @@ await shot("/room/1", "21-look-out-from-bed", 1280, "1", {
   })`,
 });
 
-// Rithanya's photo on the memory wall, on a phone.
+// Rithanya's and Neha's photos on the memory wall, on a phone; and small,
+// beside their lines in Updates.
 await shot("/living", "22-photo-on-the-wall-phone", 390, "1", { js: scrollTo(".note.photo") });
+await shot("/updates", "24-photos-in-updates-phone", 390, "1", { js: scrollTo(".happenings li.with-photo") });
 // Rithika's home-screen widget: her link, and the iPhone's steps.
 await post("1", "/widget");
 await shot("/everyone", "23-widget-link-phone", 390, "1", {

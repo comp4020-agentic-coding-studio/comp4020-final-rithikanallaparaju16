@@ -366,12 +366,17 @@ function freshPlaces(v: Visit): Set<string> {
 
 function scene(v: Visit, focus?: string, did?: string): Scene {
   const d = laddooAt(v);
+  const photos = wall(v.things).flatMap((t) => {
+    const id = photoOf(t);
+    return id ? [{ id, by: nameOf(t.author), color: personById(t.author)?.color ?? "#c4553c" }] : [];
+  });
   const masks = masked(v.things, v.now);
   const hats = partyHats(v.things, v.now);
   const rests = resting(v.things, v.now, v.where, v.arrived);
   return {
     light: phase(clock(v.me.tz, v.now)),
     me: v.me,
+    photos,
     bedrooms: PEOPLE.map((owner) => {
       const c = clock(owner.tz, v.now);
       const zz = sleeping(owner, v);
@@ -511,7 +516,8 @@ ${people}
 
 /* ---------- what's happened ---------- */
 
-type Happening = { text: string; href: string; forYou: boolean; at: number };
+// `photo` is a photo pinned on the wall (ADR 0024), shown small beside the line.
+type Happening = { text: string; href: string; forYou: boolean; at: number; photo?: number };
 
 function happening(t: Thing, me: Person, all: Thing[]): Happening | undefined {
   const mine = t.author === me.id;
@@ -561,7 +567,7 @@ function happening(t: Thing, me: Person, all: Thing[]): Happening | undefined {
       return { text: `${by} stuck ${sticker.emoji} on ${what}`, href: `/living#note-${note.id}`, forYou: true, at };
     }
     case "note":
-      if (photoOf(t)) return { text: `${by} pinned a photo on the wall${t.body ? `: “${t.body.length > 40 ? `${t.body.slice(0, 40).trimEnd()}…` : t.body}”` : ""}`, href: `/living#note-${t.id}`, forYou: false, at };
+      if (photoOf(t)) return { text: `${by} pinned a photo on the wall${t.body ? `: “${t.body.length > 40 ? `${t.body.slice(0, 40).trimEnd()}…` : t.body}”` : ""}`, href: `/living#note-${t.id}`, forYou: false, at, photo: photoOf(t) };
       return { text: t.item === "big" ? `${by} pinned big news on the wall` : `${by} wrote on the wall`, href: "/living", forYou: false, at };
     case "desk": {
       const owner = ownerOf(t.place);
@@ -672,7 +678,7 @@ function happenings(list: Thing[], me: Person, all: Thing[]): Happening[] {
 const newSince = (v: Visit): Happening[] => happenings(v.things.filter((t) => isNew(t, v)), v.me, v.things);
 
 const happeningItem = (h: Happening, v: Visit): string =>
-  `<li class="${h.forYou ? "for-you" : "around"}"><a href="${esc(h.href)}">${esc(h.text)}</a> <span class="ago">${esc(ago(h.at, v.now))}</span></li>`;
+  `<li class="${[h.forYou ? "for-you" : "around", h.photo ? "with-photo" : ""].filter(Boolean).join(" ")}">${h.photo ? `<a class="photo-thumb" href="${esc(h.href)}" tabindex="-1" aria-hidden="true"><img src="/photo/${h.photo}" alt="" loading="lazy" width="44" height="44"></a>` : ""}<span><a href="${esc(h.href)}">${esc(h.text)}</a> <span class="ago">${esc(ago(h.at, v.now))}</span></span></li>`;
 
 function away(v: Visit, limit: number): string {
   const firstVisit = v.seenUntil === 0;

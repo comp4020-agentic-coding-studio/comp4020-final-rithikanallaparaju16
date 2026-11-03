@@ -47,8 +47,11 @@ How it's read:
   first bytes, never its name: only JPEG, PNG and WebP are kept.
 - `GET /photo/<id>` serves it, only to someone signed into that house, only
   if it's pinned on its wall, with the type it was kept as and `nosniff`.
-  A browser keeps it a year (`private, immutable`): a pinned photo never
-  changes.
+  A browser keeps it a day (`private, max-age=86400`), like the house's
+  art. Not longer: a photo's address is its row id in its house, and a
+  house started again from nothing (a local `./data`, a throwaway house)
+  gives the same address to a different photo. Kept a year, a browser
+  showed the earlier photo in the new one's place.
 - The page script (`public/live.js`) redraws a phone's photo at most 1600 px
   across as a JPEG before sending, usually a few hundred KB, and shows it
   as a polaroid while you write. Without the script the photo goes as it
