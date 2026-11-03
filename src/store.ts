@@ -57,6 +57,18 @@ function migrate(db: DatabaseSync): void {
     }
   }
 
+  // November: a photo pinned on the memory wall (ADR 0024). The note on the
+  // wall is a `things` row like any other, with item `photo:<id>`; the
+  // picture itself is here, kept as it was sent, and never changed.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS photos (
+      id INTEGER PRIMARY KEY,
+      type TEXT NOT NULL,
+      data BLOB NOT NULL,
+      created_at INTEGER NOT NULL
+    );
+  `);
+
   // The first house kept notes in their own table; they move onto the living
   // room wall, where they'd have been.
   if (db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'notes'").get()) {
@@ -144,7 +156,9 @@ function statements(db: DatabaseSync) {
       place = CASE excluded.place WHEN '' THEN visits.place ELSE excluded.place END
   `);
   const updateSpot = db.prepare("UPDATE visits SET x = ?, y = ?, arrived = ? WHERE person = ?");
-  return { db, insertThing, selectThings, selectVisit, selectToken, claimToken, releaseToken, selectVisits, upsertVisit, updateSpot };
+  const insertPhoto = db.prepare("INSERT INTO photos (type, data, created_at) VALUES (?, ?, ?)");
+  const selectPhoto = db.prepare("SELECT type, data FROM photos WHERE id = ?");
+  return { db, insertThing, selectThings, selectVisit, selectToken, claimToken, releaseToken, selectVisits, upsertVisit, updateSpot, insertPhoto, selectPhoto };
 }
 
 type Statements = ReturnType<typeof statements>;
@@ -177,6 +191,19 @@ export function leave(t: { author: string; kind: Kind; place: string; body?: str
   const words = t.body ? ` (${t.body.length} chars written)` : "";
   log(`${who(t.author)} ${t.kind} at ${t.place}${item}${words} #${r.lastInsertRowid}`);
   changed();
+}
+
+// A photo for the memory wall, kept first so the note on the wall can point
+// at it. Its id goes in that note's item, as `photo:<id>`. A photo nobody
+// pinned (the note was refused after) stays here unseen, like a print in a
+// drawer.
+export function keepPhoto(type: string, data: Buffer): number {
+  return Number(q().insertPhoto.run(type, data, Date.now()).lastInsertRowid);
+}
+
+export function photo(id: number): { type: string; data: Buffer } | undefined {
+  const r = q().selectPhoto.get(id);
+  return r ? { type: String(r.type), data: Buffer.from(r.data as Uint8Array) } : undefined;
 }
 
 // Newest first. Five people leave few enough things that the house can be

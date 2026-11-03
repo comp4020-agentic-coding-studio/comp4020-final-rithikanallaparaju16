@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { ART, ART_TYPES, isArt } from "./assets.ts";
 import { avatarSvg, parseLook } from "./avatars.ts";
-import { counter, desk, DOG, find, FOOD, gifts, KETTLE_ROOM, MASK_ROOM, movies, PLANTS, resting, roomPlace, savedFor, seats, STICKERS, wall } from "./house.ts";
+import { counter, desk, DOG, find, FOOD, gifts, KETTLE_ROOM, MASK_ROOM, movies, photoOf, PLANTS, resting, roomPlace, savedFor, seats, STICKERS, wall } from "./house.ts";
 import { closeHouses, findHouse, house, inHouse, made, ORIGINAL } from "./houses.ts";
 import * as live from "./live.ts";
 import { make } from "./maker.ts";
@@ -31,6 +31,7 @@ import {
   type Visit,
 } from "./pages.ts";
 import { PEOPLE, personById, type Person } from "./people.ts";
+import { MAX_PHOTO, readUpload } from "./photos.ts";
 import { layout, matWords } from "./layouts.ts";
 import { isPlace, placeAt } from "./scene.ts";
 import * as store from "./store.ts";
@@ -175,6 +176,8 @@ function line(did: string | null, owner?: Person, me?: Person): string | undefin
       return owner?.id === "5" && !made() ? "All tidy. The banana stays, though. It's Aswathy's." : "All tidy.";
     case "wall":
       return "Pinned to the wall. Whoever comes by next will see it.";
+    case "photo":
+      return "Pinned to the memory wall. Whoever comes by next will see what reminded you of them.";
     case "sticker":
       return "Stuck on. Whoever wrote it will know you read it, and how you felt.";
     case "dish":
@@ -279,6 +282,20 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     return void res.end(readFileSync(new URL(art, ART)));
   }
 
+  // A photo on the memory wall (ADR 0024), only for friends who are in this
+  // house, and only one that's pinned on its wall. A browser keeps it: a
+  // photo never changes once it's pinned.
+  const shown = method === "GET" ? pathname.match(/^\/photo\/(\d+)$/) : null;
+  if (shown) {
+    if (!me) return send(res, 403, messagePage("Knock first", "Pick who you are at the door to see the wall."));
+    const id = Number(shown[1]);
+    const pinned = wall(store.things()).some((t) => photoOf(t) === id);
+    const pic = pinned ? store.photo(id) : undefined;
+    if (!pic) return send(res, 404, messagePage("Nothing here", "That photo isn't on the wall."));
+    res.writeHead(200, { "content-type": pic.type, "content-length": pic.data.length, "cache-control": "private, max-age=31536000, immutable", "x-content-type-options": "nosniff" });
+    return void res.end(pic.data);
+  }
+
   if (route === "GET /updates" || route === "GET /everyone" || route === "GET /movies" || route === "GET /uno") {
     if (!me) return redirect(res, "/");
     const v = visit(me);
@@ -311,11 +328,27 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
 
   if (method !== "POST") return send(res, 404, messagePage("Nothing here", "There's no room by that name in this house."));
 
-  const writes = ["/wall", "/kitchen", "/kitchen/eat", "/garden/water", "/garden/plant", "/garden/dog", "/garden/treat", "/sit", "/here", "/movies", "/movies/watched", "/movies/night", "/plan", "/uno", "/uno/move", "/hug", "/wall/sticker"];
+  const writes = ["/wall", "/wall/photo", "/kitchen", "/kitchen/eat", "/garden/water", "/garden/plant", "/garden/dog", "/garden/treat", "/sit", "/here", "/movies", "/movies/watched", "/movies/night", "/plan", "/uno", "/uno/move", "/hug", "/wall/sticker"];
   if (!writes.includes(pathname) && !roomMatch?.[2]) {
     return send(res, 404, messagePage("Nothing here", "There's no room by that name in this house."));
   }
   if (!me) return send(res, 403, messagePage("Knock first", "Pick who you are at the door before leaving something."));
+
+  // A photo for the memory wall, with a line about it (ADR 0024). It comes
+  // as a form with a file in it, so it's read before the ordinary forms.
+  if (pathname === "/wall/photo") {
+    const up = await readUpload(req);
+    const mb = MAX_PHOTO / 1024 / 1024;
+    if (up === "too big") return send(res, 413, messagePage("That photo's too big", `Photos fit up to ${mb} MB. A screenshot of it, or a smaller copy, will fit.`, "/living#photo"));
+    if (!up?.file) return send(res, 400, messagePage("No photo?", "Pick a photo to pin up first.", "/living#photo"));
+    if (!up.file.type) return send(res, 400, messagePage("That isn't a photo we can pin", "Pick a JPEG, PNG or WebP photo.", "/living#photo"));
+    const caption = (up.fields.get("body") ?? "").replace(/\r\n?/g, "\n").trim();
+    if (caption.length > MAX_NOTE) return send(res, 400, messagePage("Too long", `Notes fit up to ${MAX_NOTE} characters.`, "/living#photo"));
+    const id = store.keepPhoto(up.file.type, up.file.data);
+    store.leave({ author: me.id, kind: "note", place: "wall", body: caption, item: `photo:${id}` });
+    return redirect(res, "/living?did=photo#wall");
+  }
+
   const form = await readForm(req);
   if (!form) return send(res, 413, messagePage("Too much", "That's more than fits."));
   const body = text(form, "body");

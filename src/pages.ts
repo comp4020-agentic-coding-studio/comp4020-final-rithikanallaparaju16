@@ -38,6 +38,7 @@ import {
   thirsty,
   STICKERS,
   stickersOn,
+  photoOf,
   wall,
   wander,
   wishes,
@@ -556,9 +557,11 @@ function happening(t: Thing, me: Person, all: Thing[]): Happening | undefined {
       if (!note || !sticker || note.author !== me.id || mine) return undefined;
       if (all.find((s) => s.kind === "sticker" && s.place === t.place && s.author === t.author) !== t) return undefined;
       const snippet = note.body.length > 40 ? `${note.body.slice(0, 40).trimEnd()}…` : note.body;
-      return { text: `${by} stuck ${sticker.emoji} on your note “${snippet}”`, href: `/living#note-${note.id}`, forYou: true, at };
+      const what = photoOf(note) ? (snippet ? `your photo “${snippet}”` : "your photo") : `your note “${snippet}”`;
+      return { text: `${by} stuck ${sticker.emoji} on ${what}`, href: `/living#note-${note.id}`, forYou: true, at };
     }
     case "note":
+      if (photoOf(t)) return { text: `${by} pinned a photo on the wall${t.body ? `: “${t.body.length > 40 ? `${t.body.slice(0, 40).trimEnd()}…` : t.body}”` : ""}`, href: `/living#note-${t.id}`, forYou: false, at };
       return { text: t.item === "big" ? `${by} pinned big news on the wall` : `${by} wrote on the wall`, href: "/living", forYou: false, at };
     case "desk": {
       const owner = ownerOf(t.place);
@@ -1242,7 +1245,8 @@ const WALL_SHOWN = 24;
 // friend's note, the stickers you can stick on it yourself. Picking the one
 // you already stuck peels it off.
 function wallNote(t: Thing, v: Visit): string {
-  const cls = ["note", t.item === "big" ? "big" : "", isNew(t, v) ? "new" : "", t.author === v.me.id ? "mine" : ""].filter(Boolean).join(" ");
+  const photo = photoOf(t);
+  const cls = ["note", t.item === "big" ? "big" : "", photo ? "photo" : "", isNew(t, v) ? "new" : "", t.author === v.me.id ? "mine" : ""].filter(Boolean).join(" ");
   const paper = personById(t.author)?.paper ?? "#fff8e6";
   const stuck = stickersOn(v.things, t);
   const chips = stuck.map((s) => {
@@ -1254,7 +1258,13 @@ function wallNote(t: Thing, v: Visit): string {
     const on = s.key === mine;
     return `<button name="sticker" value="${on ? "" : s.key}" title="${esc(on ? `Peel off your “${s.label}”` : s.label)}" aria-label="${esc(on ? `Peel off your ${s.label} sticker` : `Stick ${s.label} on it`)}"${on ? ` aria-pressed="true"` : ""}>${s.emoji}</button>`;
   }).join("")}</form></details>`;
-  return `<li class="${cls}" id="note-${t.id}" data-id="${t.id}" style="--paper:${paper}">${isNew(t, v) ? `<span class="tag">new</span>` : ""}<p class="body hand">${esc(t.body)}</p><p class="by">${esc(by(t, v))}, ${esc(ago(t.createdAt, v.now))}</p>${chips ? `<ul class="stickers">${chips}</ul>` : ""}${picker}</li>`;
+  // A photo is pinned up like a polaroid, with what reminded her written
+  // underneath. Tapping it opens it whole.
+  const picture = photo
+    ? `<a class="snap" href="/photo/${photo}"><img src="/photo/${photo}" alt="${esc(t.body ? `A photo from ${nameOf(t.author)}: ${t.body}` : `A photo from ${nameOf(t.author)}`)}" loading="lazy"></a>`
+    : "";
+  const words = t.body ? `<p class="body hand">${esc(t.body)}</p>` : "";
+  return `<li class="${cls}" id="note-${t.id}" data-id="${t.id}" style="--paper:${paper}">${isNew(t, v) ? `<span class="tag">new</span>` : ""}${picture}${words}<p class="by">${esc(by(t, v))}, ${esc(ago(t.createdAt, v.now))}</p>${chips ? `<ul class="stickers">${chips}</ul>` : ""}${picker}</li>`;
 }
 
 // A made house (src/houses.ts) moves in with the memories it was made with,
@@ -1305,6 +1315,13 @@ export function livingPage(v: Visit, did?: Done): string {
     <textarea id="body" name="body" rows="3" maxlength="${MAX_NOTE}" required placeholder="the funniest thing happened today…"></textarea>
     <label class="check"><input type="checkbox" name="big" value="1"> This is big news. Keep it pinned at the top.</label>
     <button>${emoji("wall")} Pin it to the wall</button>
+  </form>
+  <form method="post" action="/wall/photo" enctype="multipart/form-data" class="card compose pin-photo" id="photo">
+    <label for="photo-file">Something remind you of everyone? Pin a photo of it</label>
+    <input id="photo-file" name="photo" type="file" accept="image/jpeg,image/png,image/webp" required>
+    <label for="photo-body">What about it</label>
+    <input id="photo-body" name="body" maxlength="${MAX_NOTE}" value="this reminds me of you guys">
+    <button>${emoji("photo")} Pin the photo</button>
   </form>
   <section class="wall" id="wall" aria-labelledby="wall-heading" data-live="wall">
     <h2 id="wall-heading">The wall</h2>
@@ -1463,7 +1480,7 @@ function planner(v: Visit, from: "everyone" | "movies"): string {
     ? `<label class="what"><input type="radio" name="what" value="movie"${movie ? " checked" : ""}> ${emoji("night")} Movie night on the sofas</label>
       <label class="sub" for="plan-movie">Which movie?</label>
       <select id="plan-movie" name="movie">${choices}</select>`
-    : `<p class="small">To plan movie night, <a href="/movies">suggest a movie</a> first.</p>`;
+    : `<p class="small">To plan movie night, <a href="/movies#suggest">suggest a movie</a> first.</p>`;
   return `<form method="post" action="/plan" class="card compose plan-night" id="plan" data-live="plan">
     <h2>A time for all of us</h2>
     <p class="small">Change anyone's clock and everyone else's follows: for a video call, a movie night, or just to see what time it'll be for everyone.</p>
@@ -1546,7 +1563,8 @@ ${bar(v, "movies")}
   </header>
   ${done(did)}
   ${nightCard(v)}
-  <form method="post" action="/movies" class="card compose">
+  ${planner(v, "movies")}
+  <form method="post" action="/movies" class="card compose" id="suggest">
     <h2>Suggest a movie</h2>
     <label for="movie-title">The movie</label>
     <input id="movie-title" name="title" maxlength="${MAX_TITLE}" required placeholder="96, Kumbalangi Nights, Before Sunrise…">
@@ -1558,7 +1576,6 @@ ${bar(v, "movies")}
     <h2 id="list-heading">Suggestions</h2>
     ${list.length ? `<ul class="movie-list">\n${list.map((m) => movieItem(m, v)).join("\n")}\n</ul>` : `<p class="empty">Nothing yet.${made() ? " Be the first to suggest one." : ` ${esc(nameOf(MOVIE_LOVER))} will have opinions.`}</p>`}
   </section>
-  ${planner(v, "movies")}
 </main>`, phase(clock(v.me.tz, v.now)), "page-list");
 }
 

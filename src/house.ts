@@ -87,6 +87,14 @@ export const answered = (things: Thing[], note: Thing, by: string): boolean =>
 
 export const wall = (things: Thing[]): Thing[] => things.filter((t) => t.kind === "note" && t.place === "wall");
 
+// A note on the wall with a photo pinned to it (ADR 0024): its item is
+// `photo:<id>`, the photo's row in the house's own `photos` table. Big news
+// keeps item "big", so a photo is never big news.
+export const photoOf = (t: Thing): number | undefined => {
+  const m = /^photo:(\d+)$/.exec(t.item);
+  return m ? Number(m[1]) : undefined;
+};
+
 // Stickers for a note on the wall: how a friend felt about it, and that she
 // read it. Each friend has one sticker on a note at most; picking another
 // swaps it, and peeling it off leaves none. Never counted, always named.
