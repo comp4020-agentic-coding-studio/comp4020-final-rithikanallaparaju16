@@ -3234,3 +3234,52 @@ Product calls, named for Rithika to redirect:
 
 **Commits:** `183b473` (photos, Movies), `ae63c78` (widget), and this
 entry's commit with the screenshots.
+
+### 77. Small pictures on the site itself (3 Nov 2026)
+
+**Asked:** "can we not show the pictures on the website itself? like small
+images". Read as: a pinned photo should show small wherever the house
+mentions it, not only as the wall's polaroid.
+
+**Agent:** on the branch `photos-and-widget`:
+
+- Updates: a line about a pinned photo has the photo beside it, 44 px, as a
+  tiny polaroid, linked to the wall (`happeningItem`, `Happening.photo`).
+- The wall on a phone: photos are smaller polaroids, two side by side;
+  notes in words still take the whole width.
+- The house drawing: the living room's cork board carries up to three of
+  the newest photos as tiny tilted polaroids, pinned in each friend's
+  colour (`boardPhotos()` in `src/scene.ts`, placed across
+  `layout().wallBoard`, so they sit on the board in every house size).
+  Checked in Rithika's house and a made house of four.
+- Tests: the photo test also checks the Updates thumbnail and the board's
+  `g.board-photos`. `pnpm check` on a fresh throwaway server: 113 passed,
+  21 skipped.
+- Screenshots retaken. New: 24 (photos in Updates). Kept: the set before,
+  in `doc/screenshots/archive/2026-11-03-1851/`.
+
+**What went wrong:**
+
+- The first retake showed the living room photo twice on the wall, though
+  the second photo was a bedroom. Photos were served as cached for a year,
+  and the shot browser's profile still had `/photo/1` from an earlier run,
+  when a fresh throwaway house had given that address to a different
+  photo. Now a photo is kept a day (ADR 0024 amended, since the branch
+  isn't shipped), and the tour clears its browser profile before shooting.
+  That retake is kept, per the never-delete rule, in
+  `doc/screenshots/archive/2026-11-03-1917/`; it's the one with the
+  doubled photo.
+- A leftover `--watch` server from an earlier throwaway run kept
+  restarting on port 8099, so a run hit it instead of the fresh one. Both
+  throwaway processes were stopped and the run repeated.
+
+Product calls, named for Rithika to redirect:
+
+- The board shows the three newest photos, not all of them.
+- The thumbnail in Updates links to the wall rather than opening the photo
+  big.
+
+**Correction:** none.
+
+**Commits:** `6468e4a` (small photos, the one-day cache), and this entry's
+commit with the screenshots.

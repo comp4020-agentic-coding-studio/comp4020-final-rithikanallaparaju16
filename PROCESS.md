@@ -135,6 +135,13 @@ a crop of the house's own picture, standing in for a real one
 
 ![A photo pinned on the memory wall, on a phone](doc/screenshots/22-photo-on-the-wall-phone.jpg)
 
+Photos also show small wherever the house mentions them: beside their line
+in Updates, and as tiny polaroids on the living room's cork board in the
+drawing of the house, pinned in the colour of whoever pinned them
+([`6468e4a`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/6468e4a)).
+
+![Photos small beside their lines in Updates, on a phone](doc/screenshots/24-photos-in-updates-phone.jpg)
+
 **The kitchen and garden.** Food out for everyone stays three days or until
 someone eats it. A plate saved for a friend waits, covered, with her name on
 it, however long she's away. Only she can eat it, and the cook hears she
@@ -281,3 +288,4 @@ Every prompt I gave the agent from 8 October, word for word, with the commit it 
 - "can you make this into sumn i can view on the homescreen, like locket?", answered as iPhone and Android, showing the newest thing left for you with everyone's faces and clocks: a private widget link per friend, read by Scriptable on an iPhone or KWGT on Android, [`ae63c78`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/ae63c78)
 - "also, on memory wall, give the user an option to upload an image, so if sumn reminds them of the group, they can send an image saying, this reminds me of you guys": photos pinned on the memory wall as polaroids, [`183b473`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/183b473)
 - "in movies tab, i want the time thing to come first and then suggestions": the planner comes first on Movies, [`183b473`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/183b473)
+- "can we not show the pictures on the website itself? like small images": pinned photos show small beside their lines in Updates, as smaller polaroids on a phone's wall, and on the living room's cork board in the house, [`6468e4a`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/6468e4a)
