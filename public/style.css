@@ -3242,3 +3242,299 @@ g.joke-frame {
 .pad.touch ~ .look-out kbd {
   display: none;
 }
+
+/* the planner's time strip: everyone's day and night, dragged under a needle
+   (public/live.js); and a little clock on each row */
+.when-strip {
+  position: relative;
+  margin: 2px 0 12px;
+  padding: 8px 0 24px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #2f2740;
+  touch-action: pan-y;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.when-strip.dragging {
+  cursor: grabbing;
+}
+
+.when-strip:focus-visible {
+  outline: 3px solid #f4c36a;
+  outline-offset: 2px;
+}
+
+.when-lanes {
+  display: grid;
+  gap: 5px;
+  width: max-content;
+  will-change: transform;
+}
+
+.when-lane {
+  position: relative;
+}
+
+.when-lane .who {
+  display: none;
+}
+
+.when-initials {
+  position: absolute;
+  top: 0;
+  bottom: 18px;
+  left: 0;
+  z-index: 2;
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  padding: 8px 14px 0 6px;
+  background: linear-gradient(to right, #2f2740 calc(100% - 10px), transparent);
+  pointer-events: none;
+}
+
+.when-initials span {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 2.5px solid var(--accent);
+  border-radius: 50%;
+  background: #f6e3c4;
+  color: var(--ink);
+  font-size: 0.8rem;
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+.when-initials img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: 50% 8%;
+}
+
+.when-initials span.you b {
+  position: absolute;
+  bottom: -3px;
+  left: 50%;
+  padding: 0 4px;
+  border-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.56rem;
+  line-height: 1.35;
+  transform: translateX(-50%);
+}
+
+.when-lane .band {
+  display: flex;
+  height: 34px;
+  border-left: 0;
+}
+
+.when-lane .band > span {
+  position: relative;
+  flex: 0 0 46px;
+  height: 100%;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.when-lane .band > .day {
+  background: color-mix(in srgb, var(--accent) 22%, #fff3cf);
+}
+
+.when-lane .band > .dusk {
+  background: color-mix(in srgb, var(--accent) 35%, #8d7aa8);
+}
+
+.when-lane .band > .night {
+  background: color-mix(in srgb, var(--accent) 18%, #1d1830);
+}
+
+.when-lane .band > .midnight {
+  border-left: 2px solid rgba(255, 255, 255, 0.55);
+}
+
+.when-lane .band i {
+  position: absolute;
+  top: 50%;
+  left: 3px;
+  transform: translateY(-50%);
+  font-size: 0.66rem;
+  font-style: normal;
+  font-weight: 700;
+  color: rgba(40, 28, 20, 0.55);
+}
+
+.when-lane .band > .night i,
+.when-lane .band > .dusk i {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.when-needle {
+  position: absolute;
+  top: 0;
+  bottom: 18px;
+  left: 50%;
+  width: 3px;
+  margin-left: -1.5px;
+  border-radius: 2px;
+  background: #f4c36a;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25), 0 0 12px rgba(244, 195, 106, 0.7);
+  pointer-events: none;
+}
+
+.when-needle::before {
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  border: 7px solid transparent;
+  border-top-color: #f4c36a;
+  transform: translateX(-50%);
+  content: "";
+}
+
+.when-drag {
+  position: absolute;
+  right: 0;
+  bottom: 4px;
+  left: 0;
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.75);
+  pointer-events: none;
+}
+
+.plan-night .when-row {
+  grid-template-columns: minmax(8.5em, 1fr) auto minmax(0, 15em);
+  grid-template-areas: "who clock when" "note note note";
+}
+
+.when-clock {
+  grid-area: clock;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.when-face {
+  width: 40px;
+  height: 40px;
+  flex: none;
+}
+
+.when-face .rim {
+  fill: #fffaf0;
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  transition: fill 0.3s;
+}
+
+.when-face .tick {
+  stroke: rgba(59, 42, 32, 0.35);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+}
+
+.when-face .hand {
+  stroke: var(--ink);
+  stroke-linecap: round;
+}
+
+.when-face .hand.hour {
+  stroke-width: 2.6;
+}
+
+.when-face .hand.minute {
+  stroke-width: 1.6;
+}
+
+.when-face .pin {
+  fill: var(--accent);
+}
+
+.when-face.dark .rim {
+  fill: #2f2740;
+}
+
+.when-face.dark .tick {
+  stroke: rgba(255, 255, 255, 0.4);
+}
+
+.when-face.dark .hand {
+  stroke: #fffaf0;
+}
+
+.when-readout {
+  display: grid;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.when-readout .t {
+  font-size: 1.15rem;
+}
+
+.when-readout .h,
+.when-readout .d {
+  font-size: 0.74rem;
+  color: var(--ink-soft);
+}
+
+.when-readout .h {
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+@media (max-width: 520px) {
+  .plan-night .when-row {
+    grid-template-columns: 1fr auto;
+    grid-template-areas: "who clock" "when when" "note note";
+  }
+
+  .when-readout {
+    grid-template-columns: auto auto;
+    column-gap: 4px;
+    align-items: baseline;
+  }
+
+  .when-readout .d {
+    grid-column: 1 / -1;
+  }
+}
+
+.when-chips {
+  position: absolute;
+  top: 8px;
+  left: calc(50% + 7px);
+  z-index: 2;
+  display: grid;
+  gap: 5px;
+  pointer-events: none;
+}
+
+.when-chips span {
+  display: flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 7px;
+  border-radius: 6px;
+  background: #3a3150;
+  color: #fffaf0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.when-chips span.late {
+  color: #f7c9a0;
+}

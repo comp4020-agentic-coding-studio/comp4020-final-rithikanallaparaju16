@@ -522,6 +522,8 @@ describe.skipIf(!throwaway)("living in the house", () => {
       const name = text(row.querySelector(".name")) === "You" ? me : text(row.querySelector(".name"));
       expect(row.getAttribute("data-tz"), `${name}'s row isn't on her clock`).toBe(ZONES[name]);
       expect(row.getAttribute("data-sleep"), `${name}'s row doesn't know when she sleeps`).toBe(SLEEP[name].join(","));
+      // The time strip shows her face, not an initial two friends could share.
+      expect(row.getAttribute("data-avatar"), `${name}'s row doesn't carry her face`).toMatch(new RegExp(`^/art/avatar-${row.getAttribute("data-person")}\\.png`));
       expect([field(ZONES[name], quarter(before)), field(ZONES[name], quarter(after))], `${name}'s row doesn't start now`).toContain(row.querySelector("input")!.getAttribute("value"));
     }
   }

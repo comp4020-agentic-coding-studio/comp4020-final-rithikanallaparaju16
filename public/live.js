@@ -204,17 +204,22 @@
   });
 })();
 
-// Picking a time for all of you (the movie-night planner): a clock for each
-// friend. Change any one and the others follow, each in her own time zone,
-// with a note when it lands in her usual sleep. Without this, your own clock
-// is the one the house reads; this only fills in the rest. Kept apart from
-// the live updates above, so it runs even where those don't.
+// Picking a time for all of you (the planner, src/pages.ts): a clock each,
+// and above them a strip of everyone's days you drag through with a thumb
+// or a mouse. Whatever moves, every clock, hand and field follows on the
+// next frame, each in her own time zone, with a note when it lands in her
+// usual sleep. The form only ever sends your own row's field, so without
+// this file the rows are plain fields and the house reads yours. Kept apart
+// from the live updates above, so it runs even where those don't.
 (() => {
+  const MIN = 60 * 1000;
+  const HOUR = 60 * MIN;
+  const STEP = 5 * MIN;
   const ZONE = new Map();
   const parts = (tz, at) => {
     let f = ZONE.get(tz);
     if (!f) {
-      f = new Intl.DateTimeFormat("en-AU", { timeZone: tz, year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", hourCycle: "h23" });
+      f = new Intl.DateTimeFormat("en-AU", { timeZone: tz, year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", weekday: "short", hourCycle: "h23" });
       ZONE.set(tz, f);
     }
     return Object.fromEntries(f.formatToParts(at).map((x) => [x.type, x.value]));
@@ -240,45 +245,275 @@
     at += target - wall(tz, at);
     return at;
   };
-  const asleep = (row, at) => {
+  const hourOf = (tz, at) => {
+    const p = parts(tz, at);
+    return (Number(p.hour) % 24) + Number(p.minute) / 60;
+  };
+  const sleeps = (row, h) => {
     const [from, to] = row.dataset.sleep.split(",").map(Number);
-    const p = parts(row.dataset.tz, at);
-    const h = (Number(p.hour) % 24) + Number(p.minute) / 60;
     return from > to ? h >= from || h < to : h >= from && h < to;
   };
+  const label = (tz, at) => {
+    const p = parts(tz, at);
+    const h = Number(p.hour) % 24;
+    return { time: `${h % 12 || 12}:${p.minute}`, half: h < 12 ? "am" : "pm", day: p.weekday };
+  };
 
-  function sync(changed) {
-    const rows = [...changed.closest(".when-rows").querySelectorAll(".when-row")];
-    const from = changed.closest(".when-row");
-    const at = moment(changed.value, from.dataset.tz);
-    if (at === undefined) return;
-    for (const row of rows) {
-      const input = row.querySelector("input");
-      if (row !== from) input.value = field(row.dataset.tz, at);
-      const late = asleep(row, at);
-      row.classList.toggle("late", late);
-      // The house wrote the words for each friend (she, he or they).
-      const note = row.querySelector(".sleep-note");
-      note.textContent = late ? note.dataset.says : "";
+  const NS = "http://www.w3.org/2000/svg";
+  const svgEl = (name, attrs) => {
+    const el = document.createElementNS(NS, name);
+    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+    return el;
+  };
+
+  // A little clock face for each row: its hands turn as the time moves, and
+  // its face goes dark in the night.
+  function face(row) {
+    const svg = svgEl("svg", { class: "when-face", viewBox: "-20 -20 40 40", "aria-hidden": "true" });
+    svg.append(svgEl("circle", { class: "rim", r: "18" }));
+    for (let i = 0; i < 12; i++) {
+      const a = (i * Math.PI) / 6;
+      svg.append(svgEl("line", { class: "tick", x1: String(Math.sin(a) * 15), y1: String(-Math.cos(a) * 15), x2: String(Math.sin(a) * (i % 3 ? 13.5 : 12)), y2: String(-Math.cos(a) * (i % 3 ? 13.5 : 12)) }));
     }
+    const hour = svgEl("line", { class: "hand hour", x1: "0", y1: "2", x2: "0", y2: "-8" });
+    const minute = svgEl("line", { class: "hand minute", x1: "0", y1: "3", x2: "0", y2: "-13" });
+    svg.append(hour, minute, svgEl("circle", { class: "pin", r: "1.6" }));
+    const readout = document.createElement("span");
+    readout.className = "when-readout";
+    readout.innerHTML = `<b class="t"></b> <span class="h"></span> <span class="d"></span>`;
+    const box = document.createElement("span");
+    box.className = "when-clock";
+    box.append(svg, readout);
+    row.querySelector("label").after(box);
+    return { svg, hour, minute, t: readout.querySelector(".t"), h: readout.querySelector(".h"), d: readout.querySelector(".d") };
   }
 
-  document.addEventListener("input", (event) => {
-    const input = event.target;
-    if (input instanceof HTMLInputElement && input.closest(".when-rows")) sync(input);
-  });
-  // "Back to now" puts every clock back where the page started, and the
-  // sleep notes with them.
-  document.addEventListener("reset", (event) => {
-    const rows = event.target instanceof HTMLFormElement && event.target.querySelector(".when-rows");
-    if (!rows) return;
-    setTimeout(() => {
-      const mine = rows.querySelector(".when-row input");
-      if (mine) sync(mine);
+  function planner(picker) {
+    const list = picker.querySelector(".when-rows");
+    const rows = [...list.querySelectorAll(".when-row")];
+    if (!rows.length || picker.dataset.scrub) return;
+    picker.dataset.scrub = "1";
+    const mine = rows[0].querySelector("input");
+    const faces = new Map(rows.map((row) => [row, face(row)]));
+
+    // The strip: two days either side of now would be too far to drag on a
+    // phone, so it's 48 hours from the start of this hour, and it scrolls on
+    // past either end if you keep going.
+    const strip = document.createElement("div");
+    strip.className = "when-strip";
+    strip.tabIndex = 0;
+    strip.setAttribute("role", "slider");
+    strip.setAttribute("aria-label", "Drag through the time for everyone");
+    strip.innerHTML = `<div class="when-lanes"></div><div class="when-needle" aria-hidden="true"></div><p class="when-drag">◂ drag through time ▸</p>`;
+    list.before(strip);
+    const lanes = strip.querySelector(".when-lanes");
+    // Whose lane is whose, pinned at the left: each friend's face (her
+    // sticker, ringed in her colour), in the same order as the rows below.
+    // Two friends can share an initial; nobody shares a face.
+    const initials = document.createElement("div");
+    initials.className = "when-initials";
+    initials.setAttribute("aria-hidden", "true");
+    for (const row of rows) {
+      const tag = document.createElement("span");
+      tag.style.setProperty("--accent", getComputedStyle(row).getPropertyValue("--accent"));
+      const name = row.querySelector(".name").textContent.trim();
+      tag.title = name;
+      if (row.dataset.avatar) {
+        const img = document.createElement("img");
+        img.src = row.dataset.avatar;
+        img.alt = "";
+        img.draggable = false;
+        tag.append(img);
+      } else {
+        tag.textContent = [...name][0];
+      }
+      if (row.classList.contains("you")) {
+        tag.classList.add("you");
+        const you = document.createElement("b");
+        you.textContent = "You";
+        tag.append(you);
+      }
+      initials.append(tag);
+    }
+    strip.append(initials);
+    // And beside the needle, what time that is for each of you, so a phone
+    // shows all five at once while you drag, without scrolling to the rows.
+    const chips = document.createElement("div");
+    chips.className = "when-chips";
+    chips.setAttribute("aria-hidden", "true");
+    const chipOf = new Map();
+    for (const row of rows) {
+      const chip = document.createElement("span");
+      chips.append(chip);
+      chipOf.set(row, chip);
+    }
+    strip.append(chips);
+    const PX = 46; // pixels an hour
+    const SPAN = 30; // hours drawn either side of the needle
+    const laneOf = new Map();
+    for (const row of rows) {
+      const lane = document.createElement("div");
+      lane.className = "when-lane";
+      lane.style.setProperty("--accent", getComputedStyle(row).getPropertyValue("--accent"));
+      lane.innerHTML = `<span class="who">${row.querySelector(".name").textContent}</span><div class="band"></div>`;
+      lanes.append(lane);
+      laneOf.set(row, lane.querySelector(".band"));
+    }
+
+    let at = moment(mine.value, rows[0].dataset.tz) ?? Date.now();
+    let drawnFrom = NaN;
+
+    // Each lane's hours, day and night, around `centre`: drawn again only
+    // when you've dragged far enough to need more, so dragging stays smooth.
+    function paint(centre) {
+      const from = Math.floor(centre / HOUR) * HOUR - SPAN * HOUR;
+      if (Math.abs(from - drawnFrom) < 6 * HOUR) return;
+      drawnFrom = from;
+      for (const row of rows) {
+        const band = laneOf.get(row);
+        const tz = row.dataset.tz;
+        let html = "";
+        for (let i = 0; i < SPAN * 2; i++) {
+          const t = from + i * HOUR;
+          const h = Math.floor(hourOf(tz, t));
+          const cls = sleeps(row, h + 0.5) ? "night" : h < 7 || h >= 20 ? "dusk" : "day";
+          const mark = h % 6 === 0 ? `<i>${h === 0 ? "12a" : h === 12 ? "12p" : h < 12 ? `${h}a` : `${h - 12}p`}</i>` : "";
+          html += `<span class="${cls}${h === 0 ? " midnight" : ""}">${mark}</span>`;
+        }
+        band.innerHTML = html;
+      }
+    }
+
+    let frame = 0;
+    let typed;
+    // Everything follows `at`, on the next frame: the strip's position, each
+    // clock's hands and words, each row's field and sleep note.
+    function show() {
+      frame = 0;
+      paint(at);
+      // The needle is in the middle of the strip: the moment `at` sits under it.
+      const offset = strip.clientWidth / 2 - ((at - drawnFrom) / HOUR) * PX;
+      lanes.style.transform = `translateX(${offset.toFixed(1)}px)`;
+      for (const row of rows) {
+        const tz = row.dataset.tz;
+        const h = hourOf(tz, at);
+        const f = faces.get(row);
+        f.hour.setAttribute("transform", `rotate(${(h % 12) * 30})`);
+        f.minute.setAttribute("transform", `rotate(${(h % 1) * 360})`);
+        const late = sleeps(row, h);
+        f.svg.classList.toggle("dark", late || h < 6 || h >= 20);
+        const w = label(tz, at);
+        f.t.textContent = w.time;
+        f.h.textContent = w.half;
+        f.d.textContent = w.day;
+        const chip = chipOf.get(row);
+        chip.textContent = `${w.time} ${w.half}${late ? " 😴" : ""}`;
+        chip.classList.toggle("late", late);
+        const input = row.querySelector("input");
+        if (input !== typed) input.value = field(tz, at);
+        row.classList.toggle("late", late);
+        const note = row.querySelector(".sleep-note");
+        note.textContent = late ? note.dataset.says : "";
+      }
+      strip.setAttribute("aria-valuetext", rows.map((row) => `${row.querySelector(".name").textContent} ${label(row.dataset.tz, at).time} ${label(row.dataset.tz, at).half}`).join(", "));
+    }
+    const soon = () => {
+      if (!frame) frame = requestAnimationFrame(show);
+    };
+    const snap = (t) => Math.round(t / STEP) * STEP;
+
+    // Dragging: a finger or a mouse moves time under the needle, an hour for
+    // every PX pixels, and lets go with a little glide.
+    let drag;
+    strip.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) return;
+      strip.setPointerCapture(event.pointerId);
+      drag = { x: event.clientX, at, last: event.clientX, when: performance.now(), v: 0 };
+      typed = undefined;
+      strip.classList.add("dragging");
     });
-  });
-  document.addEventListener("change", (event) => {
-    const input = event.target;
-    if (input instanceof HTMLInputElement && input.closest(".when-rows")) sync(input);
-  });
+    strip.addEventListener("pointermove", (event) => {
+      if (!drag || !strip.hasPointerCapture(event.pointerId)) return;
+      const now = performance.now();
+      drag.v = (event.clientX - drag.last) / Math.max(1, now - drag.when);
+      drag.last = event.clientX;
+      drag.when = now;
+      at = snap(drag.at - ((event.clientX - drag.x) / PX) * HOUR);
+      soon();
+    });
+    const release = () => {
+      if (!drag) return;
+      let v = drag.v;
+      drag = undefined;
+      strip.classList.remove("dragging");
+      if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      let exact = at;
+      const glide = () => {
+        if (drag || Math.abs(v) < 0.02) return;
+        exact -= (v * 16 / PX) * HOUR;
+        at = snap(exact);
+        v *= 0.92;
+        show();
+        requestAnimationFrame(glide);
+      };
+      requestAnimationFrame(glide);
+    };
+    strip.addEventListener("pointerup", release);
+    strip.addEventListener("pointercancel", release);
+    strip.addEventListener("lostpointercapture", release);
+    // A trackpad's sideways swipe moves it too, and so does a mouse wheel
+    // once you've clicked into the strip; until then the wheel scrolls the
+    // page past it, as anywhere else.
+    strip.addEventListener("wheel", (event) => {
+      const sideways = Math.abs(event.deltaX) > Math.abs(event.deltaY);
+      if (!sideways && document.activeElement !== strip) return;
+      const d = sideways ? event.deltaX : event.deltaY;
+      if (!d) return;
+      event.preventDefault();
+      at = snap(at + (d / PX) * HOUR);
+      soon();
+    }, { passive: false });
+    // Arrow keys: a quarter of an hour; with Shift, an hour.
+    strip.addEventListener("keydown", (event) => {
+      const way = event.key === "ArrowRight" || event.key === "ArrowUp" ? 1 : event.key === "ArrowLeft" || event.key === "ArrowDown" ? -1 : 0;
+      if (!way) return;
+      event.preventDefault();
+      at = snap(at + way * (event.shiftKey ? HOUR : 15 * MIN));
+      soon();
+    });
+
+    // Typing in any row's field moves everyone else too.
+    const typedIn = (event) => {
+      const input = event.target;
+      const row = input instanceof HTMLInputElement && input.closest(".when-row");
+      if (!row || !list.contains(row)) return;
+      const t = moment(input.value, row.dataset.tz);
+      if (t === undefined) return;
+      typed = input;
+      at = t;
+      soon();
+    };
+    list.addEventListener("input", typedIn);
+    list.addEventListener("change", (event) => {
+      typedIn(event);
+      typed = undefined;
+    });
+    // "Back to now" puts the fields back; the rest follows them.
+    picker.closest("form")?.addEventListener("reset", () => {
+      setTimeout(() => {
+        typed = undefined;
+        at = moment(mine.value, rows[0].dataset.tz) ?? Date.now();
+        show();
+      });
+    });
+    show();
+    new ResizeObserver(() => show()).observe(strip);
+  }
+
+  const all = () => document.querySelectorAll("fieldset.when-picker").forEach(planner);
+  all();
+  // A live update swaps the planner for a fresh one (public/live.js above),
+  // which gets its own strip. A planner you've moved is never swapped: its
+  // fields differ from what the page came with, so live.js leaves it be.
+  document.addEventListener("house:fresh", all);
 })();

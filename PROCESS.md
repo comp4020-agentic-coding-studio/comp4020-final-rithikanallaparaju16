@@ -77,13 +77,15 @@ The corrections that mattered changed a rule, not just the code.
 ## Overview of the website
 
 Taken on 1 November 2026 by `scripts/tour.ts` ([`cac59be`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/cac59be)) and retaken on 3
-November with the new features ([`74069c4`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/74069c4)), at laptop, phone and iPad widths. They're from a throwaway copy of the house, filled with a few
-days of us coming and going; the real house is never written to.
+November with the new features ([`74069c4`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/74069c4), then [`8b13b9a`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/8b13b9a)), at laptop, phone and iPad widths. They're from a throwaway copy of the house, filled with a few
+days of us coming and going; the real house is never written to. No
+screenshot is thrown away: each older set is kept in
+`doc/screenshots/archive/`, by when it was taken.
 
 **The door.** Pick your window. Each one shows the sky where that friend is,
-her clock, and when she was last home. Amirdhavarshini's, Rithanya's and
-Aswathy's are dark because it's 4:42 am in India and they're asleep. One of us at a time: a window someone's using can't
-be picked.
+her clock, and when she was last home. Neha's is dark because it's 12:52 am
+in New Jersey and she's asleep. One of us at a time: a window someone's
+using can't be picked.
 
 ![The door at laptop width](doc/screenshots/01-door.jpg)
 
@@ -139,18 +141,33 @@ on Amirdhavarshini's mat: seven cards each, twenty seconds a turn.
 
 ![Movie time on a phone](doc/screenshots/10-movies-phone.jpg) ![UNO on the mat, mid-game](doc/screenshots/11-uno-phone.jpg)
 
-**The best time for all of us.** Planning movie night shows everyone's clock
-at once. Some days I'm up early or Neha's up late, so you can start from
-anyone's row. Here I set Neha's to 9:30 pm, every other row moved with it,
-and Rithanya's says she's usually asleep then.
+**The best time for all of us.** On the Everyone tab and on Movies, the
+planner shows everyone's clock at once, for a video call or a movie night.
+Some days I'm up early or Neha's up late, so you can start from anyone's
+row. Here I set Neha's to 9:30 pm, every other row moved with it, and
+Rithanya's says she's usually asleep then.
 
-![Planning movie night from Neha's clock](doc/screenshots/19-planner-phone.jpg)
+![Planning movie night from Neha's clock](doc/screenshots/19-planner-phone.jpg) ![Dragging through time on a phone](doc/screenshots/20-planner-drag-phone.jpg)
+
+**Dragging through time** (above, right). Above the clocks is a strip with a
+lane for each of us, showing her day, evening and sleep. Drag it with a
+finger and time slides under the needle, and every clock's hands, its AM or
+PM and its time follow as you drag, with no typing and no waiting. Each
+lane starts with her face, not her initial, because two friends can share
+one ([`fa8ce79`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/fa8ce79), [`8b13b9a`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/8b13b9a)).
 
 **Everyone, and an iPad.** Where each of us is, on her own clock.
 
 ![Everyone, right now](doc/screenshots/12-everyone.jpg)
 
 ![The house on an iPad](doc/screenshots/13-house-ipad.jpg)
+
+**Looking out from bed.** Lying in bed in my room, I press Esc (or tap See
+the whole house) and the view zooms out to the whole house, so I can see
+who's moving about without getting up. Esc again goes back into the room
+([`5861540`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/5861540)).
+
+![Asleep in my room, looking out at the whole house](doc/screenshots/21-look-out-from-bed.jpg)
 
 **A house for your own friends.** Anyone can make one at `/make` for two to
 seven friends. While taking these I fixed the form's "You are" choices, which
@@ -236,3 +253,8 @@ Every prompt I gave the agent from 8 October, word for word, with the commit it 
 - "from personas,prfaqs and rice, what more featues do you suggest": a question, no code change.
 - "okay, thankyou that gives a lot of insights / first i need you to update the screenshots you took in process.md / now after making the following chnages, take a few screenshots for that as well and show it / i agree w save the plate.lets do that / let notes in rooms be personal, for now lets not add passwords because my tutor has to check it, make sure you mention this in process.md, this is not a bug, just a way to keep it easier for the tutor to check and mark me. / then inside joke can be framed on the memory wall / i love the phone screen idea, lets do that as well, for both android and apple / i like the writnf back part aslo / i love the best time for all of us idea / lets cjnage it a bit becasue some days i can wake up very early or neha can sleep late / so when we are trying to pick a time, show all the times / i mean, as soon as there is an option to pick time, show all the time zones, changing one timezone reflects chnages in the others automatically. / do all this in a diff branch because if sumn goes wrong, it will be easier for us to get back where we were": on the branch `plates-replies-home-screen-times`, saving a plate, writing back, all five clocks for movie night, the joke on the memory wall and a home-screen icon, with the screenshots above retaken and the no-passwords note, [`74069c4`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/74069c4)
 - "nono let the planner be there from anytime, because sometimes we wanna video call as well, its easier to check times, so this planner can be used for video calling and all aslo, also make the app website show on homescreen like locket if you can do", then "also , make it such that, now if i go to my bed and fall asleep but when im laying if i wanna see who is moving in the house, only my room is zoomed in, when i click on esc key, no matter where i am, i have to zoom out and the whole house should be seen, after this open the live site. now make these changed apply to the house made also, not just the main house. so your tests should cover everything": the planner is on the Everyone tab and Movies from any time, and plans video calls too; Esc in any room zooms out to the whole house, in made houses as well; a Locket-style widget needs an App Store app, so it isn't built, [`5861540`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/5861540)
+- "keep screen shots and never delete them, because i can record them as a process.md, now for the planner, especialy the phone part, i wanna be able to scroll through the time an dsthen, live on the screen all the other time zones should also update, you can show a large clock, which shows AM and PM with the hands of it updating live, or a scroll, that scrolls all the timezones live. it has to be updatted very very quick, i shouldnt enter a time and wait. choose the best interactive way to do this": the planner has a strip of everyone's day and night to drag through with a finger or the mouse, and a clock each, whose hands, AM or PM and time follow on every frame; old screenshots are kept in `doc/screenshots/archive/` before any retake, [`fa8ce79`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/fa8ce79)
+- "open the live site": opened it, no code change.
+- "open that branch, let me check it first": the `planner-strip` branch ran on this laptop and opened, no code change.
+- "instead of name initials there, becasue they might be similar, give their avatars maybe?": the time strip shows each friend's face, ringed in her colour, instead of her initial, [`8b13b9a`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/8b13b9a)
+- "yes merge all the chnages now, and pls update process.md with the relavant screen shots": the screenshots above are retaken, with dragging through time (20) and looking out from bed (21) added, the older set kept in `doc/screenshots/archive/`, and the branch merged and shipped, [`8b13b9a`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/8b13b9a)
