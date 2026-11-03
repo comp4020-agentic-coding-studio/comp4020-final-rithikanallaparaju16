@@ -307,8 +307,9 @@
     strip.innerHTML = `<div class="when-lanes"></div><div class="when-needle" aria-hidden="true"></div><p class="when-drag">◂ drag through time ▸</p>`;
     list.before(strip);
     const lanes = strip.querySelector(".when-lanes");
-    // Whose lane is whose, pinned at the left: each friend's initial in her
-    // colour, in the same order as the rows below.
+    // Whose lane is whose, pinned at the left: each friend's face (her
+    // sticker, ringed in her colour), in the same order as the rows below.
+    // Two friends can share an initial; nobody shares a face.
     const initials = document.createElement("div");
     initials.className = "when-initials";
     initials.setAttribute("aria-hidden", "true");
@@ -316,7 +317,22 @@
       const tag = document.createElement("span");
       tag.style.setProperty("--accent", getComputedStyle(row).getPropertyValue("--accent"));
       const name = row.querySelector(".name").textContent.trim();
-      tag.textContent = name === "You" ? "You" : [...name][0];
+      tag.title = name;
+      if (row.dataset.avatar) {
+        const img = document.createElement("img");
+        img.src = row.dataset.avatar;
+        img.alt = "";
+        img.draggable = false;
+        tag.append(img);
+      } else {
+        tag.textContent = [...name][0];
+      }
+      if (row.classList.contains("you")) {
+        tag.classList.add("you");
+        const you = document.createElement("b");
+        you.textContent = "You";
+        tag.append(you);
+      }
       initials.append(tag);
     }
     strip.append(initials);

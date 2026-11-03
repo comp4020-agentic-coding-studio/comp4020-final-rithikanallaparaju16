@@ -1514,7 +1514,7 @@ function whenPicker(v: Visit): string {
     const hours = `${hourLabel(from)} to ${hourLabel(to)}`;
     const field = you ? "plan-when" : `plan-when-${p.id}`;
     const says = `${you ? "You're" : cap(theyre(p))} usually asleep then (${hours}).`;
-    return `<li class="${["when-row", you ? "you" : "", late ? "late" : ""].filter(Boolean).join(" ")}" data-person="${esc(p.id)}" data-tz="${esc(p.tz)}" data-sleep="${from},${to}" style="--accent:${p.color}">
+    return `<li class="${["when-row", you ? "you" : "", late ? "late" : ""].filter(Boolean).join(" ")}" data-person="${esc(p.id)}" data-tz="${esc(p.tz)}" data-sleep="${from},${to}" data-avatar="${esc(avatarUrl(p))}" style="--accent:${p.color}">
       <label for="${field}"><span class="name">${you ? "You" : esc(p.name)}</span> <span class="where">in ${esc(p.city)}</span></label>
       <input id="${field}" type="datetime-local" ${you ? `name="when" required` : "data-other"} value="${localInput(p.tz, start)}">
       <span class="sleep-note" data-says="${esc(says)}">${late ? esc(says) : ""}</span>

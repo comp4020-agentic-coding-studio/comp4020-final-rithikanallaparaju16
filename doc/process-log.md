@@ -3117,3 +3117,32 @@ ones; 20 and 21 are new files beside them.
 
 **Commits:** this entry is in the code commit; PROCESS.md's Prompts line,
 which cites it, is in the commit after.
+
+### 74. Faces on the time strip, not initials (3 Nov 2026)
+
+**Asked:** "open the live site", then "open that branch, let me check it
+first", then "instead of name initials there, becasue they might be similar,
+give their avatars maybe?"
+
+**Agent:** opened the live site (the strip isn't on it yet), then ran the
+`planner-strip` branch on `localhost:8080` with the local house and
+`HOUSE_MAKER=fake`, and opened it. Then:
+
+- Each planner row carries its friend's picture (`data-avatar`, from
+  `avatarUrl()`). The strip's left edge shows a round face for each lane,
+  her Stitch sticker in Rithika's house or her drawn sticker in a made one,
+  cropped like the "Not Rithika?" button and ringed in her colour, with a
+  small "You" tag on your own. Lanes are 34 px tall now (were 26) to fit a
+  face a phone can read.
+- Spec: each row's face is that friend's own sticker (Rithika's house), and
+  every row of a made house has a drawn one. `pnpm check` on a fresh
+  throwaway server: 109 passed, 21 skipped.
+- Checked at 390 by dragging for real, in Rithika's house and in a made
+  house of four where Ivy and Isha share an initial: every face loaded.
+  The check was run as Neha on a copy of the house, since Rithika was signed in
+  on 8080.
+
+**Correction:** Rithika's: initials could be the same for two friends.
+
+**Commits:** this entry is in the code commit; PROCESS.md's Prompts line,
+which cites it, is in the commit after.

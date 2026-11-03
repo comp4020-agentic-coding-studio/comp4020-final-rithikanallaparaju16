@@ -254,6 +254,9 @@ describe.skipIf(!throwaway)("making a house for any five friends", () => {
     const rows = [...doc.querySelectorAll<HTMLLIElement>(`form#plan[action="${h.base}plan"] li.when-row`)];
     expect(rows.map((r) => text(r.querySelector(".name"))), "the planner isn't the made house's own friends, you first").toEqual(["You", "Ivy", "Kit", "Bo"]);
     expect(rows.map((r) => r.getAttribute("data-tz"))).toEqual(["America/New_York", "Europe/London", "Asia/Singapore", "Australia/Sydney"]);
+    // The time strip tells them apart by face: each row carries its friend's.
+    const faces = rows.map((r) => r.getAttribute("data-avatar") ?? "");
+    expect(faces.every((f) => f.startsWith("/avatar/")), `a row has no face: ${faces.join(", ")}`).toBe(true);
     expect((await post(h, "plan", { from: "everyone", what: "call", when: "2030-01-05T20:00", about: "catching up" }, "2")).headers.get("location")).toBe(`${h.base}everyone?did=call`);
     const call = (await inside(h, "everyone", "3")).querySelector("#call");
     expect(text(call?.querySelector("h2"))).toContain("catching up");
