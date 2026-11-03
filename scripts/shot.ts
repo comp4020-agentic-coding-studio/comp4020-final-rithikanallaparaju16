@@ -14,6 +14,11 @@
 // first, says what was actually under the finger, and screenshots wherever
 // the tap led. element.click() skips hit-testing, so it can't catch something
 // covering a button (it missed the door's windows not taking taps).
+//
+// SHOT_DRAG="<selector> <dx>" drags across that element instead, from its
+// middle, dx css px sideways (negative is left), with a finger on a touch
+// screen and a mouse otherwise, in steps. Halfway through, SHOT_DRAG_READ
+// (a line of script) reads the page while the finger's still down.
 import { spawn } from "node:child_process";
 import { writeFileSync } from "node:fs";
 
@@ -113,6 +118,41 @@ if (tap) {
   await new Promise((r) => setTimeout(r, 2500));
   const where = await cdp("Runtime.evaluate", { expression: "location.pathname + location.search", returnByValue: true });
   console.log(`after the tap: ${where.result?.value}`);
+}
+if (process.env.SHOT_DRAG) {
+  const [selector, by] = process.env.SHOT_DRAG.split(/ (?=-?\d+$)/);
+  const found = await cdp("Runtime.evaluate", {
+    returnByValue: true,
+    expression: `(() => {
+      const el = document.querySelector(${JSON.stringify(selector)});
+      if (!el) return null;
+      el.scrollIntoView({ block: "center" });
+      const r = el.getBoundingClientRect();
+      return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+    })()`,
+  });
+  const from = found.result?.value as { x: number; y: number } | null;
+  if (!from) throw new Error(`nothing matches ${selector}`);
+  const dx = Number(by);
+  const steps = 20;
+  const at = (i: number) => ({ x: from.x + (dx * i) / steps, y: from.y });
+  const press = (type: string, p: { x: number; y: number }) =>
+    touch
+      ? cdp("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x: p.x, y: p.y }] })
+      : cdp("Input.dispatchMouseEvent", { type, x: p.x, y: p.y, button: "left", buttons: type === "mouseReleased" ? 0 : 1, clickCount: 1 });
+  const [down, move, up] = touch ? ["touchStart", "touchMove", "touchEnd"] : ["mousePressed", "mouseMoved", "mouseReleased"];
+  await press(down, at(0));
+  for (let i = 1; i <= steps; i++) {
+    await press(move, at(i));
+    await new Promise((r) => setTimeout(r, 16));
+    if (i === steps / 2 && process.env.SHOT_DRAG_READ) {
+      const mid = await cdp("Runtime.evaluate", { expression: process.env.SHOT_DRAG_READ, returnByValue: true });
+      console.log(`halfway, finger down: ${JSON.stringify(mid.result?.value ?? mid.exceptionDetails?.exception?.description ?? null)}`);
+    }
+  }
+  await press(up, at(steps));
+  console.log(`dragged ${selector} ${dx}px with a ${touch ? "finger" : "mouse"}`);
+  await new Promise((r) => setTimeout(r, 1200)); // the glide
 }
 if (process.env.SHOT_JS) {
   const ran = await cdp("Runtime.evaluate", { expression: process.env.SHOT_JS, returnByValue: true, awaitPromise: true });

@@ -8,13 +8,18 @@
 //
 // Needs Chrome (as scripts/shot.ts does) and macOS's sips for the JPEGs.
 //
+// No screenshot is ever lost (Rithika, 3 Nov 2026: "keep screen shots and
+// never delete them"): before it takes new ones, the set already there is
+// copied to doc/screenshots/archive/<when it was taken>/, never over one
+// already archived.
+//
 // Everything is left through the house's own forms, as a friend would, then
 // a few timestamps in the throwaway database are moved back so the house has
 // a past: plants that have grown, a room that's got lived-in, notes from
 // yesterday. Each screenshot is scripts/shot.ts, so it signs in at the door
 // like anyone.
 import { execFileSync, spawn } from "node:child_process";
-import { mkdirSync, openSync, rmSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, rmSync, statSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 
 const port = Number(process.argv[2] ?? 8095);
@@ -24,6 +29,25 @@ const out = "doc/screenshots";
 rmSync(dataDir, { recursive: true, force: true });
 mkdirSync(dataDir, { recursive: true });
 mkdirSync(out, { recursive: true });
+
+// The set that's there now goes to the archive first, named for when it was
+// taken (its newest picture), so retaking never overwrites a picture. A set
+// that's already in the archive, picture for picture, isn't copied again
+// (a fresh checkout gives old pictures new dates).
+{
+  const pictures = readdirSync(out).filter((f) => f.endsWith(".jpg"));
+  const same = (dir: string): boolean => pictures.every((f) => existsSync(`${dir}/${f}`) && readFileSync(`${dir}/${f}`).equals(readFileSync(`${out}/${f}`)));
+  const archived = existsSync(`${out}/archive`) && readdirSync(`${out}/archive`).some((d) => same(`${out}/archive/${d}`));
+  if (pictures.length && !archived) {
+    const taken = new Date(Math.max(...pictures.map((f) => statSync(`${out}/${f}`).mtimeMs)));
+    const pad = (n: number): string => String(n).padStart(2, "0");
+    const stamp = `${taken.getFullYear()}-${pad(taken.getMonth() + 1)}-${pad(taken.getDate())}-${pad(taken.getHours())}${pad(taken.getMinutes())}`;
+    const keep = `${out}/archive/${stamp}`;
+    mkdirSync(keep, { recursive: true });
+    for (const f of pictures) if (!existsSync(`${keep}/${f}`)) copyFileSync(`${out}/${f}`, `${keep}/${f}`);
+    console.log(`the last set is kept in ${keep}/`);
+  }
+}
 
 const server = spawn(process.execPath, ["src/server.ts"], {
   env: { ...process.env, PORT: String(port), DATA_DIR: dataDir, HOUSE_MAKER: "fake" },
@@ -95,7 +119,9 @@ const here = (who: string, x: number, y: number, door = ""): Promise<void> => po
 // floating halfway down); a long desktop page stops 2200 css px down.
 // `js` runs on the page just before the picture (scripts/shot.ts's SHOT_JS):
 // to open something, fill something in, or scroll to it.
-async function shot(path: string, file: string, width: number, who: string, opts: { touch?: boolean; door?: string; js?: string } = {}): Promise<void> {
+// `drag` is scripts/shot.ts's SHOT_DRAG: "<selector> <px>", a real finger or
+// mouse dragged across it before the picture.
+async function shot(path: string, file: string, width: number, who: string, opts: { touch?: boolean; door?: string; js?: string; drag?: string } = {}): Promise<void> {
   const door = opts.door ?? "";
   const cookie = who === "none" ? undefined : (await signIn(who, door)).slice("who=".length);
   const png = `${dataDir}/${file}.png`;
@@ -107,6 +133,7 @@ async function shot(path: string, file: string, width: number, who: string, opts
     ...(cookie ? { SHOT_COOKIE: cookie } : {}),
     ...(opts.touch ? { TOUCH: "1" } : {}),
     ...(opts.js ? { SHOT_JS: opts.js } : {}),
+    ...(opts.drag ? { SHOT_DRAG: opts.drag } : {}),
   };
   console.log(execFileSync(process.execPath, args, { env, encoding: "utf8" }).trim());
   // Chrome draws at twice the size; the repo keeps a JPEG at the page's own
@@ -213,7 +240,7 @@ await shot("/movies", "10-movies-phone", 390, "1");
 // everyone else's row follows.
 await shot("/movies", "19-planner-phone", 390, "1", {
   js: `(() => {
-    const neha = document.getElementById("night-when-2");
+    const neha = document.getElementById("plan-when-2");
     const day = new Date(neha.value.slice(0, 10) + "T00:00Z");
     day.setUTCDate(day.getUTCDate() + 1);
     neha.value = day.toISOString().slice(0, 10) + "T21:30";
@@ -223,12 +250,32 @@ await shot("/movies", "19-planner-phone", 390, "1", {
     return [...document.querySelectorAll(".when-row input")].map((i) => i.value);
   })()`,
 });
+// The same planner on the Everyone tab, dragged with a finger: the strip of
+// everyone's day and night slides under the needle, and all five clocks,
+// hands and AM/PM follow.
+await shot("/everyone", "20-planner-drag-phone", 390, "1", {
+  drag: "#plan .when-strip -190",
+  js: `(() => {
+    const strip = document.querySelector("#plan .when-strip");
+    window.scrollTo(0, strip.getBoundingClientRect().top + scrollY - 140);
+    return [...document.querySelectorAll("#plan .when-readout")].map((r) => r.textContent.trim());
+  })()`,
+});
 // UNO, dealt just now for three, from Amirdhavarshini's side of the mat.
 await post("1", "/sit", { seat: "mat" });
 await post("3", "/uno");
 await shot("/uno", "11-uno-phone", 390, "3");
 await shot("/everyone", "12-everyone", 1280, "1");
 await shot("/", "13-house-ipad", 820, "1", { touch: true });
+// Lying in bed in her room, Rithika presses Esc and looks out at the whole
+// house, to see who's up and about.
+await post("1", "/room/1/nap");
+await shot("/room/1", "21-look-out-from-bed", 1280, "1", {
+  js: `new Promise((done) => {
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    setTimeout(() => done(document.querySelector(".house-svg")?.getAttribute("viewBox")), 1500);
+  })`,
+});
 
 for (const who of ["1", "2", "3", "4", "5"]) await signOut(who);
 

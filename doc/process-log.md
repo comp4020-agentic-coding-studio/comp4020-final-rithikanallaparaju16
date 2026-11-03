@@ -3041,3 +3041,79 @@ Rithika's call.
 only; Rithika wanted it from any time and for calls.
 
 **Commits:** the code commit is cited in PROCESS.md's Prompts line, and this entry is in the commit after it.
+
+### 73. Drag through time: a strip of everyone's day, and a clock each (3 Nov 2026)
+
+**Asked:** (sent while CI was deploying entry 72) "keep screen shots and never
+delete them, because i can record them as a process.md, now for the planner,
+especialy the phone part, i wanna be able to scroll through the time an
+dsthen, live on the screen all the other time zones should also update, you
+can show a large clock, which shows AM and PM with the hands of it updating
+live, or a scroll, that scrolls all the timezones live. it has to be updatted
+very very quick, i shouldnt enter a time and wait. choose the best
+interactive way to do this".
+
+**Agent:** chose both, with the scroll as the main control:
+
+- Above the rows, a strip with one lane per friend, each lane her own day:
+  light for day, dusky for early and late, dark for her usual sleep, a
+  line at her midnight, and 12a, 6a, 12p, 6p marked. Drag it with a finger
+  or the mouse and time slides under a gold needle. A flick glides on and
+  slows to a stop (not under reduced motion). A sideways trackpad swipe, a
+  mouse wheel once you've clicked into the strip, and the arrow keys (15
+  minutes; an hour with Shift) move it too.
+- Beside the needle, each friend's time (with 😴 if she'd be asleep), so a
+  phone shows all five at once while you drag, without scrolling.
+- Each row has an analogue clock whose hands turn as the time moves, with
+  the time, AM or PM and the day beside it. Its face goes dark at night.
+- Everything updates on the next animation frame. A real finger drag in
+  headless Chrome, read halfway with the finger still down, had already
+  moved every clock and field (Rithika's from 3:30 to 5:15 pm, Neha's to
+  1:15 am). The strip's lanes are drawn once and slid with a transform, and
+  redrawn only every six hours of dragging.
+- It's all `public/live.js`: the form still sends only your own row's
+  field, so without the script the planner works as before. Typing in any
+  row moves the strip; Back to now brings it back.
+- `scripts/shot.ts` learned `SHOT_DRAG` (a real finger or mouse drag) and
+  `SHOT_DRAG_READ` (read the page mid-drag), to check this.
+- Screenshots: nothing is overwritten any more. `scripts/tour.ts` copies
+  the set that's there to `doc/screenshots/archive/<when it was taken>/`
+  before taking new ones. The set from 10:13 this morning (commit `74069c4`)
+  is the first one archived. New shots: 20, the planner mid-drag on a phone;
+  21, Esc from bed. Saved as a standing rule in the agent's memory too.
+
+Checked in a browser at 390 (touch), 820 (iPad, touch) and 1280 (mouse), on
+Rithika's house and a made house of four. `pnpm check` on a fresh
+throwaway server: 109 passed, 21 skipped. The strip is client-only, so the spec
+doesn't drive it; the spec already checks what it reads from the page
+(each row's time zone and sleep hours, in both houses).
+
+**What went wrong:**
+
+- The first strip sat 150 px left of the needle: `translateX(calc(50% + …))`
+  took 50% of the lanes' own width, not the strip's. It now measures the
+  strip, and re-centres when the strip resizes.
+- On a laptop, the wheel over the strip moved time instead of scrolling the
+  page, so scrolling down got stuck there. A vertical wheel now moves time
+  only once you've clicked into the strip.
+- The iPad's date fields were clipped once the clock took a column; the
+  field's column is wider.
+- A page-wide MutationObserver to set up a planner swapped in live would have
+  fired on the strip's own changes every frame; it listens for
+  `house:fresh` instead.
+- Entry 72's README edit had left two Movie-time sentences stuck to the Esc
+  paragraph; moved back.
+
+Product calls, named for Rithika to redirect:
+
+- The strip moves in five-minute steps, and the keys in quarter hours.
+- "Dusk" is before 7 am and from 8 pm; "night" is her sleep hours.
+
+**Correction:** none.
+
+PROCESS.md's body is left alone: Rithika said she'd record the screenshots
+there herself. Shots 01 to 19 keep their names, so its pictures are the new
+ones; 20 and 21 are new files beside them.
+
+**Commits:** this entry is in the code commit; PROCESS.md's Prompts line,
+which cites it, is in the commit after.
