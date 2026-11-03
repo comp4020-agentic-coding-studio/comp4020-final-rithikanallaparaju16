@@ -4,6 +4,7 @@ house's art in public/art/. A dev-time tool (needs Pillow); the app itself only
 serves the files this writes.
 
   python3 scripts/cut-art.py
+  python3 scripts/cut-art.py icons   # only the home-screen icons
 
 - house.jpg: the cutaway house, with Laddoo and his blanket lifted out and the
   lawn filled back in from the tree's shade around it, and one study table
@@ -11,8 +12,14 @@ serves the files this writes.
 - laddoo.png: Laddoo on his blanket, so the blanket goes wherever he does
 - avatar-<id>.png: each sticker from the lineup on a transparent background,
   all on the same canvas size so they line up feet-first
+- icon-180.png, icon-192.png, icon-512.png: the house's icon for a phone's
+  home screen (Apple reads the 180, Android the 192 and 512), cut from the
+  finished house.jpg around the living room fire, the wall of notes and the
+  armchair. The fire sits near the middle, since phones round the corners and
+  Android may crop it to a circle.
 """
 import random
+import sys
 from pathlib import Path
 
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageStat
@@ -128,7 +135,25 @@ def avatars() -> None:
         print(f"avatar-{pid}.png from a {piece.size} sticker")
 
 
+# The square around the living room fire in house.jpg's pixels.
+ICON_BOX = (760, 40, 1060, 340)
+ICON_SIZES = (180, 192, 512)
+
+
+def icons() -> None:
+    src = Image.open(OUT / "house.jpg").convert("RGB").crop(ICON_BOX)
+    for size in ICON_SIZES:
+        # A painting, so 256 colours keeps it light without losing the look.
+        img = src.resize((size, size), Image.LANCZOS).quantize(256, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.FLOYDSTEINBERG)
+        img.save(OUT / f"icon-{size}.png", optimize=True)
+        print(f"icon-{size}.png, {(OUT / f'icon-{size}.png').stat().st_size // 1024} KB")
+
+
 if __name__ == "__main__":
     OUT.mkdir(parents=True, exist_ok=True)
-    house()
-    avatars()
+    if sys.argv[1:] == ["icons"]:
+        icons()
+    else:
+        house()
+        avatars()
+        icons()

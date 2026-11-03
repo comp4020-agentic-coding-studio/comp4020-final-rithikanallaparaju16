@@ -2936,3 +2936,108 @@ too close to a read receipt.
 **Correction:** none.
 
 **Commits:** this entry's commit.
+
+### 71. Save a plate, write back, all five clocks, the joke on the wall, a home-screen icon (3 Nov 2026)
+
+**Asked:** update the screenshots in PROCESS.md, then build and screenshot:
+saving a plate; desk notes kept personal with no passwords, said in
+PROCESS.md to be on purpose so the tutor can check and mark it; the inside
+joke framed on the memory wall; adding the house to an Android or iPhone
+home screen; writing back; and movie night's time picked in anyone's clock,
+with every friend's time shown at once and changing one moving the others.
+All on a separate branch.
+
+**Agent:** made the branch `plates-replies-home-screen-times` from `main` and
+built it there.
+
+- A saved plate is a `dish` whose `item` is `<food>:for:<id>` (ADR 0022).
+  It's covered on the counter with a tag in her colour, outlasts the three
+  days, and only she can eat it (400 for anyone else, and for saving one for
+  yourself). The cook hears "found the plate of dosa you saved her".
+- Writing back is a new kind, `reply`, on the writer's desk, with the
+  answered note's id in `item`. It quotes her note (cut by characters, so an
+  emoji isn't split), is private like any desk note, and is offered once per
+  note on your own desk.
+- The movie planner has a row per friend, yours first. Only yours is the
+  form's `when`; `public/live.js` moves the others with `Intl`, daylight
+  saving included, and says who's usually asleep in the server's words. The
+  planner became a live part of the page, which fixes RICE row T; its skipped
+  test is on again.
+- A made house's joke moved into the memory wall's Memories.
+- `GET /manifest.webmanifest` (a made house's under its own `/h/<code>/`),
+  `apple-touch-icon` and the `apple-mobile-web-app-*` tags. Icons at 180,
+  192 and 512 px are cut from house.jpg by `scripts/cut-art.py icons`.
+- `scripts/shot.ts` takes `SHOT_JS`, a line of script run before the
+  picture; the tour uses it to open writing back and to plan from Neha's row.
+- Spec tests for each promise, README, ADR 0022, and RICE rows G and T.
+
+Checked on a throwaway server: real taps on the door's windows, Write back,
+the "save a plate for" choices and the planner's rows; the kitchen, desk,
+planner and memory wall at 390 px, the kitchen at 820 px with touch, and
+desktop. `pnpm check` against a fresh throwaway server: 103 passed, 21
+skipped. Retook every screenshot with `scripts/tour.ts`, added two (saved
+plates, the planner), and rewrote the captions where the picture had changed
+(the door is now 4:42 am in India, not 1 am in New Jersey).
+
+Two things went wrong along the way. The planner's script first wrote
+"Rithanya's usually asleep" where the server wrote "She's", so the note
+changed wording when a row moved; it now reads the server's words from a
+`data-says` attribute. The 512 px icon was 500 KB; it's quantized to 256
+colours now (173 KB).
+
+Product calls, named for Rithika to redirect:
+
+- A saved plate never goes off, and can't be taken back.
+- You write back once per note.
+- The planner starts two hours from now, on the hour.
+- The icon is the living room's fire and notes wall.
+
+**Correction:** none.
+
+**Commits:** `74069c4` (features, tests, docs, screenshots), and this
+entry's commit. Not merged or pushed.
+
+### 72. The planner any time, for video calls; Esc to see the whole house; ship it (3 Nov 2026)
+
+**Asked:** "nono let the planner be there from anytime, because sometimes we
+wanna video call as well, its easier to check times, so this planner can be
+used for video calling and all aslo, also make the app website show on
+homescreen like locket if you can do". Then, while the agent was working:
+in bed in your room, Esc should zoom out to the whole house "no matter where
+i am", to see who's moving about; open the live site after; and "make these
+changed apply to the house made also, not just the main house. so your tests
+should cover everything".
+
+**Agent:** on the same branch:
+
+- The planner is one form (`POST /plan`, ADR 0023) on the Everyone tab and on
+  Movies. It starts at the next quarter of an hour and goes anywhere; only a
+  time that's gone is refused. It plans a video call (new kind `call`, with
+  what it's about) or a movie night, and "Back to now" resets every clock.
+  The next call is on the Everyone tab, in each friend's own time.
+- Esc, from anywhere on a room's page, zooms the drawing out to the whole
+  house and back, without leaving the page, so lying in bed you stay in bed
+  and friends keep moving live. A "See the whole house" button does the same
+  on touch screens. The first try did nothing: the button was set up before
+  `const lookButton` was declared (a ReferenceError that stopped the script);
+  moved below it.
+- Tests for both houses: the planner's rows from now on both tabs, planning
+  a call, movie night from the planner, the room page carrying the whole
+  house with you asleep in it (what Esc needs), and in a house for four,
+  saved plates, writing back, the planner with that house's own clocks, a
+  call, and the room page. `pnpm check` on a fresh throwaway server: 109
+  passed, 21 skipped. Esc itself was checked in a browser on both houses
+  (Rithika asleep in her room, Sana in The Chai Corner), at 1280, 820 (touch)
+  and 390; the button, the "movie night" choice and "Back to now" were
+  tapped for real.
+
+**Locket:** not built. A Locket-style widget on the home screen needs an app
+from the App Store or Play Store; a web page added to the home screen can't
+have one. The web's only home-screen signal is a number badge on the icon,
+which would be a count, against the house's no-counts rule, so it's
+Rithika's call.
+
+**Correction:** the planner had started two hours ahead, on the Movies page
+only; Rithika wanted it from any time and for calls.
+
+**Commits:** the code commit is cited in PROCESS.md's Prompts line, and this entry is in the commit after it.

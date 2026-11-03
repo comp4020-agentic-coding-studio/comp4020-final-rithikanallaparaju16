@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { ART, ART_TYPES, isArt } from "./assets.ts";
 import { avatarSvg, parseLook } from "./avatars.ts";
-import { counter, DOG, find, FOOD, gifts, KETTLE_ROOM, MASK_ROOM, movies, PLANTS, resting, roomPlace, seats, STICKERS, wall } from "./house.ts";
+import { counter, desk, DOG, find, FOOD, gifts, KETTLE_ROOM, MASK_ROOM, movies, PLANTS, resting, roomPlace, savedFor, seats, STICKERS, wall } from "./house.ts";
 import { closeHouses, findHouse, house, inHouse, made, ORIGINAL } from "./houses.ts";
 import * as live from "./live.ts";
 import { make } from "./maker.ts";
@@ -17,8 +17,10 @@ import {
   hugFrom,
   kitchenPage,
   livingPage,
+  manifest,
   MAX_DISH_NOTE,
   MAX_NOTE,
+  MAX_ABOUT,
   MAX_TITLE,
   messagePage,
   moviesPage,
@@ -167,6 +169,8 @@ function line(did: string | null, owner?: Person, me?: Person): string | undefin
         : `Happy birthday, ${owner.name}! Your wish is in ${their(owner)} room for ${them(owner)} to find.`;
     case "desk":
       return owner && `Left on ${owner.name}'s desk. It'll be waiting whenever ${owner.name} is next home.`;
+    case "reply":
+      return "Written back. It's on their desk, waiting for whenever they're next home.";
     case "tidy":
       return owner?.id === "5" && !made() ? "All tidy. The banana stays, though. It's Aswathy's." : "All tidy.";
     case "wall":
@@ -177,6 +181,10 @@ function line(did: string | null, owner?: Person, me?: Person): string | undefin
       return "Left out on the counter for everyone.";
     case "eat":
       return "Every last bite. The plate's off the counter, and the cook will hear it was you.";
+    case "saved":
+      return "Covered and saved. It'll wait on the counter for them, however long they're away.";
+    case "atesaved":
+      return "Every last bite. Whoever saved it for you will hear you found it.";
     case "water":
       return "The garden's had a good drink.";
     case "plant":
@@ -199,6 +207,8 @@ function line(did: string | null, owner?: Person, me?: Person): string | undefin
       return "Marked as watched.";
     case "night":
       return `Movie night's planned. Everyone sees it in ${made() ? "their" : "her"} own time.`;
+    case "call":
+      return `The call's planned. Everyone sees it in ${made() ? "their" : "her"} own time, on the Everyone tab.`;
     case "uno":
       return "Dealt: seven cards each, and twenty seconds a turn.";
     case "unowon":
@@ -251,6 +261,8 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   if (route === "GET /style.css") return send(res, 200, readFileSync(STYLE), "text/css; charset=utf-8");
   if (route === "GET /house.js") return send(res, 200, readFileSync(SCRIPT), "text/javascript; charset=utf-8");
   if (route === "GET /live.js") return send(res, 200, readFileSync(LIVE), "text/javascript; charset=utf-8");
+  // For a phone's home screen (Android); an iPhone reads the page's own tags.
+  if (route === "GET /manifest.webmanifest") return send(res, 200, manifest(), "application/manifest+json; charset=utf-8");
   // A made friend's sticker, drawn on the server from her look
   // (src/avatars.ts). The same look always draws the same picture.
   const sticker = method === "GET" ? pathname.match(/^\/avatar\/([a-z0-9-]+)\.svg$/) : null;
@@ -271,10 +283,10 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     if (!me) return redirect(res, "/");
     const v = visit(me);
     if (pathname === "/uno") return send(res, 200, unoPage(v, confirmation(did)));
-    return send(res, 200, pathname === "/updates" ? updatesPage(v) : pathname === "/everyone" ? everyonePage(v) : moviesPage(v, confirmation(did)));
+    return send(res, 200, pathname === "/updates" ? updatesPage(v) : pathname === "/everyone" ? everyonePage(v, confirmation(did)) : moviesPage(v, confirmation(did)));
   }
 
-  const roomMatch = pathname.match(/^\/room\/([^/]+)(\/leave|\/tidy|\/mask|\/kettle|\/nap|\/wish)?$/);
+  const roomMatch = pathname.match(/^\/room\/([^/]+)(\/leave|\/tidy|\/mask|\/kettle|\/nap|\/wish|\/reply)?$/);
   const owner = roomMatch ? personById(roomMatch[1]) : undefined;
   if (roomMatch && !owner) return send(res, 404, messagePage("No such room", `There are ${PEOPLE.length} rooms in this house, and that isn't one of them.`));
   // The face mask powder is in Rithanya's room, and the kettle in Amirdhavarshini's.
@@ -299,7 +311,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
 
   if (method !== "POST") return send(res, 404, messagePage("Nothing here", "There's no room by that name in this house."));
 
-  const writes = ["/wall", "/kitchen", "/kitchen/eat", "/garden/water", "/garden/plant", "/garden/dog", "/garden/treat", "/sit", "/here", "/movies", "/movies/watched", "/movies/night", "/uno", "/uno/move", "/hug", "/wall/sticker"];
+  const writes = ["/wall", "/kitchen", "/kitchen/eat", "/garden/water", "/garden/plant", "/garden/dog", "/garden/treat", "/sit", "/here", "/movies", "/movies/watched", "/movies/night", "/plan", "/uno", "/uno/move", "/hug", "/wall/sticker"];
   if (!writes.includes(pathname) && !roomMatch?.[2]) {
     return send(res, 404, messagePage("Nothing here", "There's no room by that name in this house."));
   }
@@ -365,6 +377,19 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     return redirect(res, `${back}?did=desk`);
   }
 
+  // Writing back to a note on your own desk: it goes on the desk of whoever
+  // wrote it, and only she can read it, like any desk note.
+  if (owner && roomMatch?.[2] === "/reply") {
+    const mine = `/room/${me.id}`;
+    const note = desk(store.things(), me.id).find((t) => String(t.id) === form.get("note"));
+    if (!note || note.author !== owner.id) return send(res, 400, messagePage("Which note?", `That isn't a note from ${owner.name} on your desk.`, `${mine}#desk`));
+    if (owner.id === me.id) return send(res, 400, messagePage("That's your own note", "Write back to a friend's note instead.", `${mine}#desk`));
+    if (!body) return send(res, 400, messagePage("Nothing to say?", "Write something before leaving it on their desk.", `${mine}#desk`));
+    if (body.length > MAX_NOTE) return send(res, 400, messagePage("Too long", `Notes fit up to ${MAX_NOTE} characters.`, `${mine}#desk`));
+    store.leave({ author: me.id, kind: "reply", place: roomPlace(owner.id), body, item: String(note.id) });
+    return redirect(res, `${mine}?did=reply#desk-${note.id}`);
+  }
+
   if (pathname === "/wall") {
     if (!body) return send(res, 400, messagePage("An empty note", "Write something before pinning it up.", "/living"));
     if (body.length > MAX_NOTE) return send(res, 400, messagePage("Too long", `Notes fit up to ${MAX_NOTE} characters.`, "/living"));
@@ -384,19 +409,31 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     return redirect(res, `/living?did=sticker#note-${note.id}`);
   }
 
+  // Cooking for everyone, or saving a plate for one friend who's away (ADR
+  // 0022): the dish's item carries who it's for, as "<food>:for:<id>".
   if (pathname === "/kitchen") {
     if (!find(FOOD, item)) return send(res, 400, messagePage("What are you making?", "Pick something to cook first.", "/kitchen"));
     if (body.length > MAX_DISH_NOTE) return send(res, 400, messagePage("Too long", `Kitchen notes fit up to ${MAX_DISH_NOTE} characters.`, "/kitchen"));
-    store.leave({ author: me.id, kind: "dish", place: "kitchen", body, item });
-    return redirect(res, "/kitchen?did=dish");
+    const forWho = text(form, "for");
+    const friend = forWho ? personById(forWho) : undefined;
+    if (forWho && !friend) return send(res, 400, messagePage("Save it for who?", "That isn't one of the friends in this house.", "/kitchen"));
+    if (friend?.id === me.id) return send(res, 400, messagePage("That's you", "Save a plate for a friend instead, or leave it out for everyone.", "/kitchen"));
+    store.leave({ author: me.id, kind: "dish", place: "kitchen", body, item: friend ? `${item}:for:${friend.id}` : item });
+    return redirect(res, `/kitchen?did=${friend ? "saved" : "dish"}`);
   }
 
-  // Anyone can eat what's on the counter, which takes it off for everyone.
+  // Anyone can eat what's out for everyone, which takes it off the counter. A
+  // plate saved for a friend is only hers to eat.
   if (pathname === "/kitchen/eat") {
     const dish = counter(store.things(), Date.now()).find((t) => String(t.id) === form.get("dish"));
     if (!dish) return send(res, 400, messagePage("All gone", "Someone's already eaten that, or it was out too long.", "/kitchen"));
+    const forWho = savedFor(dish);
+    if (forWho && forWho !== me.id) {
+      const friend = personById(forWho);
+      return send(res, 400, messagePage("That plate's saved", `It's covered and kept for ${friend?.name ?? "a friend"}. Cook something of your own, or save ${them(friend)} another.`, "/kitchen"));
+    }
     store.leave({ author: me.id, kind: "eat", place: `dish:${dish.id}` });
-    return redirect(res, "/kitchen?did=eat");
+    return redirect(res, `/kitchen?did=${forWho ? "atesaved" : "eat"}`);
   }
 
   // UNO on Amirdhavarshini's mat: deal for everyone sitting on it, as long as
@@ -430,6 +467,27 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     if (title.length > MAX_TITLE || why.length > MAX_DISH_NOTE) return send(res, 400, messagePage("Too long", "That's more than fits on the list.", "/movies"));
     store.leave({ author: me.id, kind: "movie", place: "movies", body: why ? `${title}\n${why}` : title });
     return redirect(res, "/movies?did=movie");
+  }
+
+  // A time for all of you (pages.ts planner()): a video call, or movie night
+  // with one of the suggestions. Planned from the Everyone tab or Movies, and
+  // back to whichever it was.
+  if (pathname === "/plan") {
+    const back = form.get("from") === "movies" ? "/movies" : "/everyone";
+    const at = fromLocal(form.get("when") ?? "", me.tz);
+    if (at === undefined) return send(res, 400, messagePage("When?", "Pick a day and a time.", `${back}#plan`));
+    if (at < Date.now() - 5 * 60 * 1000) return send(res, 400, messagePage("That's already gone", "Pick a time that hasn't happened yet.", `${back}#plan`));
+    if (form.get("what") === "movie") {
+      const movie = movies(store.things()).find((m) => String(m.thing.id) === form.get("movie"));
+      if (!movie) return send(res, 400, messagePage("Which movie?", "That isn't on the list.", `${back}#plan`));
+      store.leave({ author: me.id, kind: "movienight", place: `movie:${movie.thing.id}`, body: String(at) });
+      return redirect(res, `${back}?did=night`);
+    }
+    if (form.get("what") !== "call") return send(res, 400, messagePage("What for?", "Pick a video call or a movie night.", `${back}#plan`));
+    const about = text(form, "about");
+    if (about.length > MAX_ABOUT) return send(res, 400, messagePage("Too long", `Say what it's about in up to ${MAX_ABOUT} characters.`, `${back}#plan`));
+    store.leave({ author: me.id, kind: "call", place: "calls", item: String(at), body: about });
+    return redirect(res, `${back}?did=call`);
   }
 
   if (pathname === "/movies/watched" || pathname === "/movies/night") {

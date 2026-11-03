@@ -76,13 +76,13 @@ The corrections that mattered changed a rule, not just the code.
 
 ## Overview of the website
 
-Taken on 1 November 2026 by `scripts/tour.ts` ([`cac59be`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/cac59be)) at laptop, phone
-and iPad widths. They're from a throwaway copy of the house, filled with a few
+Taken on 1 November 2026 by `scripts/tour.ts` ([`cac59be`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/cac59be)) and retaken on 3
+November with the new features ([`74069c4`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/74069c4)), at laptop, phone and iPad widths. They're from a throwaway copy of the house, filled with a few
 days of us coming and going; the real house is never written to.
 
 **The door.** Pick your window. Each one shows the sky where that friend is,
-her clock, and when she was last home. Neha's is dark because it's 1 am in New
-Jersey and she's asleep. One of us at a time: a window someone's using can't
+her clock, and when she was last home. Amirdhavarshini's, Rithanya's and
+Aswathy's are dark because it's 4:42 am in India and they're asleep. One of us at a time: a window someone's using can't
 be picked.
 
 ![The door at laptop width](doc/screenshots/01-door.jpg)
@@ -90,8 +90,9 @@ be picked.
 ![The door on a phone](doc/screenshots/02-door-phone.jpg) ![Updates on a phone, coming home after two days](doc/screenshots/03-updates-phone.jpg)
 
 **Coming home** (above, right). I was last here two days ago, so Updates
-starts with what was left for me (Neha's chai, Rithanya's KitKat), then who
-came by and what they did.
+starts with what was left for me (Neha writing back to my note, the dosa
+Aswathy saved me, Neha's chai, Rithanya's KitKat), then who came by and what
+they did.
 
 **The house.** Everyone stands where they last stopped, and friends who are
 home now glow. You walk yourself with the arrow keys, and whatever you walk
@@ -100,12 +101,22 @@ up to lights up, with its buttons above Go in (here, tidying my room).
 ![The whole house at laptop width](doc/screenshots/04-house.jpg)
 
 **On a phone** the house fills the screen, and you walk with the thumb stick.
-Standing by Neha offers a hug; by the sofa, a seat or a movie night. In my
-room, notes left on my desk are mine alone.
+Standing by Neha offers a hug; by the sofa, a seat or a movie night.
+
+**Writing back.** In my room, Neha has written back to the note I left on her
+desk, and it says which note it's answering. Any note on my desk can be
+written back to, once, and the answer goes on the writer's desk.
 
 ![The house on a phone, next to Neha](doc/screenshots/05-house-phone.jpg)
 
-![My room, with notes on my desk](doc/screenshots/06-your-room.jpg)
+![My room, with Neha's reply on my desk and writing back open](doc/screenshots/06-your-room.jpg)
+
+**No passwords, on purpose.** Notes on a desk are personal: other friends in
+the house only see "A folded note for Rithika". But the door has no password,
+so anyone with the link can come in as any friend whose window is free, and
+then read that friend's desk. This is not a bug. I left passwords out for
+now so my tutor can walk in as any of us and check and mark everything. A
+front door key for each house is RICE row G, for after marking.
 
 **The living room.** Big news is pinned at the top of the wall, with stickers
 from friends (each one named, never counted). Shinzo follows whoever petted
@@ -113,16 +124,27 @@ him.
 
 ![The living room and the wall](doc/screenshots/07-living-room.jpg)
 
-**The kitchen and garden.** Food stays out for three days or until someone
-eats it. Anyone can water the garden, and the plants get thirsty but never
+**The kitchen and garden.** Food out for everyone stays three days or until
+someone eats it. A plate saved for a friend waits, covered, with her name on
+it, however long she's away. Only she can eat it, and the cook hears she
+found it. Anyone can water the garden, and the plants get thirsty but never
 die.
 
-![The kitchen on a phone](doc/screenshots/08-kitchen-phone.jpg) ![The garden on a phone](doc/screenshots/09-garden-phone.jpg)
+![The kitchen on a phone, with a plate saved for me](doc/screenshots/08-kitchen-phone.jpg) ![The garden on a phone](doc/screenshots/09-garden-phone.jpg)
+
+![The kitchen at laptop width: saved plates, and who it's for](doc/screenshots/18-saved-plates.jpg)
 
 **Movies and UNO.** Suggest a movie or plan a movie night on the sofas. UNO is
 on Amirdhavarshini's mat: seven cards each, twenty seconds a turn.
 
 ![Movie time on a phone](doc/screenshots/10-movies-phone.jpg) ![UNO on the mat, mid-game](doc/screenshots/11-uno-phone.jpg)
+
+**The best time for all of us.** Planning movie night shows everyone's clock
+at once. Some days I'm up early or Neha's up late, so you can start from
+anyone's row. Here I set Neha's to 9:30 pm, every other row moved with it,
+and Rithanya's says she's usually asleep then.
+
+![Planning movie night from Neha's clock](doc/screenshots/19-planner-phone.jpg)
 
 **Everyone, and an iPad.** Where each of us is, on her own clock.
 
@@ -137,14 +159,18 @@ had drifted away from their words ([`ce186f9`](https://github.com/comp4020-agent
 ![Making a house](doc/screenshots/14-make.jpg)
 
 The name you give a house is on its door and at the top of every page. The
-inside joke is framed at the door and in the living room, and a little frame
-hangs on the living room wall in the picture ([`3aac38e`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/3aac38e), [`cac59be`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/cac59be)).
+inside joke is framed at the door and on the memory wall in the living room,
+and a little frame hangs on the living room wall in the picture ([`3aac38e`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/3aac38e), [`cac59be`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/cac59be)).
 
 ![A made house's door, with its name and inside joke](doc/screenshots/15-made-door.jpg)
 
 ![A house made for six, with its name in the bar](doc/screenshots/16-made-house.jpg)
 
-![The made house's living room on a phone, with the joke framed](doc/screenshots/17-made-living-phone.jpg)
+![The made house's memory wall on a phone, with the joke framed](doc/screenshots/17-made-living-phone.jpg)
+
+**On a phone's home screen.** The house can be added to the home screen on
+Android and iPhone, with the living room fire as its icon, and it opens
+without the browser around it. A made house goes on under its own name.
 
 ## Prompts
 
@@ -208,3 +234,5 @@ Every prompt I gave the agent from 8 October, word for word, with the commit it 
 - "add these screen shots in process.md under the heading overview of the website": the screenshot section is now headed "Overview of the website", [`591336a`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/591336a)
 - "push everything, and i cant see any screen shots in process.md": pushed and deployed. The screenshots were committed but not pushed, so GitHub didn't have them yet; they show under "Overview of the website" now, [`e2eaaca`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/e2eaaca)
 - "from personas,prfaqs and rice, what more featues do you suggest": a question, no code change.
+- "okay, thankyou that gives a lot of insights / first i need you to update the screenshots you took in process.md / now after making the following chnages, take a few screenshots for that as well and show it / i agree w save the plate.lets do that / let notes in rooms be personal, for now lets not add passwords because my tutor has to check it, make sure you mention this in process.md, this is not a bug, just a way to keep it easier for the tutor to check and mark me. / then inside joke can be framed on the memory wall / i love the phone screen idea, lets do that as well, for both android and apple / i like the writnf back part aslo / i love the best time for all of us idea / lets cjnage it a bit becasue some days i can wake up very early or neha can sleep late / so when we are trying to pick a time, show all the times / i mean, as soon as there is an option to pick time, show all the time zones, changing one timezone reflects chnages in the others automatically. / do all this in a diff branch because if sumn goes wrong, it will be easier for us to get back where we were": on the branch `plates-replies-home-screen-times`, saving a plate, writing back, all five clocks for movie night, the joke on the memory wall and a home-screen icon, with the screenshots above retaken and the no-passwords note, [`74069c4`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/74069c4)
+- "nono let the planner be there from anytime, because sometimes we wanna video call as well, its easier to check times, so this planner can be used for video calling and all aslo, also make the app website show on homescreen like locket if you can do", then "also , make it such that, now if i go to my bed and fall asleep but when im laying if i wanna see who is moving in the house, only my room is zoomed in, when i click on esc key, no matter where i am, i have to zoom out and the whole house should be seen, after this open the live site. now make these changed apply to the house made also, not just the main house. so your tests should cover everything": the planner is on the Everyone tab and Movies from any time, and plans video calls too; Esc in any room zooms out to the whole house, in made houses as well; a Locket-style widget needs an App Store app, so it isn't built, [`5861540`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/5861540)

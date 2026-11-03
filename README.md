@@ -54,9 +54,10 @@ Characters sleep at night where they live: Neha from 10 pm to 8 am, Rithanya fro
 
 ## What you can do
 
-- **Leave something on a friend's desk.** Write a note, add something with it (masala chai, filter coffee, dosa, biryani, Maggi, cake, a mango, a flower, chocolate or a KitKat from Rithanya's box), and it waits on their desk. Only they can read the note; anyone who walks in sees that something's been left.
+- **Leave something on a friend's desk.** Write a note, add something with it (masala chai, filter coffee, dosa, biryani, Maggi, cake, a mango, a flower, chocolate or a KitKat from Rithanya's box), and it waits on their desk. Only they can read the note; anyone who walks in sees that something's been left. A friend can write back to a note on her own desk: her answer goes on your desk, says which note it's answering, and only you can read it.
 - **Write on the living room wall.** Something funny from today, a good-luck wish, anything. Tick "big news" and it stays pinned at the top. Older notes go into a memory box rather than disappearing. Friends can stick a sticker on any note (❤️ 😂 🥹 🎉 🤗 😮 🙏 👀), one each, with their name on it, so whoever wrote it knows they read it and how they felt. Pick another to swap yours, or the same one to peel it off. Stickers are never counted, and only the writer hears about them.
 - **Cook for everyone, and eat what's out.** Leave a dish out on the kitchen counter. It stays out for three days, or until someone eats it: then the plate's gone from the counter for everyone, and the cook hears who ate it.
+- **Save a plate for a friend who's away.** Cook something and save it for one friend. It sits on the counter covered, with her name on a tag, for however long she's away. Only she can eat it, she finds it first when she comes into the kitchen, and whoever saved it hears she found it.
 - **Tidy someone's room.** Rooms get a little lived-in after a couple of days, and messier after five. Anyone can tidy any room, and the owner finds out who did.
 - **Look after the garden.** Everyone has a patch to plant in. Plants sprout, grow and bloom over three days. They look thirsty after two days without water, but they never die, and anyone can water the lot.
 - **Sleep or sit down anywhere.** Anyone can sleep in anyone's bed, sit on her cushion on Amirdhavarshini's mat, sit on the sofa, or meditate on Aswathy's yoga mat. Friends who come by find you there, and the bed's owner hears who slept in it. You get up when you walk, or after two hours.
@@ -67,13 +68,15 @@ Characters sleep at night where they live: Neha from 10 pm to 8 am, Rithanya fro
 - **UNO on the mat.** Sit on Amirdhavarshini's mat with friends and deal UNO: seven cards each, up to five of you. Everyone gets twenty seconds a turn, counted down on the table. Whoever lets her time run out, or leaves the house, is out of the game, and the rest play on without waiting; the last one left wins. Updates says who dealt and who won.
 - **Do a face mask in Rithanya's room.** She always has the powder. Your sticker wears a green mask with cucumber slices for two hours, so a friend who comes by catches you in it, and Rithanya hears whose face used her powder.
 - **Make kettle Maggi in Amirdhavarshini's room.** Like in the hostel. The kettle and two bowls sit out on her mat, steaming, for the night (twelve hours), with a note if you leave one.
-- **Movie time.** Rithanya loves movies, so the Movies tab is hers. Suggest a movie and say why, tick off the ones you've watched, or plan a movie night on the living room sofas. You pick the time in your own clock, and everyone sees it in theirs, with a note if it falls while someone's usually asleep. A new plan replaces the old one. Rithanya's suggestions are marked as her picks.
+- **Movie time.** Rithanya loves movies, so the Movies tab is hers. Suggest a movie and say why, tick off the ones you've watched, or plan a movie night on the living room sofas.
+- **A time for all of us.** On the Everyone tab (and on Movies), every friend's clock is there at once, one row each, starting from now: change any of them and the rest follow, so if Neha's staying up late or you're up early, start from that row. Each row says if it falls while that friend is usually asleep. Use it just to see what time it'll be for everyone, or plan a video call (with what it's about, if you like) or a movie night from it. Everyone sees the plan in their own time, and Back to now puts the clocks back.
+- **Look out at the whole house.** In any room, even lying in bed, press Esc (or See the whole house) and the view zooms out to the whole house, so you can watch who's moving about without getting up. Esc again goes back into the room. A new plan replaces the old one. Rithanya's suggestions are marked as her picks.
 
 When you come home, **While you were away** lists what's new since your last visit, starting with what was left for you: who tidied your room, what's on your desk, who wrote on the wall, what's in the kitchen. Rooms with something new for you twinkle in the house too. A visit is a stretch of page loads with no 30-minute gap, so the *new* marks survive a refresh and reset the next time you come back. The Updates tab also keeps what happened lately, so there's always something to read.
 
 ## A house for your own friends
 
-This house is for the five of us, but anyone can make one for their own friends at `/make` (there's a link at the door), for two to seven of you. Tell it each friend's name, where she lives and a few things about her, pick what's in her room from a set of pictures (a guitar, fairy lights, too many plants, a cat bed and more), and add the memories you'd pin on the living room wall. At the end it asks for something you all did together and the inside joke or quote from it, and frames that, word for word, at the house's door and in the living room, with a little frame on the living room wall in the picture. The name you give the house is on its door and at the top of every page. It builds a house of your own at its own private address: our picture for five, or a house drawn for your number, with a room each named for your friends, their things pictured in their rooms, your memories on the wall, and everyone's own clock. When Claude can be reached it writes each room's description from what you said; otherwise the house is built straight from your words. Everything else works the same in your house: walking, hugs, UNO (at the coffee table, if you aren't five), the wall, Shinzo. Our five's own things (the KitKats, the face masks, the kettle) stay in our house.
+This house is for the five of us, but anyone can make one for their own friends at `/make` (there's a link at the door), for two to seven of you. Tell it each friend's name, where she lives and a few things about her, pick what's in her room from a set of pictures (a guitar, fairy lights, too many plants, a cat bed and more), and add the memories you'd pin on the living room wall. At the end it asks for something you all did together and the inside joke or quote from it, and frames that, word for word, at the house's door and on the memory wall in the living room, with a little frame on the living room wall in the picture. The name you give the house is on its door and at the top of every page. It builds a house of your own at its own private address: our picture for five, or a house drawn for your number, with a room each named for your friends, their things pictured in their rooms, your memories on the wall, and everyone's own clock. When Claude can be reached it writes each room's description from what you said; otherwise the house is built straight from your words. Everything else works the same in your house: walking, hugs, UNO (at the coffee table, if you aren't five), the wall, Shinzo. Our five's own things (the KitKats, the face masks, the kettle) stay in our house.
 
 It's a prototype: five friends only for now, because more friends means more rooms, and more rooms means new art.
 
@@ -81,7 +84,11 @@ It's a prototype: five friends only for now, because more friends means more roo
 
 Photos, drawings, notifications, and editing or deleting things you left. Each one has to show it makes five people feel closer first. Being in at the same time is a bonus, never a need: you see friends walk and what they do as it happens, but everything waits for whoever comes by later. UNO, with its twenty-second turns, is the one thing that needs you there.
 
-Only one person can be each of us at a time. A friend's window at the door stays shut while someone's in the house as her, and opens again two minutes after they leave, even for her own second device. Anyone with the link can still pick a window that's free. That's fine for a prototype that strangers at a crit need to walk into, but it isn't a password, so a private desk note is a courtesy, not a lock. A shared front-door key is the likely next step before the real five move in.
+Only one person can be each of us at a time. A friend's window at the door stays shut while someone's in the house as her, and opens again two minutes after they leave, even for her own second device. Anyone with the link can still pick a window that's free. There's no password on purpose for now, so the course's markers can walk in as any of us: a desk note is private from the other friends in the house, but not from someone who comes in as you. A shared front-door key is the likely next step before the real five move in.
+
+## On your phone
+
+The house can go on a phone's home screen like an app, with the living room's fire as its icon. On an iPhone, open it in Safari, tap Share, then Add to Home Screen. On Android, open it in Chrome and choose Add to Home screen (or Install app) from the menu. It opens full-screen, without the browser around it. A made house goes on the home screen under its own name and opens straight to its own door.
 
 ## How it's built
 
@@ -121,6 +128,8 @@ Run it locally with `pnpm start` (it keeps its data in `./data`), then run `pnpm
 - a note left on a friend's desk reaches that friend, and others only see that it's there
 - food from the kitchen is on the counter for everyone
 - food leaves the counter once someone eats it, and the cook hears who ate it
+- a plate saved for a friend waits for her alone, and the cook hears she found it
+- a friend can write back to a note on her desk, and only its writer can read the answer
 - a friend finds out who tidied their room
 - the garden remembers who planted what and who watered it
 - Shinzo goes along with whoever pets him, wherever they go
@@ -135,6 +144,12 @@ Run it locally with `pnpm start` (it keeps its data in `./data`), then run `pnpm
 - kettle Maggi stays out in Amirdhavarshini's room
 - a suggested movie and who watched it are there for everyone
 - a movie night shows at the right time in each friend's own clock
+- the planner shows every friend's clock from now, yours first, on the Everyone tab and Movies
+- a video call planned from it shows in everyone's own time
+- a room's page draws the whole house and everyone in it, even with you asleep in bed, so Esc can zoom out to it
+- a made house has saved plates, writing back, the planner and Esc too, for its own friends
+- an open Movies page's planner keeps up with friends' suggestions
+- the house can go on an Android or iPhone home screen, and a made house goes on as itself
 - every common area stays lit whatever the time, and only bedrooms dim, by their owner's clock
 - friends who are close can hug, one or a group, up to all five
 - a friend's birthday month brings bunting and a crown, and her friends' wishes reach her
@@ -147,7 +162,7 @@ Run it locally with `pnpm start` (it keeps its data in `./data`), then run `pnpm
 - a made house has a bedroom for each friend, and up to seven can play UNO at its coffee table
 - each made house keeps to itself: its own friends, its own wall, its own sign-in
 - a made house gives its friends their own rooms and memories, and none of ours
-- a made house frames its friends' inside joke at its door and in its living room, exactly as they wrote it, under the name they gave it
+- a made house frames its friends' inside joke at its door and on its memory wall, exactly as they wrote it, under the name they gave it
 - making houses is capped, and a house with a missing friend is turned down
 - the house only takes things it has
 

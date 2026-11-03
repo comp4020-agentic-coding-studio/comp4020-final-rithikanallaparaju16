@@ -222,6 +222,67 @@ describe.skipIf(!throwaway)("making a house for any five friends", () => {
     expect(injected(door)).toEqual([]);
   });
 
+  // Everything from 3 November works the same in a house for any number:
+  // here, a house for four, where nobody is Rithika's five.
+  const FOUR = ["Ivy", "Rae", "Kit", "Bo"];
+  const post = async (h: Made, path: string, fields: Record<string, string>, who: string): Promise<Response> =>
+    fetch(new URL(`${h.base}${path}`, baseUrl), { method: "POST", headers: { ...FORM, cookie: await cookieIn(h, who) }, body: new URLSearchParams(fields), redirect: "manual" });
+
+  it("lets a made house's friends save a plate for each other and write back to notes", async () => {
+    const h = await makeHouse({ friends: "4", ...named(FOUR), "city-1": "London", "city-2": "Toronto" });
+    const note = unique("saved you some");
+    expect((await post(h, "kitchen", { item: "cake", body: note, for: "2" }, "1")).headers.get("location")).toBe(`${h.base}kitchen?did=saved`);
+    const theirs = [...(await inside(h, "kitchen", "3")).querySelectorAll(".dish")].find((d) => text(d).includes(note));
+    expect(text(theirs?.querySelector(".saved-tag")), "the saved plate isn't marked for Rae").toBe("for Rae");
+    expect(theirs?.querySelector("button[name=dish]"), "Kit is offered Rae's plate").toBeNull();
+    const hers = [...(await inside(h, "kitchen", "2")).querySelectorAll(".dish")].find((d) => text(d).includes(note));
+    expect((await post(h, "kitchen/eat", { dish: hers!.getAttribute("data-id")! }, "2")).headers.get("location")).toBe(`${h.base}kitchen?did=atesaved`);
+
+    const desk = unique("good luck");
+    await post(h, "room/2/leave", { body: desk }, "1");
+    const onDesk = [...(await inside(h, "room/2", "2")).querySelectorAll(".desk-thing")].find((d) => text(d).includes(desk))!;
+    expect(onDesk.querySelector(`form[action="${h.base}room/1/reply"]`), "Rae can't write back to Ivy").not.toBeNull();
+    const answer = unique("thank you!!");
+    expect((await post(h, "room/1/reply", { note: onDesk.id.replace("desk-", ""), body: answer }, "2")).status).toBe(303);
+    expect(text((await inside(h, "room/1", "1")).body), "Ivy can't read Rae's reply").toContain(answer);
+    expect(text((await inside(h, "room/1", "3")).body), "Kit can read Rae's reply to Ivy").not.toContain(answer);
+  });
+
+  it("shows a made house's planner with a clock for each of its friends, and plans a call", async () => {
+    const h = await makeHouse({ friends: "4", ...named(FOUR), "city-1": "London", "city-2": "Toronto", "city-3": "Singapore", "city-4": "Melbourne" });
+    const doc = await inside(h, "everyone", "2");
+    const rows = [...doc.querySelectorAll<HTMLLIElement>(`form#plan[action="${h.base}plan"] li.when-row`)];
+    expect(rows.map((r) => text(r.querySelector(".name"))), "the planner isn't the made house's own friends, you first").toEqual(["You", "Ivy", "Kit", "Bo"]);
+    expect(rows.map((r) => r.getAttribute("data-tz"))).toEqual(["America/New_York", "Europe/London", "Asia/Singapore", "Australia/Sydney"]);
+    expect((await post(h, "plan", { from: "everyone", what: "call", when: "2030-01-05T20:00", about: "catching up" }, "2")).headers.get("location")).toBe(`${h.base}everyone?did=call`);
+    const call = (await inside(h, "everyone", "3")).querySelector("#call");
+    expect(text(call?.querySelector("h2"))).toContain("catching up");
+    expect(call?.querySelectorAll("li[data-person]").length, "the call isn't shown for each of the four").toBe(4);
+  });
+
+  it("draws a made house whole on a room's page, with you asleep in your bed, so Esc can zoom out to it", async () => {
+    const h = await makeHouse({ friends: "4", ...named(FOUR) });
+    expect((await post(h, "room/2/nap", {}, "2")).status).toBe(303);
+    await inside(h, "kitchen", "3");
+    const svg = (await inside(h, "room/2", "2")).querySelector(".house-svg");
+    expect(svg?.querySelector("image")?.getAttribute("href"), "the room's page isn't this house's own picture").toMatch(/^\/art\/house-4\.jpg/);
+    expect(svg?.getAttribute("viewBox"), "the room's page isn't framed on the room").not.toBe("0 0 1376 768");
+    expect(svg?.querySelector(".walker.me[data-person='2']")?.classList.contains("napping"), "Rae isn't in bed").toBe(true);
+    expect(svg?.querySelector("[data-person='3']"), "Kit, in the kitchen, isn't in the drawing of Rae's room").not.toBeNull();
+  });
+
+  it("goes on a phone's home screen as its own house, under its own name", async () => {
+    const h = await makeHouse({ friends: "4", ...named(["Ivy", "Rae", "Kit", "Bo"]), title: "The Chai Corner" });
+    const door = parse(await (await fetch(new URL(h.base, baseUrl))).text());
+    const linked = door.querySelector("link[rel=manifest]")?.getAttribute("href");
+    expect(linked, "the made house points at Rithika's five's manifest").toBe(`${h.base}manifest.webmanifest`);
+    const manifest = await (await fetch(new URL(linked!, baseUrl))).json();
+    expect(manifest.name).toBe("The Chai Corner");
+    expect(manifest.start_url, "the icon opens someone else's house").toBe(h.base);
+    expect(manifest.scope).toBe(h.base);
+    expect(door.querySelector("meta[name=apple-mobile-web-app-title]")?.getAttribute("content")?.length, "the name under an iPhone icon is too long to fit").toBeLessThanOrEqual(12);
+  });
+
   // BUG: /h/<code>// answers 500 (route() hands handle() "//" as the path;
   // src/server.ts:509 then :211).
   it.skip("answers odd addresses inside a made house without a crash", async () => {

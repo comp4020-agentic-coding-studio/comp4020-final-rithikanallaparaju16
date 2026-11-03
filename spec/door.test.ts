@@ -146,6 +146,33 @@ it("serves the house's own stylesheet, scripts and pictures", async () => {
   }
 });
 
+it("can be added to a phone's home screen, Android or iPhone, with the house as its icon", async () => {
+  const d = parse(await (await get("/")).text());
+  const linked = d.querySelector("link[rel=manifest]")?.getAttribute("href");
+  expect(linked, "Android has no manifest to install the house from").toBe("/manifest.webmanifest");
+  const res = await get(linked!);
+  expect(res.status).toBe(200);
+  expect(res.headers.get("content-type")).toMatch(/^application\/manifest\+json/);
+  const manifest = await res.json();
+  expect(manifest.name).toBe("Five Windows");
+  expect(manifest.start_url, "the icon doesn't open the house").toBe("/");
+  expect(manifest.display, "the icon opens a browser tab, not the house on its own").toBe("standalone");
+  const sizes = (manifest.icons as { sizes: string }[]).map((i) => i.sizes);
+  expect(sizes).toContain("192x192");
+  expect(sizes).toContain("512x512");
+
+  // iPhones don't read the manifest: they want their own icon and tags.
+  const apple = d.querySelector("link[rel=apple-touch-icon]")?.getAttribute("href");
+  expect(apple, "an iPhone has no icon for the home screen").toBeTruthy();
+  expect(d.querySelector("meta[name=apple-mobile-web-app-capable]")?.getAttribute("content")).toBe("yes");
+  expect(d.querySelector("meta[name=apple-mobile-web-app-title]")?.getAttribute("content")).toBe("Five Windows");
+  for (const icon of [apple!, ...(manifest.icons as { src: string }[]).map((i) => i.src)]) {
+    const png = await get(icon);
+    expect(png.status, `GET ${icon}`).toBe(200);
+    expect(png.headers.get("content-type"), `GET ${icon}`).toMatch(/^image\/png/);
+  }
+});
+
 it("finds the README whether or not the address ends in a slash", async () => {
   const res = await get("/readme");
   expect(res.status).toBe(303);

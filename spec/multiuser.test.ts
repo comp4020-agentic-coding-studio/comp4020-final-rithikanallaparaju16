@@ -320,10 +320,8 @@ describe.skipIf(!throwaway)("two to five friends in the house at once", () => {
     expect(table.querySelector(`.uno-player[data-person="${c.id}"]`), `${c.name} was dealt in after leaving the house`).toBeNull();
   });
 
-  // BUG: the movie-night planner on the Movies page isn't one of its live
-  // parts, so a film a friend suggests while it's open never shows in it (and
-  // the planner never appears for the first suggestion) until a reload.
-  it.skip("keeps an open Movies page's movie-night planner up to date with friends' suggestions", async () => {
+  // Fixed in session 13: the planner is one of the Movies page's live parts.
+  it("keeps an open Movies page's movie-night planner up to date with friends' suggestions", async () => {
     const [a, b] = five;
     expect((await post("/movies", { title: unique("Before Sunrise") }, b.id, base)).status).toBe(303);
     const movies = await page("/movies", a.id, base);

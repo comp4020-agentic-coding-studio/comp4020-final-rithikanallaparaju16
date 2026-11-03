@@ -2931,3 +2931,314 @@ g.joke-frame {
 .make-form .inside-joke-ask h2 {
   font-size: 1.1rem;
 }
+
+/* a plate saved for a friend (ADR 0022): covered on the counter, with her
+   name on its tag; your own saved plates come first */
+.desk-list > li.dish.saved {
+  background-color: #fff7e8;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent), 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.saved-tag {
+  display: inline-block;
+  margin-bottom: 4px;
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+#counter .small-head:first-of-type {
+  margin-top: 0;
+}
+
+/* who's it for, when you cook: everyone, or one friend */
+.compose fieldset.for-who {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.compose fieldset.for-who legend {
+  margin-bottom: 6px;
+  padding: 0;
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+}
+
+.compose fieldset.for-who label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #f6ecd9;
+  color: var(--ink);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.compose fieldset.for-who label:has(input:checked) {
+  background: #fff;
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.compose fieldset.for-who input {
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+/* writing back to a note on your desk: it goes on her desk */
+.desk-thing .reply-to {
+  margin-bottom: 4px !important;
+  font-size: 0.82rem;
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+.desk-list > li.desk-thing.reply {
+  border-left: 4px solid color-mix(in srgb, var(--paper) 40%, var(--wood));
+}
+
+.desk-thing details.write-back {
+  margin-top: 8px;
+}
+
+.desk-thing details.write-back summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1.5px solid var(--accent);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.desk-thing details.write-back summary::-webkit-details-marker {
+  display: none;
+}
+
+.desk-thing details.write-back[open] summary {
+  margin-bottom: 8px;
+}
+
+.desk-thing details.write-back .compose {
+  display: grid;
+  gap: 8px;
+}
+
+.desk-thing .wrote-back {
+  margin-top: 6px !important;
+}
+
+/* the inside joke, framed among the memories on the wall */
+.wall figure.inside-joke {
+  max-width: 30em;
+  margin: 4px auto 22px;
+  color: var(--ink);
+}
+
+/* picking a time for all of you: a clock each, moving together */
+.plan-night fieldset.when-picker {
+  margin: 4px 0 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.plan-night fieldset.when-picker legend {
+  margin-bottom: 8px;
+  padding: 0;
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+}
+
+.plan-night .when-rows {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plan-night .when-row {
+  display: grid;
+  grid-template-columns: minmax(8.5em, 1fr) minmax(0, 15em);
+  grid-template-areas: "who when" "note note";
+  gap: 2px 12px;
+  align-items: center;
+  padding: 8px 10px 8px 12px;
+  border-left: 4px solid var(--accent);
+  border-radius: 6px;
+  background: #fbf3e4;
+}
+
+.plan-night .when-row.you {
+  background: #fff;
+  box-shadow: inset 0 0 0 1px rgba(59, 42, 32, 0.12);
+}
+
+.plan-night .when-row label {
+  grid-area: who;
+  color: var(--ink);
+  font-size: 0.95rem;
+}
+
+.plan-night .when-row .name {
+  font-weight: 600;
+}
+
+.plan-night .when-row .where {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.plan-night .when-row input {
+  grid-area: when;
+  min-width: 0;
+  padding: 6px 8px;
+  font-size: 0.92rem;
+}
+
+.plan-night .when-row .sleep-note {
+  grid-area: note;
+  font-size: 0.8rem;
+  color: #8a4a2a;
+}
+
+.plan-night .when-row .sleep-note:empty {
+  display: none;
+}
+
+.plan-night .when-row.late {
+  background: #f4ebf6;
+}
+
+.plan-night .when-row.late .sleep-note::before {
+  content: "😴 ";
+}
+
+.plan-night .when-help {
+  margin-top: 8px !important;
+}
+
+@media (max-width: 520px) {
+  .plan-night .when-row {
+    grid-template-columns: 1fr;
+    grid-template-areas: "who" "when" "note";
+  }
+}
+
+/* the planner, for a video call or movie night: what it's for */
+.plan-night fieldset.plan-what {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.plan-night fieldset.plan-what legend {
+  margin-bottom: 8px;
+  padding: 0;
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+}
+
+.plan-night label.what {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: #f6ecd9;
+  color: var(--ink);
+  font-size: 0.98rem;
+  cursor: pointer;
+}
+
+.plan-night label.what:has(input:checked) {
+  background: #fff;
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.plan-night label.what input {
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.plan-night label.sub {
+  margin: 0 0 -4px 12px;
+}
+
+.plan-night .plan-what > input,
+.plan-night .plan-what > select {
+  width: calc(100% - 12px);
+  margin-left: 12px;
+  padding: 8px 10px;
+  border: 1px solid rgba(59, 42, 32, 0.25);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+}
+
+.plan-night button.back-to-now {
+  justify-self: start;
+  padding: 6px 14px;
+  font-size: 0.88rem;
+}
+
+.card.call {
+  --accent: #5b8fd6;
+}
+
+/* in a room, a look at the whole house without leaving it (Esc) */
+.map > .look-out {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 250, 240, 0.94);
+  box-shadow: 0 2px 8px rgba(40, 20, 10, 0.2);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.map > .look-out[aria-pressed="true"] {
+  background: #c4553c;
+  color: #fff;
+}
+
+.map > .look-out kbd {
+  padding: 0 5px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font: inherit;
+  font-size: 0.72rem;
+  opacity: 0.7;
+}
+
+.pad.touch ~ .look-out kbd {
+  display: none;
+}

@@ -85,7 +85,15 @@ export type Kind =
   | "hug" | "wish" | "uno" | "unomove"
   // Later in session 8: a sticker on a note on the wall (the place is
   // `note:<id>`, the item the sticker, or "" when she peels hers off).
-  | "sticker";
+  | "sticker"
+  // November: writing back to a note on your desk. It goes on the writer's
+  // desk (the place is her room, like `desk`), and the item is the id of the
+  // note it answers. A plate saved for a friend is still a `dish` (ADR 0022).
+  | "reply"
+  // A video call planned with the same everyone's-clocks picker as movie
+  // night: the place is "calls", the item the moment in milliseconds, and
+  // the body what it's for, if anyone said (so the log never shows it).
+  | "call";
 
 export type Thing = {
   id: number;
