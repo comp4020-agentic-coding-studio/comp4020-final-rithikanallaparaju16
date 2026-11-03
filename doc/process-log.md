@@ -3444,3 +3444,24 @@ Product calls, named for Rithika to redirect:
 **Correction:** none.
 
 **Commits:** this entry's commit.
+
+### 82. Push it live, to test on a phone (3 Nov 2026)
+
+**Asked:** "just push it live, then i can test it on my phone".
+
+**Agent:** fast-forwarded `main` to `phone-walk-corners` (walking from
+either bottom corner, log 80, the monthly wall and recap) and pushed
+`65aaa81`. CI's `check` and `deploy` passed. On the live site the door
+and `/readme/` load (the README has the monthly wall), `POST /wall/recap`
+without a session is refused with 403, and the read-only spec passes
+(18 passed, 119 skipped by the throwaway gate). No crit cutoff is coming,
+so no tag was moved. GitHub still reports the same 10 Dependabot alerts,
+untouched.
+
+Since it's already 3 November, the live wall now shows only what's been
+pinned since the 1st, October is in the memory box, and each friend gets
+October's recap on her next visit (not on a first visit ever).
+
+**Correction:** none.
+
+**Commits:** `65aaa81` (what went live), and this entry's commit.
