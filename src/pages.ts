@@ -747,6 +747,60 @@ function everyone(v: Visit, full: boolean): string {
   </section>`;
 }
 
+/* ---------- the home-screen widget (ADR 0025) ---------- */
+
+// What a friend's home-screen widget shows, like Locket: the newest thing a
+// friend left for her (a photo on the wall first, if one's newer than a day
+// since anything else), and the others' faces and clocks, glowing if they're
+// home now. The words are Updates' own, so the widget and the house agree.
+// Pictures are named relative to the widget's own address, which carries
+// its key: `photo/<id>` and `face/<id>` (src/server.ts).
+export type WidgetFriend = { id: string; name: string; color: string; time: string; day: boolean; home: boolean; asleep: boolean; face: string };
+export type Widget = {
+  house: string;
+  for: string;
+  latest?: { text: string; by: string; color: string; ago: string; at: number; photo?: string; caption?: string; face: string; open: string };
+  friends: WidgetFriend[];
+  open: string;
+};
+
+export function widget(v: Visit): Widget {
+  const faceOf = (p: Person): string => `face/${p.id}`;
+  const fromFriends = v.things.filter((t) => t.author !== v.me.id);
+  const list = happenings(fromFriends, v.me, v.things);
+  // What was left for you comes first, then the rest, newest first in each.
+  const pick = list.filter((h) => h.forYou).sort((a, b) => b.at - a.at)[0] ?? list.sort((a, b) => b.at - a.at)[0];
+  const thing = pick && fromFriends.find((t) => t.createdAt === pick.at && happening(t, v.me, v.things)?.text === pick.text);
+  // A friend's photo on the wall is what a widget is for: it shows over a
+  // line of words unless the words are a day newer.
+  const snap = wall(fromFriends).find((t) => photoOf(t));
+  const useSnap = snap && (!thing || snap.createdAt > thing.createdAt - 24 * 60 * 60 * 1000);
+  const shown = useSnap ? snap : thing;
+  const by = shown && personById(shown.author);
+  const latest = shown && by
+    ? {
+      text: useSnap ? `${by.name} pinned a photo on the wall` : pick!.text,
+      by: by.name,
+      color: by.color,
+      ago: ago(shown.createdAt, v.now),
+      at: shown.createdAt,
+      ...(useSnap ? { photo: `photo/${photoOf(shown)}`, ...(shown.body ? { caption: shown.body } : {}) } : {}),
+      face: faceOf(by),
+      open: useSnap ? `/living#note-${shown.id}` : pick!.href,
+    }
+    : undefined;
+  return {
+    house: houseName(),
+    for: v.me.name,
+    latest,
+    friends: PEOPLE.map((p) => {
+      const c = clock(p.tz, v.now);
+      return { id: p.id, name: p.id === v.me.id ? "You" : p.name, color: p.color, time: c.label, day: !["night", "dusk"].includes(phase(c)), home: homeNow(p, v), asleep: sleeping(p, v), face: faceOf(p) };
+    }),
+    open: "/",
+  };
+}
+
 /* ---------- the tabs ---------- */
 
 export function housePage(v: Visit): string {
@@ -777,7 +831,7 @@ ${bar(v, "updates")}
 
 // Everyone's clock right now, then the next video call and the planner to
 // find a time that works for all of you.
-export function everyonePage(v: Visit, did?: Done): string {
+export function everyonePage(v: Visit, did?: Done, widgetLink?: string): string {
   return shell(`Everyone · ${houseName()}`, `
 ${bar(v, "everyone")}
 <main class="list">
@@ -785,8 +839,48 @@ ${bar(v, "everyone")}
   ${everyone(v, true)}
   ${callCard(v)}
   ${planner(v, "everyone")}
+  ${widgetCard(widgetLink)}
   ${footer(v.me)}
 </main>`, phase(clock(v.me.tz, v.now)), "page-list");
+}
+
+// Getting the house onto your home screen as a widget, like Locket (ADR
+// 0025): your own link, and how to use it on an iPhone or an Android. The
+// link is only on your own Everyone tab, and making a new one turns the old
+// one off. `link` is the full address, from src/server.ts.
+function widgetCard(link?: string): string {
+  const make = `<form method="post" action="/widget" class="inline"><button class="${link ? "soft" : ""}">${emoji("widget")} ${link ? "Make a new link (the old one stops)" : "Make my widget link"}</button></form>`;
+  if (!link) {
+    return `<section class="card home-widget" id="widget" aria-labelledby="widget-heading">
+    <h2 id="widget-heading">The house on your home screen</h2>
+    <p>Like Locket: a widget on your phone's home screen with the newest photo or note a friend left you, and everyone's faces and clocks. It's your own link, so keep it to yourself.</p>
+    ${make}
+  </section>`;
+  }
+  return `<section class="card home-widget" id="widget" aria-labelledby="widget-heading">
+    <h2 id="widget-heading">The house on your home screen</h2>
+    <p>Your widget's link. It shows what friends left for you, so keep it to yourself.</p>
+    <p><input class="widget-link" readonly value="${esc(link)}" aria-label="Your widget's link" onfocus="this.select()"></p>
+    <details id="widget-iphone"><summary>On an iPhone</summary>
+      <ol>
+        <li>Get <b>Scriptable</b> from the App Store (it's free).</li>
+        <li>On this phone, open <a href="${esc(link)}scriptable.js">your widget's script</a>, select all of it and copy it.</li>
+        <li>In Scriptable, tap <b>+</b>, paste it in, and name it “${esc(houseName())}”.</li>
+        <li>Hold down on your home screen, tap <b>+</b>, pick <b>Scriptable</b>, and add a small or medium widget.</li>
+        <li>Hold down on the widget, tap <b>Edit Widget</b>, and for Script pick “${esc(houseName())}”.</li>
+      </ol>
+    </details>
+    <details id="widget-android"><summary>On an Android</summary>
+      <ol>
+        <li>Get <b>KWGT</b> from the Play Store, and its <b>Pro</b> key (a few dollars; it's what lets a widget read a link).</li>
+        <li>Add a KWGT widget to your home screen, tap it, and make a new one.</li>
+        <li>Add an image and a text. For the image, use <code>$wg("${esc(link)}", json, .latest.photo)$</code> with your link in front, and for the text <code>$wg("${esc(link)}", json, .latest.text)$</code>.</li>
+        <li>For the faces and clocks, add a text for each friend with <code>.friends[0].time</code>, <code>.friends[1].time</code> and so on.</li>
+      </ol>
+      <p class="small">Or put the house itself on your home screen: in Chrome, ⋮ then Add to home screen.</p>
+    </details>
+    ${make}
+  </section>`;
 }
 
 /* ---------- rooms ---------- */

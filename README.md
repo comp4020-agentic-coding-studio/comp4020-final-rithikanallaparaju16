@@ -91,6 +91,8 @@ Only one person can be each of us at a time. A friend's window at the door stays
 
 The house can go on a phone's home screen like an app, with the living room's fire as its icon. On an iPhone, open it in Safari, tap Share, then Add to Home Screen. On Android, open it in Chrome and choose Add to Home screen (or Install app) from the menu. It opens full-screen, without the browser around it. A made house goes on the home screen under its own name and opens straight to its own door.
 
+There's a widget too, like Locket: the newest photo or note a friend left you, with her face, and below it everyone's face and clock, glowing if she's home now. Tap it to go in. Make your own link at the bottom of the Everyone tab (it's yours alone, so keep it to yourself; making a new one turns the old one off). On an iPhone it's a widget in the free Scriptable app, and the Everyone tab gives you the script with your link already in it. On Android it's a KWGT widget (its Pro key is a few dollars). It refreshes every so often, when your phone lets it, and never sends a notification.
+
 ## How it's built
 
 It's kept as small as the problem: one Node process, no framework and no runtime dependencies. Every page is drawn on the server, and every action is a plain HTML form. One small script lets you walk your avatar around, and another keeps an open page up to date, but everything works without them: rooms are links.
@@ -152,6 +154,7 @@ Run it locally with `pnpm start` (it keeps its data in `./data`), then run `pnpm
 - an open Movies page's planner keeps up with friends' suggestions
 - the time for all of us comes first on Movies, before the suggestions
 - a photo pinned on the memory wall, with its words, is there for friends in the house and nobody else
+- each friend's home-screen widget link shows what friends left her and everyone's clocks, only with her own key, without coming in
 - the house can go on an Android or iPhone home screen, and a made house goes on as itself
 - every common area stays lit whatever the time, and only bedrooms dim, by their owner's clock
 - friends who are close can hug, one or a group, up to all five

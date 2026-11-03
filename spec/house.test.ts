@@ -271,6 +271,59 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect((await pin(new Blob([png], { type: "image/png" }), "long.png", "x".repeat(501))).status).toBe(400);
   });
 
+  // Rithika: "can you make this into sumn i can view on the homescreen, like
+  // locket?" (ADR 0025). A widget reads one private link per friend.
+  it("gives each friend a home-screen widget link showing what friends left her, and nothing to anyone else", async () => {
+    const [a, b] = await people();
+    const before = await page("/everyone", a.id);
+    expect(before.querySelector("#widget form[action='/widget'] button"), "there's no way to make a widget link").not.toBeNull();
+
+    expect((await post("/widget", {}, a.id)).headers.get("location")).toBe("/everyone?did=widget#widget");
+    const link = (await page("/everyone", a.id)).querySelector<HTMLInputElement>("#widget input.widget-link")?.getAttribute("value") ?? "";
+    expect(link).toMatch(new RegExp(`/widget/${a.id}\\.[A-Za-z0-9_-]{20,}/$`));
+    const path = new URL(link).pathname;
+
+    // b pins a photo; a's widget shows it, as a Locket would, with b's words.
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP4v+7/fwAIDAN+M8x3iQAAAABJRU5ErkJggg==", "base64");
+    const caption = unique("this reminds me of you guys");
+    const data = new FormData();
+    data.set("photo", new Blob([png], { type: "image/png" }), "us.png");
+    data.set("body", caption);
+    await fetch(new URL("/wall/photo", baseUrl), { method: "POST", headers: { cookie: await cookieFor(b.id) }, body: data, redirect: "manual" });
+
+    // Read with no cookie at all: the link is the key.
+    const res = await fetch(new URL(path, baseUrl));
+    expect(res.status).toBe(200);
+    const w = await res.json();
+    expect(w.for).toBe(a.name);
+    expect(w.latest, "the widget doesn't show b's photo").toMatchObject({ by: b.name, caption, text: `${b.name} pinned a photo on the wall` });
+    expect(w.latest.photo).toMatch(/^photo\/\d+$/);
+    const five = await people();
+    expect(w.friends.map((f: { name: string }) => f.name), "the widget doesn't show all five").toEqual(five.map((p) => (p.id === a.id ? "You" : p.name)));
+    for (const f of w.friends) expect(f.time, `${f.name} has no clock`).toMatch(/^\d{1,2}:\d{2} [ap]m$/);
+
+    // The photo and faces come through the same link, so the widget never signs in.
+    const photo = await fetch(new URL(w.latest.photo, new URL(path, baseUrl)));
+    expect(Buffer.from(await photo.arrayBuffer()).equals(png)).toBe(true);
+    expect((await fetch(new URL(w.friends[0].face, new URL(path, baseUrl)))).status).toBe(200);
+    const script = await (await fetch(new URL(`${path}scriptable.js`, baseUrl))).text();
+    expect(script, "the iPhone script doesn't carry her link").toContain(`const LINK = "${new URL(path, baseUrl).origin}${path}";`);
+
+    // A widget reading the house isn't coming by: her window stays as it was.
+    await signOut(a.id);
+    await fetch(new URL(path, baseUrl));
+    const back = await signIn(a.id);
+    expect(back.status, "reading the widget held her window").toBe(303);
+    await fetch(new URL("/leave", baseUrl), { method: "POST", headers: { cookie: sessionOf(back) ?? "" }, redirect: "manual" });
+
+    // Wrong keys, other friends' ids and old links read nothing.
+    expect((await fetch(new URL(path.replace(/\.[^/]+\//, ".wrongkeywrongkeywrongkey/"), baseUrl))).status).toBe(404);
+    expect((await fetch(new URL(path.replace(`/widget/${a.id}.`, `/widget/${b.id}.`), baseUrl))).status, "a's key opens b's widget").toBe(404);
+    expect((await post("/widget", {}, a.id)).status).toBe(303);
+    expect((await fetch(new URL(path, baseUrl))).status, "the old link still works after making a new one").toBe(404);
+    expect((await post("/widget", {})).status, "a stranger made a widget link").toBe(403);
+  });
+
   it("only lets the five leave things", async () => {
     const note = unique("from a stranger");
     expect((await post("/wall", { body: note })).status).toBe(403);

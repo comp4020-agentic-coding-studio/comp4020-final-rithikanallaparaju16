@@ -51,7 +51,10 @@ function migrate(db: DatabaseSync): void {
   // (ADR 0011), which her `who` cookie has to carry, empty when nobody is; and
   // when she came in at the door (`claimed`), which holds her window shut before
   // her first page load.
-  for (const [column, type] of [["arrived", "INTEGER NOT NULL DEFAULT 0"], ["x", "REAL"], ["y", "REAL"], ["token", "TEXT NOT NULL DEFAULT ''"], ["claimed", "INTEGER NOT NULL DEFAULT 0"]]) {
+  // November: the key to each friend's home-screen widget (ADR 0025), empty
+  // until she makes one. It's not her session token: a widget reads the
+  // house without ever being in it.
+  for (const [column, type] of [["arrived", "INTEGER NOT NULL DEFAULT 0"], ["x", "REAL"], ["y", "REAL"], ["token", "TEXT NOT NULL DEFAULT ''"], ["claimed", "INTEGER NOT NULL DEFAULT 0"], ["widget", "TEXT NOT NULL DEFAULT ''"]]) {
     if (!db.prepare("SELECT 1 FROM pragma_table_info('visits') WHERE name = ?").get(column)) {
       db.exec(`ALTER TABLE visits ADD COLUMN ${column} ${type}`);
     }
@@ -156,9 +159,14 @@ function statements(db: DatabaseSync) {
       place = CASE excluded.place WHEN '' THEN visits.place ELSE excluded.place END
   `);
   const updateSpot = db.prepare("UPDATE visits SET x = ?, y = ?, arrived = ? WHERE person = ?");
+  const selectWidget = db.prepare("SELECT widget FROM visits WHERE person = ?");
+  const setWidget = db.prepare(`
+    INSERT INTO visits (person, last_seen, seen_until, widget) VALUES (?, 0, 0, ?)
+    ON CONFLICT (person) DO UPDATE SET widget = excluded.widget
+  `);
   const insertPhoto = db.prepare("INSERT INTO photos (type, data, created_at) VALUES (?, ?, ?)");
   const selectPhoto = db.prepare("SELECT type, data FROM photos WHERE id = ?");
-  return { db, insertThing, selectThings, selectVisit, selectToken, claimToken, releaseToken, selectVisits, upsertVisit, updateSpot, insertPhoto, selectPhoto };
+  return { db, insertThing, selectThings, selectVisit, selectToken, claimToken, releaseToken, selectVisits, upsertVisit, updateSpot, selectWidget, setWidget, insertPhoto, selectPhoto };
 }
 
 type Statements = ReturnType<typeof statements>;
@@ -191,6 +199,17 @@ export function leave(t: { author: string; kind: Kind; place: string; body?: str
   const words = t.body ? ` (${t.body.length} chars written)` : "";
   log(`${who(t.author)} ${t.kind} at ${t.place}${item}${words} #${r.lastInsertRowid}`);
   changed();
+}
+
+// Each friend's home-screen widget key (ADR 0025): "" until she makes one.
+// Making a new one turns the old one off.
+export function widgetKey(person: string): string {
+  return String(q().selectWidget.get(person)?.widget ?? "");
+}
+
+export function setWidgetKey(person: string, key: string): void {
+  q().setWidget.run(person, key);
+  log(`${who(person)} made a home-screen widget key (${tag(key)})`);
 }
 
 // A photo for the memory wall, kept first so the note on the wall can point
@@ -279,6 +298,14 @@ export function recordVisit(person: string, place = ""): number {
   const moved = place !== "" && place !== String(prev?.place ?? "");
   if (cameHome || moved) changed();
   return seenUntil;
+}
+
+// What "new" means for someone who isn't here right now (a widget, ADR
+// 0025): new since her last visit ended, without starting one.
+export function seenSince(person: string): number {
+  const prev = q().selectVisit.get(person);
+  if (!prev) return 0;
+  return Date.now() - Number(prev.last_seen) > VISIT_GAP ? Number(prev.last_seen) : Number(prev.seen_until);
 }
 
 /* ---------- one of us at a time (ADR 0011) ---------- */
