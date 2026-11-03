@@ -144,6 +144,17 @@ async function until(done: () => boolean, ms = 5000): Promise<void> {
   for (const end = Date.now() + ms; !done() && Date.now() < end; ) await wait(50);
 }
 
+// Until the lines have heard nothing for a while, then cleared. A friend whose
+// page closed in an earlier file is only "gone" 3 seconds later (GONE in
+// src/live.ts), and that news landing mid-test isn't what a test listens for.
+async function settled(lines: { heard: () => Heard[]; clear: () => void }[], quiet = 3500, max = 15_000): Promise<void> {
+  for (const end = Date.now() + max; Date.now() < end; ) {
+    for (const l of lines) l.clear();
+    await wait(quiet);
+    if (lines.every((l) => l.heard().length === 0)) return;
+  }
+}
+
 describe.skipIf(!throwaway)("two to five friends in the house at once", () => {
   // One house for these checks (a made house's five), so a run makes only a
   // couple of houses and stays well under the maker's hourly cap.
@@ -179,8 +190,7 @@ describe.skipIf(!throwaway)("two to five friends in the house at once", () => {
     const ours = listen(`${base}/live`, await cookieFor(a.id, base));
     const theirs = listen(`${other}/live`, await cookieFor("1", other));
     const rithikas = listen("/live");
-    await wait(500);
-    for (const l of [ours, theirs, rithikas]) l.clear();
+    await settled([ours, theirs, rithikas]);
 
     expect((await post("/here", { x: "1250", y: "300" }, b.id, base)).status).toBe(204);
     expect((await post("/wall", { body: unique("only for this house") }, b.id, base)).status).toBe(303);
@@ -193,7 +203,7 @@ describe.skipIf(!throwaway)("two to five friends in the house at once", () => {
     expect(theirs.heard(), "another made house heard what happened in this one").toEqual([]);
     expect(rithikas.heard(), "Rithika's house heard what happened in a made house").toEqual([]);
     await signOut("1", other);
-  });
+  }, 40_000);
 
   it("shows everyone who's in where each of the others walks, when all five walk at once", async () => {
     for (const p of five) await page("/garden", p.id, base);
