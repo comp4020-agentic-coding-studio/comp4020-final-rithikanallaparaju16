@@ -3283,3 +3283,20 @@ Product calls, named for Rithika to redirect:
 
 **Commits:** `6468e4a` (small photos, the one-day cache), and this entry's
 commit with the screenshots.
+
+### 78. Push everything and open it live (3 Nov 2026)
+
+**Asked:** "push everything and open it live".
+
+**Agent:** merged `photos-and-widget` into `main` (`86c9c23`) and pushed
+both. CI's `check` and `deploy` passed. On the live site the door and
+`/readme/` load, `/photo/1` answers 403 to someone not signed in, and the
+read-only spec passes (16 passed, 118 skipped by the throwaway gate).
+Opened the live site. No crit cutoff is coming, so no tag was moved.
+
+GitHub's push message still reports 10 Dependabot alerts (3 high, 6
+moderate, 1 low), untouched.
+
+**Correction:** none.
+
+**Commits:** `86c9c23` (the merge), and this entry's commit.
