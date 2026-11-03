@@ -3146,3 +3146,25 @@ give their avatars maybe?"
 
 **Commits:** this entry is in the code commit; PROCESS.md's Prompts line,
 which cites it, is in the commit after.
+
+### 75. Merge it all, ship it, and put the screenshots in PROCESS.md (3 Nov 2026)
+
+**Asked:** "yes merge all the chnages now, and pls update process.md with the
+relavant screen shots".
+
+**Agent:**
+
+- Retook the tour on `planner-strip`. It kept the set it replaced (the
+  strip with initials, 21 pictures) in `doc/screenshots/archive/2026-11-03-1638/`,
+  checked byte for byte against the committed set.
+- PROCESS.md's "Overview of the website": shot 20 (dragging through time on
+  a phone, faces on the strip) beside 19, a paragraph on dragging, and shot
+  21 (Esc from bed) with its own paragraph. The intro says where older sets
+  are kept. The door's caption had said India's windows were dark at 4:42 am;
+  in the retaken picture it's Neha's, at 12:52 am, so the caption says that.
+- Merged `planner-strip` into `main`, pushed, and watched CI deploy it.
+
+**Correction:** none.
+
+**Commits:** this entry and the screenshots; the merge and CI run are named
+in the reply.
