@@ -138,8 +138,12 @@
 
   const pad = document.createElement("div");
   pad.className = "pad";
-  pad.innerHTML = `<div class="stick" aria-hidden="true"><span class="knob"></span></div><p class="keys-hint">Walk with the arrow keys or WASD</p><div class="moves"><button type="button" class="go" hidden><span class="go-label"></span> <kbd>Enter</kbd></button></div>`;
+  // On a touch screen both bottom corners are for walking and nothing else:
+  // put a thumb down anywhere in one and the stick comes up under it (no
+  // reaching for a circle). The buttons sit between and above them.
+  pad.innerHTML = `<div class="walk-corner left" aria-hidden="true"></div><div class="walk-corner right" aria-hidden="true"></div><div class="stick" aria-hidden="true"><span class="knob"></span></div><p class="keys-hint"><span class="by-keys">Walk with the arrow keys or WASD</span><span class="by-thumb">Hold a corner to walk</span></p><div class="moves"><button type="button" class="go" hidden><span class="go-label"></span> <kbd>Enter</kbd></button></div>`;
   map.append(pad);
+  const corners = [...pad.querySelectorAll(".walk-corner")];
   const stickEl = pad.querySelector(".stick");
   const knob = pad.querySelector(".knob");
   const moves = pad.querySelector(".moves");
@@ -905,33 +909,59 @@
 
   /* ---------- thumb stick ---------- */
 
+  // The stick comes up wherever a thumb lands in a bottom corner, with its
+  // middle under the thumb, so landing never walks you. Sliding past its
+  // edge brings it along, so a thumb never runs off it.
+  let thumb; // the pointer walking you, while it's down
+  let centre = [0, 0]; // the stick's middle, on the screen
+  function place() {
+    const box = pad.getBoundingClientRect();
+    stickEl.style.left = `${centre[0] - box.left}px`;
+    stickEl.style.top = `${centre[1] - box.top}px`;
+  }
   function push(event) {
     if (busy) return;
-    const box = stickEl.getBoundingClientRect();
-    const r = box.width / 2;
-    let dx = (event.clientX - box.left - r) / r;
-    let dy = (event.clientY - box.top - r) / r;
+    const r = stickEl.offsetWidth / 2;
+    let dx = (event.clientX - centre[0]) / r;
+    let dy = (event.clientY - centre[1]) / r;
     const length = Math.hypot(dx, dy);
-    if (length > 1) [dx, dy] = [dx / length, dy / length];
+    if (length > 1) {
+      [dx, dy] = [dx / length, dy / length];
+      centre = [event.clientX - dx * r, event.clientY - dy * r];
+      place();
+    }
     // A light push walks slowly, all the way runs; the middle is still.
     stick = length < 0.18 ? [0, 0] : [dx, dy];
     knob.style.transform = `translate(${dx * r * 0.55}px, ${dy * r * 0.55}px)`;
     if (stick[0] || stick[1]) walk();
   }
-  function letGo() {
+  function letGo(event) {
+    if (event && event.pointerId !== thumb) return;
+    thumb = undefined;
     stick = [0, 0];
     knob.style.transform = "";
+    stickEl.classList.remove("on");
+    for (const c of corners) c.classList.remove("held");
   }
-  stickEl.addEventListener("pointerdown", (event) => {
-    stickEl.setPointerCapture(event.pointerId);
-    push(event);
-  });
-  stickEl.addEventListener("pointermove", (event) => {
-    if (stickEl.hasPointerCapture(event.pointerId)) push(event);
-  });
-  stickEl.addEventListener("pointerup", letGo);
-  stickEl.addEventListener("pointercancel", letGo);
-  stickEl.addEventListener("lostpointercapture", letGo);
+  for (const corner of corners) {
+    corner.addEventListener("pointerdown", (event) => {
+      if (thumb !== undefined || busy) return;
+      event.preventDefault();
+      corner.setPointerCapture(event.pointerId);
+      thumb = event.pointerId;
+      centre = [event.clientX, event.clientY];
+      place();
+      corner.classList.add("held");
+      stickEl.classList.add("on");
+      push(event);
+    });
+    corner.addEventListener("pointermove", (event) => {
+      if (event.pointerId === thumb) push(event);
+    });
+    corner.addEventListener("pointerup", letGo);
+    corner.addEventListener("pointercancel", letGo);
+    corner.addEventListener("lostpointercapture", letGo);
+  }
 
   /* ---------- tapping a room ---------- */
 

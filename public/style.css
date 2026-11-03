@@ -1879,17 +1879,105 @@ main.plain {
   pointer-events: auto;
 }
 
-.stick {
+/* On a touch screen the two bottom corners are only for walking: a thumb
+   down anywhere in one brings the stick up under it. Each corner shows as a
+   soft quarter-glow with a little ring where a thumb would rest, which comes
+   up from the bottom once the house is in. */
+.walk-corner {
   display: none;
-  position: relative;
-  flex: none;
+  position: absolute;
+  bottom: -14px;
+  width: var(--corner-w, 160px);
+  height: var(--corner-h, 128px);
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.walk-corner.left {
+  left: -14px;
+  border-top-right-radius: 100% 100%;
+  background: radial-gradient(farthest-side at 0 100%, rgba(59, 42, 32, 0.34), rgba(59, 42, 32, 0.16) 70%, rgba(59, 42, 32, 0));
+}
+
+.walk-corner.right {
+  right: -14px;
+  border-top-left-radius: 100% 100%;
+  background: radial-gradient(farthest-side at 100% 100%, rgba(59, 42, 32, 0.34), rgba(59, 42, 32, 0.16) 70%, rgba(59, 42, 32, 0));
+}
+
+/* where a thumb would rest: a faint ring with the knob's dot in it */
+.walk-corner::after {
+  content: "";
+  position: absolute;
+  bottom: 32px;
+  width: 54px;
+  height: 54px;
+  border: 2px solid rgba(255, 248, 234, 0.75);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 248, 234, 0.9) 0 9px, rgba(59, 42, 32, 0.18) 10px);
+  box-shadow: 0 2px 10px rgba(40, 20, 10, 0.25);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.walk-corner.left::after {
+  left: 32px;
+}
+
+.walk-corner.right::after {
+  right: 32px;
+}
+
+/* the thumb's down: the resting ring steps aside for the stick */
+.walk-corner.held::after {
+  opacity: 0;
+  transform: scale(0.6);
+}
+
+.walk-corner.held {
+  background-color: transparent;
+}
+
+.pad.touch .walk-corner {
+  display: block;
+  animation: corner-in 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+.pad.touch .walk-corner.right {
+  animation-delay: 0.08s;
+}
+
+@keyframes corner-in {
+  from {
+    opacity: 0;
+    transform: translateY(40px) scale(0.8);
+  }
+}
+
+/* the stick, under the thumb while it's down */
+.stick {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
   width: 116px;
   height: 116px;
-  border: 2px solid rgba(255, 248, 234, 0.85);
+  margin: -58px 0 0 -58px;
+  border: 2px solid rgba(255, 248, 234, 0.9);
   border-radius: 50%;
-  background: rgba(59, 42, 32, 0.22);
-  box-shadow: 0 4px 14px rgba(40, 20, 10, 0.25);
-  touch-action: none;
+  background: rgba(59, 42, 32, 0.28);
+  box-shadow: 0 4px 18px rgba(40, 20, 10, 0.3);
+  opacity: 0;
+  transform: scale(0.5);
+  transition: opacity 0.15s ease, transform 0.18s cubic-bezier(0.2, 0.9, 0.3, 1.3);
+  pointer-events: none !important;
+}
+
+.stick.on {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .knob {
@@ -1904,10 +1992,6 @@ main.plain {
   box-shadow: 0 3px 8px rgba(40, 20, 10, 0.35);
 }
 
-.pad.touch .stick {
-  display: block;
-}
-
 .keys-hint {
   margin: 0;
   padding: 6px 14px;
@@ -1917,8 +2001,44 @@ main.plain {
   font-size: 0.85rem;
 }
 
-.pad.touch .keys-hint {
+.keys-hint .by-thumb,
+.pad.touch .keys-hint .by-keys {
   display: none;
+}
+
+.pad.touch .keys-hint .by-thumb {
+  display: inline;
+}
+
+/* on a touch screen the hint floats between the corners, until you walk */
+.pad.touch .keys-hint {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: max-content;
+  margin: 0 auto;
+  white-space: nowrap;
+  font-size: 0.8rem;
+  pointer-events: none;
+  animation: corner-in 0.5s 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+/* on a touch screen the buttons stand just above the right-hand corner,
+   never in it: the corner is only for walking */
+.pad.touch .moves {
+  margin-bottom: calc(var(--corner-h, 128px) - 8px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pad.touch .walk-corner,
+  .pad.touch .keys-hint {
+    animation: none;
+  }
+
+  .stick {
+    transition: none;
+  }
 }
 
 /* the Go in button, and above it a button for each thing you can do with
@@ -2011,11 +2131,18 @@ button .emoji,
   .page-home .stick {
     width: 104px;
     height: 104px;
+    margin: -52px 0 0 -52px;
+  }
+
+  .page-room .pad {
+    --corner-w: 140px;
+    --corner-h: 112px;
   }
 
   .page-room .stick {
     width: 92px;
     height: 92px;
+    margin: -46px 0 0 -46px;
   }
 
   .page-room .knob {

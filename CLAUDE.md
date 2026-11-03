@@ -167,7 +167,9 @@ accepted record.
   keys, so name the keys to remake one. Look at each new picture before
   committing; about one in ten needs its prompt made more specific.
 - Client JavaScript is enhancement only: `public/house.js` builds the walking
-  controls (arrow keys/WASD, the thumb stick, the Go in button), walks you to
+  controls (arrow keys/WASD, the thumb stick, the Go in button; on a touch
+  screen both bottom corners, `.walk-corner`, are only for walking, the
+  stick coming up wherever a thumb lands, so keep buttons out of them), walks you to
   a tapped room, keeps a phone's view on you, zooms in going into a room and
   out leaving one, walks Shinzo along his day (`data-path`) and after
   whoever petted or fed him, lights up the hotspot you're next to, offers

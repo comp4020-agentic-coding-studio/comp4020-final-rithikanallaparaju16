@@ -19,7 +19,7 @@
 // yesterday. Each screenshot is scripts/shot.ts, so it signs in at the door
 // like anyone.
 import { execFileSync, spawn } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, rmSync, statSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, renameSync, rmSync, statSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 
 const port = Number(process.argv[2] ?? 8095);
@@ -124,8 +124,9 @@ const here = (who: string, x: number, y: number, door = ""): Promise<void> => po
 // `js` runs on the page just before the picture (scripts/shot.ts's SHOT_JS):
 // to open something, fill something in, or scroll to it.
 // `drag` is scripts/shot.ts's SHOT_DRAG: "<selector> <px>", a real finger or
-// mouse dragged across it before the picture.
-async function shot(path: string, file: string, width: number, who: string, opts: { touch?: boolean; door?: string; js?: string; drag?: string } = {}): Promise<void> {
+// mouse dragged across it before the picture. With `hold` (ms), the finger
+// stays down at the end that long and the picture is taken before it lifts.
+async function shot(path: string, file: string, width: number, who: string, opts: { touch?: boolean; door?: string; js?: string; drag?: string; hold?: number } = {}): Promise<void> {
   const door = opts.door ?? "";
   const cookie = who === "none" ? undefined : (await signIn(who, door)).slice("who=".length);
   const png = `${dataDir}/${file}.png`;
@@ -138,8 +139,10 @@ async function shot(path: string, file: string, width: number, who: string, opts
     ...(opts.touch ? { TOUCH: "1" } : {}),
     ...(opts.js ? { SHOT_JS: opts.js } : {}),
     ...(opts.drag ? { SHOT_DRAG: opts.drag } : {}),
+    ...(opts.hold ? { SHOT_DRAG_HOLD: String(opts.hold) } : {}),
   };
   console.log(execFileSync(process.execPath, args, { env, encoding: "utf8" }).trim());
+  if (opts.hold) renameSync(png.replace(/\.png$/, "-held.png"), png);
   // Chrome draws at twice the size; the repo keeps a JPEG at the page's own
   // width (a desktop one at 1000 px), about 100 KB instead of 1.5 MB.
   execFileSync("sips", ["-s", "format", "jpeg", "-s", "formatOptions", "82", "--resampleWidth", String(Math.min(width, 1000)), png, "--out", `${out}/${file}.jpg`], { stdio: "ignore" });
@@ -301,6 +304,9 @@ await shot("/room/1", "21-look-out-from-bed", 1280, "1", {
 // beside their lines in Updates.
 await shot("/living", "22-photo-on-the-wall-phone", 390, "1", { js: scrollTo(".note.photo") });
 await shot("/updates", "24-photos-in-updates-phone", 390, "1", { js: scrollTo(".happenings li.with-photo") });
+// Walking on a phone: a thumb held down in the bottom-left corner brings the
+// stick up under it, and Rithika walks across the living room.
+await shot("/", "25-walk-from-a-corner-phone", 390, "1", { drag: "@44,744 46,-26", hold: 700 });
 // Rithika's home-screen widget: her link, and the iPhone's steps.
 await post("1", "/widget");
 await shot("/everyone", "23-widget-link-phone", 390, "1", {

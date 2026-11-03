@@ -22,6 +22,9 @@
 // middle, dx css px sideways (negative is left), with a finger on a touch
 // screen and a mouse otherwise, in steps. Halfway through, SHOT_DRAG_READ
 // (a line of script) reads the page while the finger's still down.
+// SHOT_DRAG="@<x>,<y> <dx>,<dy>" puts the finger down at a point on the
+// screen instead, and drags any way. SHOT_DRAG_HOLD=<ms> keeps it down that
+// long at the end and saves <out>-held.png before letting go.
 import { spawn } from "node:child_process";
 import { writeFileSync } from "node:fs";
 
@@ -133,22 +136,28 @@ if (tap) {
   console.log(`after the tap: ${where.result?.value}`);
 }
 if (process.env.SHOT_DRAG) {
-  const [selector, by] = process.env.SHOT_DRAG.split(/ (?=-?\d+$)/);
-  const found = await cdp("Runtime.evaluate", {
-    returnByValue: true,
-    expression: `(() => {
+  // "<selector> <dx>", or "@<x>,<y> <dx>[,<dy>]" to put the finger down at a
+  // point on the screen (css px) and drag from there, where nothing is yet
+  // (a phone's walking corners, where the stick appears under the thumb).
+  const [selector, by] = process.env.SHOT_DRAG.split(/ (?=-?\d+(?:,-?\d+)?$)/);
+  const point = /^@(-?\d+),(-?\d+)$/.exec(selector);
+  const found = point
+    ? { result: { value: { x: Number(point[1]), y: Number(point[2]) } } }
+    : await cdp("Runtime.evaluate", {
+        returnByValue: true,
+        expression: `(() => {
       const el = document.querySelector(${JSON.stringify(selector)});
       if (!el) return null;
       el.scrollIntoView({ block: "center" });
       const r = el.getBoundingClientRect();
       return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
     })()`,
-  });
+      });
   const from = found.result?.value as { x: number; y: number } | null;
   if (!from) throw new Error(`nothing matches ${selector}`);
-  const dx = Number(by);
+  const [dx, dy = 0] = by.split(",").map(Number);
   const steps = 20;
-  const at = (i: number) => ({ x: from.x + (dx * i) / steps, y: from.y });
+  const at = (i: number) => ({ x: from.x + (dx * i) / steps, y: from.y + (dy * i) / steps });
   const press = (type: string, p: { x: number; y: number }) =>
     touch
       ? cdp("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x: p.x, y: p.y }] })
@@ -163,8 +172,20 @@ if (process.env.SHOT_DRAG) {
       console.log(`halfway, finger down: ${JSON.stringify(mid.result?.value ?? mid.exceptionDetails?.exception?.description ?? null)}`);
     }
   }
+  // SHOT_DRAG_HOLD=<ms> keeps the finger down at the end that long, and takes
+  // the picture then, before letting go: to see what holding a drag looks like.
+  const hold = Number(process.env.SHOT_DRAG_HOLD ?? 0);
+  if (hold) {
+    for (const end = Date.now() + hold; Date.now() < end; ) {
+      await press(move, at(steps));
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    const held = await cdp("Page.captureScreenshot", { format: "png" });
+    writeFileSync(out.replace(/\.png$/, "-held.png"), Buffer.from(held.data, "base64"));
+    console.log(`held ${hold}ms, picture taken with the finger down`);
+  }
   await press(up, at(steps));
-  console.log(`dragged ${selector} ${dx}px with a ${touch ? "finger" : "mouse"}`);
+  console.log(`dragged ${selector} ${dx},${dy}px with a ${touch ? "finger" : "mouse"}`);
   await new Promise((r) => setTimeout(r, 1200)); // the glide
 }
 if (process.env.SHOT_JS) {
