@@ -54,7 +54,9 @@ function migrate(db: DatabaseSync): void {
   // November: the key to each friend's home-screen widget (ADR 0025), empty
   // until she makes one. It's not her session token: a widget reads the
   // house without ever being in it.
-  for (const [column, type] of [["arrived", "INTEGER NOT NULL DEFAULT 0"], ["x", "REAL"], ["y", "REAL"], ["token", "TEXT NOT NULL DEFAULT ''"], ["claimed", "INTEGER NOT NULL DEFAULT 0"], ["widget", "TEXT NOT NULL DEFAULT ''"]]) {
+  // And the month whose wall recap she last put away (ADR 0026), "" until
+  // she has, so a recap waits for her until she's read it.
+  for (const [column, type] of [["arrived", "INTEGER NOT NULL DEFAULT 0"], ["x", "REAL"], ["y", "REAL"], ["token", "TEXT NOT NULL DEFAULT ''"], ["claimed", "INTEGER NOT NULL DEFAULT 0"], ["widget", "TEXT NOT NULL DEFAULT ''"], ["recap", "TEXT NOT NULL DEFAULT ''"]]) {
     if (!db.prepare("SELECT 1 FROM pragma_table_info('visits') WHERE name = ?").get(column)) {
       db.exec(`ALTER TABLE visits ADD COLUMN ${column} ${type}`);
     }
@@ -166,7 +168,9 @@ function statements(db: DatabaseSync) {
   `);
   const insertPhoto = db.prepare("INSERT INTO photos (type, data, created_at) VALUES (?, ?, ?)");
   const selectPhoto = db.prepare("SELECT type, data FROM photos WHERE id = ?");
-  return { db, insertThing, selectThings, selectVisit, selectToken, claimToken, releaseToken, selectVisits, upsertVisit, updateSpot, selectWidget, setWidget, insertPhoto, selectPhoto };
+  const selectRecap = db.prepare("SELECT recap FROM visits WHERE person = ?");
+  const setRecap = db.prepare("UPDATE visits SET recap = ? WHERE person = ?");
+  return { db, insertThing, selectThings, selectVisit, selectToken, claimToken, releaseToken, selectVisits, upsertVisit, updateSpot, selectWidget, setWidget, insertPhoto, selectPhoto, selectRecap, setRecap };
 }
 
 type Statements = ReturnType<typeof statements>;
@@ -210,6 +214,17 @@ export function widgetKey(person: string): string {
 export function setWidgetKey(person: string, key: string): void {
   q().setWidget.run(person, key);
   log(`${who(person)} made a home-screen widget key (${tag(key)})`);
+}
+
+// The month whose wall recap a friend last put away (ADR 0026), or "".
+export function recapRead(person: string): string {
+  return String(q().selectRecap.get(person)?.recap ?? "");
+}
+
+export function readRecap(person: string, month: string): void {
+  q().setRecap.run(month, person);
+  log(`${who(person)} put away the wall's recap of ${month}`);
+  changed();
 }
 
 // A photo for the memory wall, kept first so the note on the wall can point

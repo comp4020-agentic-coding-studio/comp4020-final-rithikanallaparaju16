@@ -59,6 +59,10 @@ and she wears a crown; friends can wish her (`wish`). Neha sleeps 10 pm to
 she can redirect it). Friends can stick one sticker each on a friend's note
 on the wall (`sticker`, placed `note:<id>`, from `STICKERS` in
 `src/house.ts`): each one named, never counted, and only the writer hears.
+Since 3 November 2026 the wall starts fresh each month by the first
+friend's clock (`monthClock()`); every month before is an envelope in the memory
+box, and a friend back after the 1st gets a recap until she puts it away
+(`visits.recap`, ADR 0026). Nothing on the wall is ever deleted.
 These details come from Rithika; ask her before
 inventing new ones for the friends. (The agent once read the Stitch art's
 boxes as cats; they were KitKats.)

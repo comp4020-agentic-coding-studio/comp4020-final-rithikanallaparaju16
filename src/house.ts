@@ -1,6 +1,8 @@
 import { made } from "./houses.ts";
 import { layout } from "./layouts.ts";
+import { PEOPLE } from "./people.ts";
 import type { Thing } from "./store.ts";
+import { ymd } from "./time.ts";
 
 export type Item = { key: string; label: string; short: string };
 
@@ -86,6 +88,61 @@ export const answered = (things: Thing[], note: Thing, by: string): boolean =>
   things.some((t) => t.kind === "reply" && t.item === String(note.id) && t.author === by);
 
 export const wall = (things: Thing[]): Thing[] => things.filter((t) => t.kind === "note" && t.place === "wall");
+
+/* ---------- the wall's months (ADR 0026) ---------- */
+
+// The wall starts fresh on the 1st of each month. Nothing is taken away: last
+// month's notes and photos go into that month's envelope in the memory box,
+// and a friend who comes back after the 1st finds a recap of the month she
+// was away for. Big news stays pinned whatever the month.
+//
+// A month is a key like "2026-10". It turns over by one clock for the whole
+// house, so everyone sees the same wall: the first friend's (in Rithika's
+// house, her Canberra, which reaches the 1st before the others).
+export type Month = string;
+
+// The house's one clock for months: the first friend's.
+export const monthClock = (): string => PEOPLE[0]?.tz ?? "Australia/Sydney";
+
+export const monthOf = (tz: string, at: number): Month => {
+  const [year, month] = ymd(tz, at);
+  return `${year}-${String(month).padStart(2, "0")}`;
+};
+
+// "October 2026", or just "October" when `now` is in the same year.
+export const monthLabel = (m: Month, now?: number): string => {
+  const [year, month] = m.split("-").map(Number);
+  const thisYear = now !== undefined && new Date(now).getUTCFullYear() === year;
+  return new Intl.DateTimeFormat("en-AU", { month: "long", ...(thisYear ? {} : { year: "numeric" }), timeZone: "UTC" }).format(Date.UTC(year, month - 1, 15));
+};
+
+// The month before `m`.
+export const monthBefore = (m: Month): Month => {
+  const [year, month] = m.split("-").map(Number);
+  return month === 1 ? `${year - 1}-12` : `${year}-${String(month - 1).padStart(2, "0")}`;
+};
+
+// The wall's notes in one month, newest first; big news isn't in any month.
+export const wallIn = (things: Thing[], tz: string, m: Month): Thing[] =>
+  wall(things).filter((t) => t.item !== "big" && monthOf(tz, t.createdAt) === m).sort((a, b) => b.createdAt - a.createdAt);
+
+// Every month the wall has had, newest first, except `now`'s.
+export const pastMonths = (things: Thing[], tz: string, now: number): Month[] => {
+  const current = monthOf(tz, now);
+  const seen = new Set<Month>();
+  for (const t of wall(things)) if (t.item !== "big") seen.add(monthOf(tz, t.createdAt));
+  seen.delete(current);
+  return [...seen].sort().reverse();
+};
+
+// The month a friend is shown a recap of, if any: the last month the wall
+// had anything in before this one, unless she's put its recap away already
+// (`read`). It waits for her however long she's away. Only the latest month;
+// anything older is in the memory box.
+export const recapFor = (things: Thing[], tz: string, now: number, read: Month): Month | undefined => {
+  const last = pastMonths(things, tz, now)[0];
+  return last && last > read ? last : undefined;
+};
 
 // A note on the wall with a photo pinned to it (ADR 0024): its item is
 // `photo:<id>`, the photo's row in the house's own `photos` table. Big news

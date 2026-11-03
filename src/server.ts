@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { ART, ART_TYPES, isArt } from "./assets.ts";
 import { avatarSvg, parseLook } from "./avatars.ts";
-import { counter, desk, DOG, find, FOOD, gifts, KETTLE_ROOM, MASK_ROOM, movies, photoOf, PLANTS, resting, roomPlace, savedFor, seats, STICKERS, wall } from "./house.ts";
+import { counter, desk, DOG, find, FOOD, gifts, KETTLE_ROOM, MASK_ROOM, monthClock, movies, pastMonths, photoOf, PLANTS, recapFor, resting, roomPlace, savedFor, seats, STICKERS, wall } from "./house.ts";
 import { closeHouses, findHouse, house, inHouse, made, ORIGINAL } from "./houses.ts";
 import * as live from "./live.ts";
 import { make } from "./maker.ts";
@@ -166,15 +166,19 @@ function widgetFriend(id: string, key: string): Person | undefined {
 // wherever you last were.
 function visit(me: Person, place = ""): Visit {
   const seenUntil = store.recordVisit(me.id, place);
+  const things = store.things();
+  const now = Date.now();
   return {
     me,
-    things: store.things(),
+    things,
     seen: store.lastSeen(),
     where: store.whereabouts(),
     arrived: store.arrivals(),
     spots: store.spots(),
     seenUntil,
-    now: Date.now(),
+    now,
+    // A friend's first visit is a welcome, not a recap.
+    recap: seenUntil ? recapFor(things, monthClock(), now, store.recapRead(me.id)) : undefined,
   };
 }
 
@@ -219,6 +223,8 @@ function line(did: string | null, owner?: Person, me?: Person): string | undefin
       return "Pinned to the memory wall. Whoever comes by next will see what reminded you of them.";
     case "widget":
       return "Your widget's link is ready. Any link you made before has stopped working.";
+    case "recap":
+      return "In the memory box, with every month before it. Nothing's gone; it's all kept here.";
     case "sticker":
       return "Stuck on. Whoever wrote it will know you read it, and how you felt.";
     case "dish":
@@ -419,7 +425,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
 
   if (method !== "POST") return send(res, 404, messagePage("Nothing here", "There's no room by that name in this house."));
 
-  const writes = ["/wall", "/wall/photo", "/kitchen", "/kitchen/eat", "/garden/water", "/garden/plant", "/garden/dog", "/garden/treat", "/sit", "/here", "/movies", "/movies/watched", "/movies/night", "/plan", "/uno", "/uno/move", "/hug", "/wall/sticker"];
+  const writes = ["/wall", "/wall/photo", "/kitchen", "/kitchen/eat", "/garden/water", "/garden/plant", "/garden/dog", "/garden/treat", "/sit", "/here", "/movies", "/movies/watched", "/movies/night", "/plan", "/uno", "/uno/move", "/hug", "/wall/sticker", "/wall/recap"];
   if (!writes.includes(pathname) && !roomMatch?.[2]) {
     return send(res, 404, messagePage("Nothing here", "There's no room by that name in this house."));
   }
@@ -519,6 +525,18 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     if (body.length > MAX_NOTE) return send(res, 400, messagePage("Too long", `Notes fit up to ${MAX_NOTE} characters.`, "/living"));
     store.leave({ author: me.id, kind: "note", place: "wall", body, item: form.get("big") === "1" ? "big" : "" });
     return redirect(res, "/living?did=wall");
+  }
+
+  // Putting a month's recap away (ADR 0026): it's in the memory box, as it
+  // always was; this only says she's read it. Only a month the wall has had.
+  if (pathname === "/wall/recap") {
+    const month = text(form, "month");
+    if (!pastMonths(store.things(), monthClock(), Date.now()).includes(month)) {
+      return send(res, 400, messagePage("Which month?", "That month isn't in the memory box.", "/updates"));
+    }
+    // Never back to an older month than one she's put away already.
+    if (month > store.recapRead(me.id)) store.readRecap(me.id, month);
+    return redirect(res, "/living?did=recap#memory-box");
   }
 
   // A sticker on a friend's note: one each, and picking "" peels yours off.

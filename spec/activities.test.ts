@@ -101,7 +101,8 @@ async function fromSrc() {
 }
 
 const MINUTE = 60 * 1000;
-const DAY = 24 * 60 * MINUTE;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
 
 // BUG: a garden whose only plant went in just now looks thirsty if the last watering was over two days ago
 it.skip("never shows a just-planted garden as thirsty", async () => {
@@ -143,6 +144,68 @@ it.skip("only puts the dot on Updates when there's something new to read there",
   expect(updates.querySelector(".tabs .dot") !== null, `the dot is ${lines ? "missing" : "on"} with ${lines} new lines listed`).toBe(lines > 0);
 });
 
+// The wall starts fresh on the 1st of each month (ADR 0026), by the first
+// friend's clock (Rithika's, in Canberra). A spec run can't wait for a month
+// to turn, so these are asked of the house's own code, with a wall made up
+// here: an October and a November, seen on 3 November.
+const NOV_3 = Date.UTC(2026, 10, 3, 2); // 1 pm in Canberra
+const OCT_20 = Date.UTC(2026, 9, 20, 2);
+const SEP_10 = Date.UTC(2026, 8, 10, 2);
+const onWall = (id: number, author: string, body: string, at: number, item = "") =>
+  ({ id, author, kind: "note" as const, place: "wall", body, item, createdAt: at });
+
+it("starts the wall fresh each month, and keeps every month before in the memory box", async () => {
+  const src = await fromSrc();
+  const things = [
+    onWall(4, "3", "november already??", NOV_3 - HOUR),
+    onWall(3, "4", "big news: the job!", OCT_20 + HOUR, "big"),
+    onWall(2, "5", "the bananas are family now", OCT_20),
+    onWall(1, "2", "first note ever", SEP_10),
+  ].sort((a, b) => b.createdAt - a.createdAt);
+  const visit = { me: src.personById("1")!, things, seen: new Map(), where: new Map(), arrived: new Map(), spots: new Map(), seenUntil: NOV_3 - DAY, now: NOV_3 };
+  const living = parse(src.livingPage(visit));
+  const up = [...living.querySelectorAll("#wall > ul.notes .note")].map(text).join(" | ");
+  expect(up, "this month's note isn't on the wall").toContain("november already??");
+  expect(up, "big news came down with the month").toContain("big news: the job!");
+  expect(up, "October's note is still up after the wall started fresh").not.toContain("bananas");
+  const october = living.querySelector("#memory-box #month-2026-10");
+  const september = living.querySelector("#memory-box #month-2026-09");
+  expect(text(october), "October isn't kept in the memory box").toContain("the bananas are family now");
+  expect(text(september), "September isn't kept in the memory box").toContain("first note ever");
+  expect(text(october?.querySelector("summary")), "October's envelope doesn't say whose notes are in it").toContain("Aswathy");
+});
+
+it("shows a friend back after the 1st everything she missed on last month's wall, until she puts it away", async () => {
+  const src = await fromSrc();
+  const things = [
+    onWall(3, "4", "this reminds me of you guys", OCT_20 + HOUR, "photo:7"),
+    onWall(2, "5", "the bananas are family now", OCT_20),
+    onWall(1, "1", "missing you all", OCT_20 - DAY),
+  ].sort((a, b) => b.createdAt - a.createdAt);
+  // Rithika was last here before both friends' notes went up.
+  const tz = src.monthClock();
+  expect(src.recapFor(things, tz, NOV_3, ""), "no recap waits for her after the 1st").toBe("2026-10");
+  const visit = { me: src.personById("1")!, things, seen: new Map(), where: new Map(), arrived: new Map(), spots: new Map(), seenUntil: OCT_20 - DAY, now: NOV_3, recap: "2026-10" };
+
+  const updates = parse(src.updatesPage(visit));
+  const card = updates.querySelector("#recap");
+  expect(card, "Updates has no recap of October").not.toBeNull();
+  expect(updates.querySelector("main > *")?.id, "the recap isn't the first thing on Updates").toBe("recap");
+  const lines = [...card!.querySelectorAll(".happenings li")].map(text);
+  expect(lines.some((l) => l.includes("Aswathy") && l.includes("bananas")), "the recap left out Aswathy's note").toBe(true);
+  expect(lines.some((l) => l.includes("Rithanya") && l.includes("photo")), "the recap left out Rithanya's photo").toBe(true);
+  expect(card!.querySelector(".happenings img[src='/photo/7']"), "the recap doesn't show Rithanya's photo").not.toBeNull();
+  expect(lines.filter((l) => l.includes("new to you")).length, "what she hadn't seen isn't marked new").toBe(2);
+  expect(card!.querySelector("form[action='/wall/recap'] input[name=month]")?.getAttribute("value")).toBe("2026-10");
+  expect(text(parse(src.housePage(visit)).querySelector("a.news")), "Home doesn't say the wall started fresh").toContain("October");
+
+  // Put away, it's gone from Updates; October's still in the memory box.
+  expect(src.recapFor(things, tz, NOV_3, "2026-10"), "the recap came back after she put it away").toBeUndefined();
+  const after = { ...visit, recap: undefined };
+  expect(parse(src.updatesPage(after)).querySelector("#recap"), "the recap is still on Updates after she put it away").toBeNull();
+  expect(text(parse(src.livingPage(after)).querySelector("#month-2026-10")), "putting the recap away lost October").toContain("bananas");
+});
+
 describe.skipIf(!throwaway)("doing things around the house", () => {
   it("keeps older notes in the memory box once the wall fills up, rather than taking them down", async () => {
     const [a, b] = await people();
@@ -155,6 +218,12 @@ describe.skipIf(!throwaway)("doing things around the house", () => {
     const kept = withText(living, "#memory-box .note", first);
     expect(kept, "the oldest note was taken down instead of kept in the memory box").toBeDefined();
     expect(text(kept)).toContain(a.name);
+  });
+
+  it("won't put away a month the wall never had", async () => {
+    const [a] = await people();
+    const res = await post("/wall/recap", { month: "1999-01" }, a.id);
+    expect(res.status, "a month that was never on the wall was put away").toBe(400);
   });
 
   it("lets a friend peel her sticker off a note, and the writer stops hearing about it", async () => {

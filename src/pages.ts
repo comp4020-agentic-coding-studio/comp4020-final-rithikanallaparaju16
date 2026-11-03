@@ -39,7 +39,12 @@ import {
   STICKERS,
   stickersOn,
   photoOf,
+  monthClock,
+  monthLabel,
+  monthOf,
+  pastMonths,
   wall,
+  wallIn,
   wander,
   wishes,
   YOGA_ROOM,
@@ -93,6 +98,9 @@ export type Visit = {
   spots: Map<string, [number, number]>;
   seenUntil: number;
   now: number;
+  // The month whose wall a recap is waiting for her, until she puts it away
+  // (ADR 0026).
+  recap?: string;
 };
 
 const HOME_NOW = 10 * 60 * 1000;
@@ -366,7 +374,8 @@ function freshPlaces(v: Visit): Set<string> {
 
 function scene(v: Visit, focus?: string, did?: string): Scene {
   const d = laddooAt(v);
-  const photos = wall(v.things).flatMap((t) => {
+  // The board in the picture is the wall: this month's photos (ADR 0026).
+  const photos = wallIn(v.things, monthClock(), monthOf(monthClock(), v.now)).flatMap((t) => {
     const id = photoOf(t);
     return id ? [{ id, by: nameOf(t.author), color: personById(t.author)?.color ?? "#c4553c" }] : [];
   });
@@ -680,6 +689,36 @@ const newSince = (v: Visit): Happening[] => happenings(v.things.filter((t) => is
 const happeningItem = (h: Happening, v: Visit): string =>
   `<li class="${[h.forYou ? "for-you" : "around", h.photo ? "with-photo" : ""].filter(Boolean).join(" ")}">${h.photo ? `<a class="photo-thumb" href="${esc(h.href)}" tabindex="-1" aria-hidden="true"><img src="/photo/${h.photo}" alt="" loading="lazy" width="44" height="44"></a>` : ""}<span><a href="${esc(h.href)}">${esc(h.text)}</a> <span class="ago">${esc(ago(h.at, v.now))}</span></span></li>`;
 
+// The month the wall just started fresh from, for a friend coming back after
+// the 1st (ADR 0026): everything that was on it, named, the photos small, and
+// what's new to her marked, so nobody misses anything. It waits until she
+// puts it in the memory box; nothing's taken away when she does.
+function recap(v: Visit, short: boolean): string {
+  const m = v.recap;
+  if (!m) return slot("recap", "");
+  const notes = wallIn(v.things, monthClock(), m);
+  const fresh = notes.filter((t) => isNew(t, v));
+  const from = [...new Set(notes.map((t) => t.author))].map((id) => (id === v.me.id ? "you" : nameOf(id)));
+  const photos = notes.map((t) => [t, photoOf(t)] as const).filter((x): x is readonly [Thing, number] => x[1] !== undefined);
+  const line = (t: Thing): string => {
+    const photo = photoOf(t);
+    const what = photo ? (t.body ? `pinned a photo: “${t.body}”` : "pinned a photo") : `wrote “${t.body}”`;
+    return `<li class="${[isNew(t, v) ? "for-you" : "around", photo ? "with-photo" : ""].filter(Boolean).join(" ")}">${photo ? `<a class="photo-thumb" href="/living#note-${t.id}" tabindex="-1" aria-hidden="true"><img src="/photo/${photo}" alt="" loading="lazy" width="44" height="44"></a>` : ""}<span><a href="/living#note-${t.id}">${esc(`${t.author === v.me.id ? "You" : nameOf(t.author)} ${what}`)}</a>${isNew(t, v) ? ` <span class="tag">new to you</span>` : ""}</span></li>`;
+  };
+  const name = monthLabel(m, v.now);
+  const intro = `The wall started fresh for ${monthLabel(monthOf(monthClock(), v.now), v.now)}. Here's everything that was on it in ${name}, from ${names(from)}${fresh.length ? `; ${fresh.length === notes.length ? "all of it is" : "some of it is"} new to you` : ""}.`;
+  // On a laptop's Home, the month's photos fanned out, and a way to the rest.
+  const strip = photos.length ? `<ul class="recap-photos" aria-label="${esc(`Photos from ${name}`)}">${photos.slice(0, 8).map(([t, id]) => `<li style="--tilt:${(t.id % 5) - 2}deg"><a href="/living#note-${t.id}"><img src="/photo/${id}" alt="${esc(`A photo from ${nameOf(t.author)}${t.body ? `: ${t.body}` : ""}`)}" loading="lazy"></a></li>`).join("")}</ul>` : "";
+  const put = `<form method="post" action="/wall/recap" class="recap-done"><input type="hidden" name="month" value="${esc(m)}"><button>${emoji("recap")} Put ${esc(name)} in the memory box</button></form>`;
+  const body = short
+    ? `<p>${esc(intro)}</p>${strip}<p class="more"><a href="/updates#recap">See all of ${esc(name)}</a></p>`
+    : `<p>${esc(intro)}</p><ul class="happenings">\n${notes.map(line).join("\n")}\n</ul>${put}`;
+  return slot("recap", `<section class="card recap" id="recap" aria-labelledby="recap-heading">
+    <h2 id="recap-heading">${esc(`${name} on the wall`)}</h2>
+    ${body}
+  </section>`);
+}
+
 function away(v: Visit, limit: number): string {
   const firstVisit = v.seenUntil === 0;
   const list = newSince(v);
@@ -713,10 +752,12 @@ function news(v: Visit): string {
   const list = newSince(v);
   const text = v.seenUntil === 0
     ? "Welcome home. Tap a room to go in."
+    : v.recap
+      ? `The wall started fresh: here's ${monthLabel(v.recap, v.now)}`
     : list.length
       ? `${list[0].text}${list.length > 1 ? ", and more" : ""}`
       : "Nobody's been by since you were last here. Tap a room to go in.";
-  return `<a class="news" href="/updates" data-live="news"><svg viewBox="-11 -11 22 22" aria-hidden="true"><path d="M0 -10L2.6 -2.6L10 0L2.6 2.6L0 10L-2.6 2.6L-10 0L-2.6 -2.6Z"/></svg><span>${esc(text)}</span></a>`;
+  return `<a class="news" href="${v.recap && v.seenUntil ? "/updates#recap" : "/updates"}" data-live="news"><svg viewBox="-11 -11 22 22" aria-hidden="true"><path d="M0 -10L2.6 -2.6L10 0L2.6 2.6L0 10L-2.6 2.6L-10 0L-2.6 -2.6Z"/></svg><span>${esc(text)}</span></a>`;
 }
 
 /* ---------- everyone ---------- */
@@ -818,6 +859,7 @@ ${bar(v, "home")}
   <div class="home-grid">
     <section class="map" aria-label="The house">${houseSvg(scene(v))}</section>
     <aside class="side">
+      ${recap(v, true)}
       ${away(v, 6)}
       ${everyone(v, false)}
       ${footer(v.me)}
@@ -830,6 +872,7 @@ export function updatesPage(v: Visit): string {
   return shell(`Updates · ${houseName()}`, `
 ${bar(v, "updates")}
 <main class="list">
+  ${recap(v, false)}
   ${away(v, 40)}
   ${slot("earlier", earlier(v))}
 </main>`, phase(clock(v.me.tz, v.now)), "page-list");
@@ -1367,6 +1410,26 @@ function wallNote(t: Thing, v: Visit): string {
   return `<li class="${cls}" id="note-${t.id}" data-id="${t.id}" style="--paper:${paper}">${isNew(t, v) ? `<span class="tag">new</span>` : ""}${picture}${words}<p class="by">${esc(by(t, v))}, ${esc(ago(t.createdAt, v.now))}</p>${chips ? `<ul class="stickers">${chips}</ul>` : ""}${picker}</li>`;
 }
 
+// The memory box (ADR 0026): this month's oldest notes, if the wall's full,
+// then an envelope for each month before, newest first, with everything that
+// was on the wall that month. Nothing's ever thrown out. `open` is the month
+// a recap is waiting for you about, or the one you just put away.
+function memoryBox(v: Visit, overflow: Thing[], months: string[], open?: string): string {
+  if (!overflow.length && !months.length) return "";
+  const tz = monthClock();
+  const envelope = (m: string): string => {
+    const notes = wallIn(v.things, tz, m);
+    const photos = notes.filter((t) => photoOf(t)).length;
+    const what = [notes.length - photos ? `${notes.length - photos === 1 ? "a note" : "notes"}` : "", photos ? (photos === 1 ? "a photo" : "photos") : ""].filter(Boolean).join(" and ");
+    const from = names([...new Set(notes.map((t) => (t.author === v.me.id ? "you" : nameOf(t.author))))]);
+    return `<details class="envelope" id="month-${esc(m)}"${m === open ? " open" : ""}><summary><span class="envelope-month">${esc(monthLabel(m, v.now))}</span> <span class="envelope-who">${esc(`${cap(what)} from ${from}`)}</span></summary><ul class="notes">${notes.map((t) => wallNote(t, v)).join("\n")}</ul></details>`;
+  };
+  return `<details class="drawer" id="memory-box"${open ? " open" : ""}><summary>The memory box: every month's wall, kept</summary>
+    ${overflow.length ? `<ul class="notes">${overflow.map((t) => wallNote(t, v)).join("\n")}</ul>` : ""}
+    ${months.map(envelope).join("\n")}
+  </details>`;
+}
+
 // A made house (src/houses.ts) moves in with the memories it was made with,
 // pinned at the top of the wall, with its inside joke framed among them. They
 // come from the house's spec, not the log, so they're the same for everyone
@@ -1397,12 +1460,17 @@ export function livingPage(v: Visit, did?: Done): string {
   const night = movieNight(v.things, v.now);
   const notes = wall(v.things);
   const big = notes.filter((t) => t.item === "big");
-  const everyday = notes.filter((t) => t.item !== "big");
+  // The wall starts fresh on the 1st (ADR 0026): this month's notes are up,
+  // and every month before is an envelope in the memory box.
+  const tz = monthClock();
+  const month = monthOf(tz, v.now);
+  const everyday = wallIn(v.things, tz, month);
+  const months = pastMonths(v.things, tz, v.now);
   // In a made house's own picture, UNO is round the coffee table here.
   const table = layout().mat.place === "living";
 
   return roomPage(v, "living", "The living room", `
-  ${roomHead("The living room", `Everyone's room. The wall is for ${allOfYou()}: something funny from today, a good-luck wish, big news.`, undefined, "#8a5a3c")}
+  ${roomHead("The living room", `Everyone's room. The wall is for ${allOfYou()}: something funny from today, a good-luck wish, big news. It starts fresh each month, and every month before is kept in the memory box.`, undefined, "#8a5a3c")}
   ${done(did)}
   <p class="sofa" data-live="sofa"><a href="/movies">${night ? esc(`Movie night on these sofas: “${night.movie.title}”, ${dayLabel(v.me.tz, night.at)}`) : "Movie night happens on these sofas"} ›</a></p>
   ${slot("resting", restingIn("living", v))}
@@ -1427,8 +1495,8 @@ export function livingPage(v: Visit, did?: Done): string {
     <h2 id="wall-heading">The wall</h2>
     ${memoriesOnWall()}
     ${big.length ? `<h3 class="pinned">Big news</h3><ul class="notes">\n${big.map((t) => wallNote(t, v)).join("\n")}\n</ul>` : ""}
-    ${everyday.length ? `<ul class="notes">\n${everyday.slice(0, WALL_SHOWN).map((t) => wallNote(t, v)).join("\n")}\n</ul>` : big.length || house().spec?.memories.length || house().spec?.joke ? "" : `<p class="empty">The wall is bare. Be the first to pin something up.</p>`}
-    ${everyday.length > WALL_SHOWN ? `<details class="drawer" id="memory-box"><summary>The memory box: older notes, taken down but kept</summary><ul class="notes">${everyday.slice(WALL_SHOWN).map((t) => wallNote(t, v)).join("\n")}</ul></details>` : ""}
+    ${everyday.length ? `<h3 class="pinned month-now">${esc(monthLabel(month, v.now))}</h3><ul class="notes">\n${everyday.slice(0, WALL_SHOWN).map((t) => wallNote(t, v)).join("\n")}\n</ul>` : big.length || house().spec?.memories.length || house().spec?.joke ? "" : months.length ? `<p class="empty">The wall started fresh for ${esc(monthLabel(month, v.now))}. Everything from before is in the memory box below. Be the first to pin something up.</p>` : `<p class="empty">The wall is bare. Be the first to pin something up.</p>`}
+    ${memoryBox(v, everyday.slice(WALL_SHOWN), months, did?.key === "recap" ? months[0] : v.recap)}
   </section>`, did);
 }
 

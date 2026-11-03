@@ -3377,3 +3377,70 @@ still shown there), and the house drawing's cork board shows the newest 3.
 **Correction:** none.
 
 **Commits:** this entry's commit (no code change).
+
+### 81. The wall starts fresh each month, with a recap; is the widget working (3 Nov 2026)
+
+**Asked:** "okay manybe we can refresh the wall every month and give a
+recap whenever the user comes after the refresh, making sure nobody misses
+anything. also, is the homescreen thing working".
+
+**Agent:** built the monthly wall on `phone-walk-corners` (ADR 0026):
+
+- The wall shows this month's notes and photos under the month's name.
+  Each month before is an envelope in the memory box, newest first, with
+  everything that was on the wall, stickers and all. Nothing is deleted;
+  only where a note is shown changes. Big news stays pinned whatever the
+  month. The cork board in the house picture shows this month's photos.
+- The month turns over by the first friend's clock (`monthClock()`):
+  Rithika's Canberra, the first to reach the 1st, so the five share one
+  wall instead of each seeing a different one.
+- A friend coming back after the 1st (not on her very first visit) gets
+  a recap of the last month the wall had anything in. Updates shows it
+  in full: every note and photo, named, what's new to her marked "new to
+  you". A laptop's Home shows a card with the month's photos, and Home's
+  news line says "The wall started fresh: here's October". It waits
+  however long she's away, until she presses "Put October in the memory
+  box" (`POST /wall/recap`, which sets the new `visits.recap` column, the
+  only thing it writes). That takes her to the living room with October's
+  envelope open. Only a month the wall has had is accepted (400
+  otherwise), and the marker never goes back.
+- Three new spec tests (the wall resets and keeps every month; the recap
+  appears with last month's photo, the news line names October, and it
+  stays until put away; an unknown month is refused). `pnpm check` on a
+  fresh throwaway server: 116 passed, 21 skipped (the same 21 as before).
+- Looked at the recap on Updates and Home at 390, Home's side card at
+  1280, the envelope's heading, and the landing after putting it away,
+  with a real tap on the button.
+
+On the widget: answered from the live site and the spec, no change. The
+server side works: the spec checks the link, what it shows (the newest
+thing a friend left you, with her face, and everyone's clocks), that a
+wrong key is refused, and that reading it never holds your window; a
+made-up key on the live site gets a 404 as it should. But nobody has
+tried it on a real phone yet (Scriptable on an iPhone, KWGT on Android),
+and the live logs show no widget keys made. The agent didn't make a key
+on the live site, which would write into the real house.
+
+**What went wrong:**
+
+- The recap card showed each photo twice (a strip and the lines' own
+  thumbnails); the strip is now only on Home's short card.
+- "2026" was on every month; the year now shows only for another year.
+- The envelope's month was cream on cream, because the drawer's summary
+  colour reached it; a more specific rule fixed it.
+- The "put away" confirmation vanished at once. It was inside the wall's
+  `data-live` region, which `live.js` swaps after taking `?did=` out of
+  the address. It went back to the top of the page.
+- The jump to `#memory-box` landed under the top bar; it now stops 70 px
+  short (`scroll-margin-top`).
+
+Product calls, named for Rithika to redirect:
+
+- Canberra's clock decides when the month turns, for everyone.
+- Big news stays pinned across months instead of going in an envelope.
+- The recap stays until it's put away, not for one visit or a week.
+- Only last month gets a recap; earlier months wait in the memory box.
+
+**Correction:** none.
+
+**Commits:** this entry's commit.
