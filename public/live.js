@@ -517,3 +517,76 @@
   // fields differ from what the page came with, so live.js leaves it be.
   document.addEventListener("house:fresh", all);
 })();
+
+// A photo for the memory wall (ADR 0024): a phone's photo is several MB, so
+// before it goes, it's drawn again at most 1600 px across and sent as a
+// JPEG of a few hundred KB, and you see it as a polaroid while you write
+// what it reminds you of. Without this file the form sends the photo as it
+// is, which the house takes up to 6 MB.
+(() => {
+  const EDGE = 1600;
+  function photoForm(form) {
+    if (form.dataset.shrink) return;
+    form.dataset.shrink = "1";
+    const file = form.querySelector("input[type=file]");
+    let preview;
+    let small;
+    file.addEventListener("change", async () => {
+      small = undefined;
+      const picked = file.files?.[0];
+      preview?.remove();
+      preview = undefined;
+      if (!picked || !/^image\//.test(picked.type)) return;
+      const url = URL.createObjectURL(picked);
+      preview = document.createElement("img");
+      preview.className = "preview";
+      preview.alt = "The photo you picked";
+      preview.src = url;
+      file.after(preview);
+      try {
+        // createImageBitmap turns a phone photo the right way up as it reads it.
+        const bitmap = await createImageBitmap(picked, { imageOrientation: "from-image" });
+        const scale = Math.min(1, EDGE / Math.max(bitmap.width, bitmap.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(bitmap.width * scale);
+        canvas.height = Math.round(bitmap.height * scale);
+        canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+        bitmap.close();
+        const blob = await new Promise((done) => canvas.toBlob(done, "image/jpeg", 0.85));
+        // Only if it's actually smaller: a small PNG can come out bigger.
+        if (blob && blob.size < picked.size) small = blob;
+      } catch {
+        // A photo the browser can't draw (HEIC on some phones) goes as it is,
+        // and the house says if it can't pin it.
+      }
+    });
+    form.addEventListener("submit", async (event) => {
+      if (!small || !window.fetch || !window.FormData) return;
+      event.preventDefault();
+      const data = new FormData(form);
+      data.set(file.name, small, "photo.jpg");
+      const button = form.querySelector("button");
+      if (button) button.disabled = true;
+      try {
+        const res = await fetch(form.action, { method: "POST", body: data });
+        // Pinned: the house sent the wall back (a 303 fetch followed), and
+        // the photo's there. Not pinned: its page says why, shown as it is.
+        if (res.redirected) {
+          location.href = `${res.url}#wall`;
+        } else {
+          const page = await res.text();
+          document.open();
+          document.write(page);
+          document.close();
+        }
+      } catch {
+        if (button) button.disabled = false;
+        small = undefined;
+        form.requestSubmit();
+      }
+    });
+  }
+  const all = () => document.querySelectorAll("form.pin-photo").forEach(photoForm);
+  all();
+  document.addEventListener("house:fresh", all);
+})();

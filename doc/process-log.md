@@ -3168,3 +3168,118 @@ relavant screen shots".
 
 **Commits:** this entry and the screenshots; the merge and CI run are named
 in the reply.
+
+### 76. A widget like Locket, photos on the memory wall, the planner first on Movies (3 Nov 2026)
+
+**Asked:** "can you make this into sumn i can view on the homescreen, like
+locket?". The agent asked which phones and what it should show: Rithika
+picked iPhone and Android, and the newest thing a friend left you with
+everyone's faces and clocks. While it was building, she added "also, on
+memory wall, give the user an option to upload an image, so if sumn reminds
+them of the group, they can send an image saying, this reminds me of you
+guys", then "in movies tab, i want the time thing to come first and then
+suggestions".
+
+**Agent:** on the branch `photos-and-widget`:
+
+- Movies: the planner comes first, before suggesting a movie. Its "suggest
+  a movie first" link now goes to the suggestion form (`#suggest`).
+- Photos on the memory wall (ADR 0024): a "Pin a photo" form under the
+  wall's note form, its caption starting as "this reminds me of you guys".
+  It goes up as a polaroid and takes stickers. The picture is kept in a new
+  `photos` table in the house's own database; the note is an ordinary
+  `note` row with item `photo:<id>`. Read without a library
+  (`src/photos.ts`), up to 6 MB, and only real JPEG, PNG or WebP by their
+  first bytes. Served only to friends signed into that house. The browser
+  shrinks a phone's photo to 1600 px first: a 3024 × 4032 test photo went
+  up as 1200 × 1600, 64 KB.
+- The widget (ADR 0025): a private link per friend, made on her Everyone
+  tab. A widget app reads it as JSON: the newest thing a friend left her (a
+  photo first) and everyone's face and clock. Reading it isn't a visit and
+  never holds her window. A new link turns the old one off. iPhone: a
+  Scriptable script served with her link in it. Android: KWGT's steps.
+- Tests, in Rithika's house and a made one: pinning a photo, who can see
+  it, refusing a file that isn't a picture; the widget's link, what it
+  shows, that reading it doesn't hold her window, wrong and old keys;
+  Movies' order. `pnpm check` on a fresh throwaway server: 113 passed, 21
+  skipped.
+- Checked in a browser at 390: picking a photo and tapping Pin for real
+  (scripts/shot.ts learned `SHOT_FILE`), the polaroid, the widget card and
+  its button. The Scriptable script was run on a laptop with stand-ins for
+  Scriptable's parts, small and medium: it draws the photo, Neha's face and
+  words, and five faces with clocks, and tapping opens the living room.
+  It hasn't been tried on a real iPhone or in KWGT.
+- Screenshots retaken; the set they replace is kept in
+  `doc/screenshots/archive/2026-11-03-1654/`. New: 22 (a photo on the wall)
+  and 23 (the widget card, its key cut short). The tour's photo is a crop
+  of the house's own picture, made by `sips` as it runs.
+
+**What went wrong:**
+
+- The file picker's "No file chosen" made the living room 393 px wide on a
+  390 px phone. Found by hiding each new piece in turn; it now shrinks.
+- Two leftover throwaway servers held port 8099, so one full run was
+  against the older one (same code). Re-run on a fresh server.
+- Made-house faces are SVG, which Scriptable can't show; the widget draws a
+  friend's initial in her colour for those.
+
+Product calls, named for Rithika to redirect:
+
+- A photo on the widget beats a newer line of words unless the words are a
+  day newer.
+- There's no way to take a photo down, as with notes.
+- Android needs KWGT's Pro key (a few dollars) to read a link.
+
+**Correction:** none.
+
+**Commits:** `183b473` (photos, Movies), `ae63c78` (widget), and this
+entry's commit with the screenshots.
+
+### 77. Small pictures on the site itself (3 Nov 2026)
+
+**Asked:** "can we not show the pictures on the website itself? like small
+images". Read as: a pinned photo should show small wherever the house
+mentions it, not only as the wall's polaroid.
+
+**Agent:** on the branch `photos-and-widget`:
+
+- Updates: a line about a pinned photo has the photo beside it, 44 px, as a
+  tiny polaroid, linked to the wall (`happeningItem`, `Happening.photo`).
+- The wall on a phone: photos are smaller polaroids, two side by side;
+  notes in words still take the whole width.
+- The house drawing: the living room's cork board carries up to three of
+  the newest photos as tiny tilted polaroids, pinned in each friend's
+  colour (`boardPhotos()` in `src/scene.ts`, placed across
+  `layout().wallBoard`, so they sit on the board in every house size).
+  Checked in Rithika's house and a made house of four.
+- Tests: the photo test also checks the Updates thumbnail and the board's
+  `g.board-photos`. `pnpm check` on a fresh throwaway server: 113 passed,
+  21 skipped.
+- Screenshots retaken. New: 24 (photos in Updates). Kept: the set before,
+  in `doc/screenshots/archive/2026-11-03-1851/`.
+
+**What went wrong:**
+
+- The first retake showed the living room photo twice on the wall, though
+  the second photo was a bedroom. Photos were served as cached for a year,
+  and the shot browser's profile still had `/photo/1` from an earlier run,
+  when a fresh throwaway house had given that address to a different
+  photo. Now a photo is kept a day (ADR 0024 amended, since the branch
+  isn't shipped), and the tour clears its browser profile before shooting.
+  That retake is kept, per the never-delete rule, in
+  `doc/screenshots/archive/2026-11-03-1917/`; it's the one with the
+  doubled photo.
+- A leftover `--watch` server from an earlier throwaway run kept
+  restarting on port 8099, so a run hit it instead of the fresh one. Both
+  throwaway processes were stopped and the run repeated.
+
+Product calls, named for Rithika to redirect:
+
+- The board shows the three newest photos, not all of them.
+- The thumbnail in Updates links to the wall rather than opening the photo
+  big.
+
+**Correction:** none.
+
+**Commits:** `6468e4a` (small photos, the one-day cache), and this entry's
+commit with the screenshots.

@@ -1,9 +1,9 @@
-import { randomInt, randomUUID } from "node:crypto";
+import { randomBytes, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { ART, ART_TYPES, isArt } from "./assets.ts";
 import { avatarSvg, parseLook } from "./avatars.ts";
-import { counter, desk, DOG, find, FOOD, gifts, KETTLE_ROOM, MASK_ROOM, movies, PLANTS, resting, roomPlace, savedFor, seats, STICKERS, wall } from "./house.ts";
+import { counter, desk, DOG, find, FOOD, gifts, KETTLE_ROOM, MASK_ROOM, movies, photoOf, PLANTS, resting, roomPlace, savedFor, seats, STICKERS, wall } from "./house.ts";
 import { closeHouses, findHouse, house, inHouse, made, ORIGINAL } from "./houses.ts";
 import * as live from "./live.ts";
 import { make } from "./maker.ts";
@@ -18,6 +18,7 @@ import {
   kitchenPage,
   livingPage,
   manifest,
+  widget,
   MAX_DISH_NOTE,
   MAX_NOTE,
   MAX_ABOUT,
@@ -31,6 +32,8 @@ import {
   type Visit,
 } from "./pages.ts";
 import { PEOPLE, personById, type Person } from "./people.ts";
+import { avatarUrl } from "./avatars.ts";
+import { MAX_PHOTO, readUpload } from "./photos.ts";
 import { layout, matWords } from "./layouts.ts";
 import { isPlace, placeAt } from "./scene.ts";
 import * as store from "./store.ts";
@@ -45,6 +48,7 @@ const README = new URL("../README.md", import.meta.url);
 const STYLE = new URL("../public/style.css", import.meta.url);
 const SCRIPT = new URL("../public/house.js", import.meta.url);
 const LIVE = new URL("../public/live.js", import.meta.url);
+const SCRIPTABLE = new URL("../public/widget/scriptable.js", import.meta.url);
 
 store.onChange(live.broadcast);
 
@@ -122,6 +126,42 @@ async function readForm(req: IncomingMessage): Promise<URLSearchParams | undefin
 const text = (form: URLSearchParams, name: string): string =>
   (form.get(name) ?? "").replace(/\r\n?/g, "\n").trim();
 
+// What a widget sees (ADR 0025): the house as it is, read without coming
+// in. It doesn't count as a visit, so "new" means new since her last real
+// visit, and it never holds her window.
+function look(me: Person): Visit {
+  return {
+    me,
+    things: store.things(),
+    seen: store.lastSeen(),
+    where: store.whereabouts(),
+    arrived: store.arrivals(),
+    spots: store.spots(),
+    seenUntil: store.seenSince(me.id),
+    now: Date.now(),
+  };
+}
+
+// This house's address as the browser (or widget) reached it: Fly's proxy
+// says it was https.
+const origin = (req: IncomingMessage): string =>
+  `${req.headers["x-forwarded-proto"] === "https" ? "https" : "http"}://${req.headers.host ?? "localhost"}`;
+
+// Your own widget's link, if you've made one, at this house's address.
+function widgetLink(req: IncomingMessage, me: Person): string | undefined {
+  const key = store.widgetKey(me.id);
+  return key ? `${origin(req)}${house().base}/widget/${me.id}.${key}/` : undefined;
+}
+
+// The friend a widget link belongs to, if its key is hers. Compared in
+// constant time, and an empty key (no widget made) never matches.
+function widgetFriend(id: string, key: string): Person | undefined {
+  const p = personById(id);
+  const kept = p ? store.widgetKey(p.id) : "";
+  if (!p || !kept || kept.length !== key.length) return undefined;
+  return timingSafeEqual(Buffer.from(kept), Buffer.from(key)) ? p : undefined;
+}
+
 // `place` is the room this page is in; the whole house and the tabs leave you
 // wherever you last were.
 function visit(me: Person, place = ""): Visit {
@@ -175,6 +215,10 @@ function line(did: string | null, owner?: Person, me?: Person): string | undefin
       return owner?.id === "5" && !made() ? "All tidy. The banana stays, though. It's Aswathy's." : "All tidy.";
     case "wall":
       return "Pinned to the wall. Whoever comes by next will see it.";
+    case "photo":
+      return "Pinned to the memory wall. Whoever comes by next will see what reminded you of them.";
+    case "widget":
+      return "Your widget's link is ready. Any link you made before has stopped working.";
     case "sticker":
       return "Stuck on. Whoever wrote it will know you read it, and how you felt.";
     case "dish":
@@ -279,11 +323,75 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     return void res.end(readFileSync(new URL(art, ART)));
   }
 
+  // A friend's home-screen widget (ADR 0025): everything under
+  // /widget/<id>.<key>/, so the widget app only ever needs the one link.
+  // Read-only, and no visit: the house doesn't think she came by.
+  const w = method === "GET" ? pathname.match(/^\/widget\/([^/.]+)\.([A-Za-z0-9_-]+)\/(.*)$/) : null;
+  if (w) {
+    const friend = widgetFriend(w[1], w[2]);
+    const json = (status: number, body: unknown): void => {
+      res.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
+      res.end(JSON.stringify(body));
+    };
+    if (!friend) return json(404, { error: "This widget's link isn't one the house knows. Make a new one on the Everyone tab." });
+    const rest = w[3];
+    if (rest === "") {
+      const data = widget(look(friend));
+      // Where tapping it goes: the house, at its own address.
+      return json(200, { ...data, open: `${house().base}${data.latest?.open ?? "/"}`, latest: data.latest && { ...data.latest, open: `${house().base}${data.latest.open}` } });
+    }
+    if (rest === "scriptable.js") {
+      const link = `${origin(req)}${house().base}/widget/${friend.id}.${w[2]}/`;
+      res.writeHead(200, { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-store", "content-disposition": `inline; filename="${friend.name.replace(/[^A-Za-z0-9 ]/g, "")} - home screen.js"` });
+      return void res.end(readFileSync(SCRIPTABLE, "utf8").replace("__LINK__", link));
+    }
+    const face = rest.match(/^face\/([^/]+)$/);
+    if (face) {
+      const p = personById(face[1]);
+      if (!p) return json(404, { error: "No such friend." });
+      // The same picture the house shows, from wherever it's kept. A made
+      // house's friends are drawn in SVG, which a widget can't show: it
+      // draws her initial instead.
+      if (p.look) return json(404, { error: "No picture a widget can show." });
+      return redirect(res, avatarUrl(p).replace(/^\//, `${origin(req)}/`));
+    }
+    const snap = rest.match(/^photo\/(\d+)$/);
+    if (snap) {
+      const id = Number(snap[1]);
+      const pic = wall(store.things()).some((t) => photoOf(t) === id) ? store.photo(id) : undefined;
+      if (!pic) return json(404, { error: "That photo isn't on the wall." });
+      res.writeHead(200, { "content-type": pic.type, "content-length": pic.data.length, "cache-control": "private, max-age=86400", "x-content-type-options": "nosniff" });
+      return void res.end(pic.data);
+    }
+    return json(404, { error: "Nothing here." });
+  }
+
+  // Making your widget's link, or a new one (which turns the old one off).
+  if (route === "POST /widget") {
+    if (!me) return send(res, 403, messagePage("Knock first", "Pick who you are at the door first."));
+    store.setWidgetKey(me.id, randomBytes(18).toString("base64url"));
+    return redirect(res, "/everyone?did=widget#widget");
+  }
+
+  // A photo on the memory wall (ADR 0024), only for friends who are in this
+  // house, and only one that's pinned on its wall. A browser keeps it: a
+  // photo never changes once it's pinned.
+  const shown = method === "GET" ? pathname.match(/^\/photo\/(\d+)$/) : null;
+  if (shown) {
+    if (!me) return send(res, 403, messagePage("Knock first", "Pick who you are at the door to see the wall."));
+    const id = Number(shown[1]);
+    const pinned = wall(store.things()).some((t) => photoOf(t) === id);
+    const pic = pinned ? store.photo(id) : undefined;
+    if (!pic) return send(res, 404, messagePage("Nothing here", "That photo isn't on the wall."));
+    res.writeHead(200, { "content-type": pic.type, "content-length": pic.data.length, "cache-control": "private, max-age=86400", "x-content-type-options": "nosniff" });
+    return void res.end(pic.data);
+  }
+
   if (route === "GET /updates" || route === "GET /everyone" || route === "GET /movies" || route === "GET /uno") {
     if (!me) return redirect(res, "/");
     const v = visit(me);
     if (pathname === "/uno") return send(res, 200, unoPage(v, confirmation(did)));
-    return send(res, 200, pathname === "/updates" ? updatesPage(v) : pathname === "/everyone" ? everyonePage(v, confirmation(did)) : moviesPage(v, confirmation(did)));
+    return send(res, 200, pathname === "/updates" ? updatesPage(v) : pathname === "/everyone" ? everyonePage(v, confirmation(did), widgetLink(req, me)) : moviesPage(v, confirmation(did)));
   }
 
   const roomMatch = pathname.match(/^\/room\/([^/]+)(\/leave|\/tidy|\/mask|\/kettle|\/nap|\/wish|\/reply)?$/);
@@ -311,11 +419,27 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
 
   if (method !== "POST") return send(res, 404, messagePage("Nothing here", "There's no room by that name in this house."));
 
-  const writes = ["/wall", "/kitchen", "/kitchen/eat", "/garden/water", "/garden/plant", "/garden/dog", "/garden/treat", "/sit", "/here", "/movies", "/movies/watched", "/movies/night", "/plan", "/uno", "/uno/move", "/hug", "/wall/sticker"];
+  const writes = ["/wall", "/wall/photo", "/kitchen", "/kitchen/eat", "/garden/water", "/garden/plant", "/garden/dog", "/garden/treat", "/sit", "/here", "/movies", "/movies/watched", "/movies/night", "/plan", "/uno", "/uno/move", "/hug", "/wall/sticker"];
   if (!writes.includes(pathname) && !roomMatch?.[2]) {
     return send(res, 404, messagePage("Nothing here", "There's no room by that name in this house."));
   }
   if (!me) return send(res, 403, messagePage("Knock first", "Pick who you are at the door before leaving something."));
+
+  // A photo for the memory wall, with a line about it (ADR 0024). It comes
+  // as a form with a file in it, so it's read before the ordinary forms.
+  if (pathname === "/wall/photo") {
+    const up = await readUpload(req);
+    const mb = MAX_PHOTO / 1024 / 1024;
+    if (up === "too big") return send(res, 413, messagePage("That photo's too big", `Photos fit up to ${mb} MB. A screenshot of it, or a smaller copy, will fit.`, "/living#photo"));
+    if (!up?.file) return send(res, 400, messagePage("No photo?", "Pick a photo to pin up first.", "/living#photo"));
+    if (!up.file.type) return send(res, 400, messagePage("That isn't a photo we can pin", "Pick a JPEG, PNG or WebP photo.", "/living#photo"));
+    const caption = (up.fields.get("body") ?? "").replace(/\r\n?/g, "\n").trim();
+    if (caption.length > MAX_NOTE) return send(res, 400, messagePage("Too long", `Notes fit up to ${MAX_NOTE} characters.`, "/living#photo"));
+    const id = store.keepPhoto(up.file.type, up.file.data);
+    store.leave({ author: me.id, kind: "note", place: "wall", body: caption, item: `photo:${id}` });
+    return redirect(res, "/living?did=photo#wall");
+  }
+
   const form = await readForm(req);
   if (!form) return send(res, 413, messagePage("Too much", "That's more than fits."));
   const body = text(form, "body");

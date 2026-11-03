@@ -225,10 +225,118 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect((await post("/wall/sticker", { note: id!, sticker: "thumbsdown" }, b.id)).status).toBe(400);
   });
 
+  // Rithika: "on memory wall, give the user an option to upload an image, so
+  // if sumn reminds them of the group, they can send an image saying, this
+  // reminds me of you guys" (ADR 0024).
+  it("pins a photo on the memory wall with what it reminds you of, for friends in the house to see", async () => {
+    const [a, b] = await people();
+    const living = await page("/living", a.id);
+    const form = living.querySelector("form#photo[action='/wall/photo'][enctype='multipart/form-data']");
+    expect(form, "there's no way to pin a photo on the wall").not.toBeNull();
+    expect(form!.querySelector("input[type=file][name=photo]")?.getAttribute("accept")).toContain("image/jpeg");
+    expect(form!.querySelector<HTMLInputElement>("input[name=body]")?.getAttribute("value")).toBe("this reminds me of you guys");
+
+    // A tiny real PNG (1 x 1, one warm pixel), as a phone would send a photo.
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP4v+7/fwAIDAN+M8x3iQAAAABJRU5ErkJggg==", "base64");
+    const caption = unique("this reminds me of you guys");
+    const pin = async (file: Blob, name: string, body = caption, who = a.id): Promise<Response> => {
+      const data = new FormData();
+      data.set("photo", file, name);
+      data.set("body", body);
+      return fetch(new URL("/wall/photo", baseUrl), { method: "POST", headers: { cookie: await cookieFor(who) }, body: data, redirect: "manual" });
+    };
+    const res = await pin(new Blob([png], { type: "image/png" }), "chai.png");
+    expect(res.status).toBe(303);
+    expect(res.headers.get("location")).toBe("/living?did=photo#wall");
+
+    // b finds it on the wall, as a polaroid with a's words under it, and hears about it.
+    const note = withText(await page("/living", b.id), ".note.photo", caption);
+    expect(note, "the photo isn't on the wall").toBeDefined();
+    const src = note!.querySelector(".snap img")?.getAttribute("src") ?? "";
+    expect(src).toMatch(/^\/photo\/\d+$/);
+    expect(text(note!.querySelector(".by"))).toContain(a.name);
+    expect(text((await page("/updates", b.id)).body)).toContain(`${a.name} pinned a photo on the wall`);
+    // Small, around the house: beside its line in Updates, and pinned on the
+    // living room's board in the picture.
+    const line = withText(await page("/updates", b.id), ".happenings li", `${a.name} pinned a photo on the wall: “${caption.slice(0, 40)}`);
+    expect(line?.querySelector(".photo-thumb img")?.getAttribute("src"), "Updates doesn't show the photo small").toBe(src);
+    const board = [...(await page("/", b.id)).querySelectorAll(".house-svg g.board-photos image")].map((i) => i.getAttribute("href"));
+    expect(board, "the photo isn't pinned on the board in the house").toContain(src);
+
+    // The photo itself, exactly as sent, for friends in the house only.
+    const shown = await fetch(new URL(src, baseUrl), { headers: { cookie: await cookieFor(b.id) } });
+    expect(shown.status).toBe(200);
+    expect(shown.headers.get("content-type")).toBe("image/png");
+    expect(Buffer.from(await shown.arrayBuffer()).equals(png), "the photo came back changed").toBe(true);
+    expect((await fetch(new URL(src, baseUrl))).status, "someone who isn't in the house can see the photo").toBe(403);
+    expect((await fetch(new URL("/photo/999999", baseUrl), { headers: { cookie: await cookieFor(b.id) } })).status).toBe(404);
+
+    // Only pictures: a file that says it's a photo but isn't is turned away.
+    expect((await pin(new Blob(["<script>alert(1)</script>"], { type: "image/png" }), "not-a-photo.png")).status).toBe(400);
+    expect((await pin(new Blob([], { type: "image/png" }), "")).status, "pinned without a photo").toBe(400);
+    expect((await pin(new Blob([png], { type: "image/png" }), "long.png", "x".repeat(501))).status).toBe(400);
+  });
+
+  // Rithika: "can you make this into sumn i can view on the homescreen, like
+  // locket?" (ADR 0025). A widget reads one private link per friend.
+  it("gives each friend a home-screen widget link showing what friends left her, and nothing to anyone else", async () => {
+    const [a, b] = await people();
+    const before = await page("/everyone", a.id);
+    expect(before.querySelector("#widget form[action='/widget'] button"), "there's no way to make a widget link").not.toBeNull();
+
+    expect((await post("/widget", {}, a.id)).headers.get("location")).toBe("/everyone?did=widget#widget");
+    const link = (await page("/everyone", a.id)).querySelector<HTMLInputElement>("#widget input.widget-link")?.getAttribute("value") ?? "";
+    expect(link).toMatch(new RegExp(`/widget/${a.id}\\.[A-Za-z0-9_-]{20,}/$`));
+    const path = new URL(link).pathname;
+
+    // b pins a photo; a's widget shows it, as a Locket would, with b's words.
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP4v+7/fwAIDAN+M8x3iQAAAABJRU5ErkJggg==", "base64");
+    const caption = unique("this reminds me of you guys");
+    const data = new FormData();
+    data.set("photo", new Blob([png], { type: "image/png" }), "us.png");
+    data.set("body", caption);
+    await fetch(new URL("/wall/photo", baseUrl), { method: "POST", headers: { cookie: await cookieFor(b.id) }, body: data, redirect: "manual" });
+
+    // Read with no cookie at all: the link is the key.
+    const res = await fetch(new URL(path, baseUrl));
+    expect(res.status).toBe(200);
+    const w = await res.json();
+    expect(w.for).toBe(a.name);
+    expect(w.latest, "the widget doesn't show b's photo").toMatchObject({ by: b.name, caption, text: `${b.name} pinned a photo on the wall` });
+    expect(w.latest.photo).toMatch(/^photo\/\d+$/);
+    const five = await people();
+    expect(w.friends.map((f: { name: string }) => f.name), "the widget doesn't show all five").toEqual(five.map((p) => (p.id === a.id ? "You" : p.name)));
+    for (const f of w.friends) expect(f.time, `${f.name} has no clock`).toMatch(/^\d{1,2}:\d{2} [ap]m$/);
+
+    // The photo and faces come through the same link, so the widget never signs in.
+    const photo = await fetch(new URL(w.latest.photo, new URL(path, baseUrl)));
+    expect(Buffer.from(await photo.arrayBuffer()).equals(png)).toBe(true);
+    expect((await fetch(new URL(w.friends[0].face, new URL(path, baseUrl)))).status).toBe(200);
+    const script = await (await fetch(new URL(`${path}scriptable.js`, baseUrl))).text();
+    expect(script, "the iPhone script doesn't carry her link").toContain(`const LINK = "${new URL(path, baseUrl).origin}${path}";`);
+
+    // A widget reading the house isn't coming by: her window stays as it was.
+    await signOut(a.id);
+    await fetch(new URL(path, baseUrl));
+    const back = await signIn(a.id);
+    expect(back.status, "reading the widget held her window").toBe(303);
+    await fetch(new URL("/leave", baseUrl), { method: "POST", headers: { cookie: sessionOf(back) ?? "" }, redirect: "manual" });
+
+    // Wrong keys, other friends' ids and old links read nothing.
+    expect((await fetch(new URL(path.replace(/\.[^/]+\//, ".wrongkeywrongkeywrongkey/"), baseUrl))).status).toBe(404);
+    expect((await fetch(new URL(path.replace(`/widget/${a.id}.`, `/widget/${b.id}.`), baseUrl))).status, "a's key opens b's widget").toBe(404);
+    expect((await post("/widget", {}, a.id)).status).toBe(303);
+    expect((await fetch(new URL(path, baseUrl))).status, "the old link still works after making a new one").toBe(404);
+    expect((await post("/widget", {})).status, "a stranger made a widget link").toBe(403);
+  });
+
   it("only lets the five leave things", async () => {
     const note = unique("from a stranger");
     expect((await post("/wall", { body: note })).status).toBe(403);
     expect((await post("/wall", { body: note }, "intruder")).status).toBe(403);
+    const photo = new FormData();
+    photo.set("photo", new Blob([Buffer.from([0xff, 0xd8, 0xff, 0xe0])], { type: "image/jpeg" }), "a.jpg");
+    expect((await fetch(new URL("/wall/photo", baseUrl), { method: "POST", body: photo, redirect: "manual" })).status, "a stranger pinned a photo").toBe(403);
     const [a] = await people();
     expect((await post("/room/9/leave", { body: note }, a.id)).status).toBe(404);
     expect(withText(await page("/living", a.id), ".note", note)).toBeUndefined();
@@ -573,6 +681,15 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect(res.headers.get("location")).toBe("/movies?did=night");
     expect(text((await page("/movies", a.id)).querySelector(".night h2"))).toContain(title);
     expect((await post("/plan", { from: "movies", what: "movie", movie: "999999", when: "2030-01-05T20:00" }, a.id)).status).toBe(400);
+  });
+
+  // Rithika: "in movies tab, i want the time thing to come first and then
+  // suggestions".
+  it("puts the time for all of us first on Movies, before suggesting and the suggestions", async () => {
+    const [a] = await people();
+    const doc = await page("/movies", a.id);
+    const order = [...doc.querySelectorAll("main > form#plan, main > form#suggest, main > section[data-live=movies]")].map((el) => el.id || "suggestions");
+    expect(order, "the planner isn't first on Movies").toEqual(["plan", "suggest", "suggestions"]);
   });
 
   // Esc (public/house.js) zooms a room's page out to the whole house and back,

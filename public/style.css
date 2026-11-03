@@ -3538,3 +3538,160 @@ g.joke-frame {
 .when-chips span.late {
   color: #f7c9a0;
 }
+
+/* a photo on the memory wall (ADR 0024): pinned up like a polaroid, with
+   what reminded her written underneath */
+.note.photo {
+  justify-self: center;
+  width: min(100%, 170px);
+  padding: 8px 8px 10px;
+  background: #fffdf8;
+}
+
+.note.photo .snap {
+  display: block;
+  margin-bottom: 8px;
+  background: #e9dcc6;
+  aspect-ratio: 1;
+  overflow: hidden;
+}
+
+.note.photo .snap img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.note.photo .body {
+  font-size: 1.1rem;
+  line-height: 1.15;
+}
+
+.note.photo .by {
+  font-size: 0.78rem;
+}
+
+.pin-photo input[type="file"] {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  font: inherit;
+  font-size: 0.92rem;
+  color: var(--ink);
+}
+
+.pin-photo input[type="file"]::file-selector-button {
+  margin-right: 10px;
+  padding: 8px 14px;
+  border: 2px solid var(--accent, #c4553c);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pin-photo input[name="body"] {
+  width: 100%;
+  padding: 4px 0;
+  border: 0;
+  border-bottom: 1px dashed rgba(59, 42, 32, 0.35);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--hand);
+  font-size: 1.35rem;
+}
+
+.pin-photo input[name="body"]:focus {
+  outline: none;
+  border-bottom-color: var(--accent);
+}
+
+.pin-photo .preview {
+  display: block;
+  width: min(220px, 100%);
+  aspect-ratio: 1;
+  object-fit: cover;
+  border: 8px solid #fffdf8;
+  border-bottom-width: 22px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+  transform: rotate(-1.4deg);
+}
+
+/* the house on your home screen (ADR 0025): your widget's link, and how to
+   use it */
+.home-widget input.widget-link {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid rgba(59, 42, 32, 0.25);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  font: 0.82rem/1.3 ui-monospace, Menlo, monospace;
+}
+
+.home-widget details {
+  margin: 8px 0;
+}
+
+.home-widget summary {
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.home-widget ol {
+  margin: 8px 0;
+  padding-left: 1.3em;
+}
+
+.home-widget li {
+  margin: 4px 0;
+}
+
+.home-widget code {
+  font-size: 0.78rem;
+  word-break: break-all;
+}
+
+/* a photo from the wall, small, beside its line in Updates (ADR 0024) */
+.happenings li.with-photo {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.happenings .photo-thumb {
+  flex: none;
+  line-height: 0;
+}
+
+.happenings .photo-thumb img {
+  width: 44px;
+  height: 44px;
+  border: 3px solid #fffdf8;
+  border-bottom-width: 7px;
+  border-radius: 2px;
+  object-fit: cover;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  transform: rotate(-3deg);
+}
+
+/* On a phone the wall fits one note across, so a small photo would sit alone
+   in its row: photos go two side by side instead, and notes stay full width. */
+@media (max-width: 600px) {
+  .wall .notes {
+    grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+    gap: 14px;
+  }
+
+  .wall .notes > .note:not(.photo) {
+    grid-column: 1 / -1;
+  }
+}
+
+.note.photo .sticker-pick {
+  font-size: 0.78rem;
+}

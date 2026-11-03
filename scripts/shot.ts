@@ -15,6 +15,9 @@
 // the tap led. element.click() skips hit-testing, so it can't catch something
 // covering a button (it missed the door's windows not taking taps).
 //
+// SHOT_FILE="<selector> <path>" picks that file in a file field first, as the
+// file picker does (it fires `change`), before any tap.
+//
 // SHOT_DRAG="<selector> <dx>" drags across that element instead, from its
 // middle, dx css px sideways (negative is left), with a finger on a touch
 // screen and a mouse otherwise, in steps. Halfway through, SHOT_DRAG_READ
@@ -98,6 +101,16 @@ await cdp("Emulation.setTouchEmulationEnabled", { enabled: touch, maxTouchPoints
 await cdp("Page.enable");
 await cdp("Page.navigate", { url });
 await new Promise((r) => setTimeout(r, 2500)); // web fonts
+if (process.env.SHOT_FILE) {
+  const [selector, path] = process.env.SHOT_FILE.split(/ (?=\/)/);
+  await cdp("DOM.enable");
+  const { root } = await cdp("DOM.getDocument", { depth: 0 });
+  const { nodeId } = await cdp("DOM.querySelector", { nodeId: root.nodeId, selector });
+  if (!nodeId) throw new Error(`nothing matches ${selector}`);
+  await cdp("DOM.setFileInputFiles", { nodeId, files: [path] });
+  console.log(`picked ${path} in ${selector}`);
+  await new Promise((r) => setTimeout(r, 1500));
+}
 if (tap) {
   const found = await cdp("Runtime.evaluate", {
     returnByValue: true,

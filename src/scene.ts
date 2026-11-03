@@ -115,6 +115,9 @@ export type Scene = {
   // UNO on Amirdhavarshini's mat: what you can do while sitting on it with
   // friends (`seated`), and what the mat offers when you walk up (`mat`).
   uno?: { seated: Doing[]; mat: Doing[] };
+  // The newest photos pinned on the memory wall (ADR 0024), newest first:
+  // tiny polaroids on the living room's board in the picture.
+  photos?: { id: number; by: string; color: string }[];
 };
 
 export const isPlace = (place: string): boolean => Object.hasOwn(layout().rooms, place);
@@ -350,6 +353,36 @@ function pops(s: Scene, standing: Map<string, Pt>): string {
   const size = s.did === "tidy" || s.did === "play" || s.did === "treat" ? 24 : 32;
   const all = (where[s.did] ?? []).map((p, i) => pop(s.did!, p, size, i * 0.3)).join("");
   return all ? `<g class="pops" aria-hidden="true">${all}</g>` : "";
+}
+
+// The newest photos from the memory wall, pinned as tiny polaroids across
+// the living room's board in the picture (ADR 0024), up to three, each with
+// a pin in the colour of whoever pinned it. The board's corners are its
+// top-left, top-right, bottom-right and bottom-left (src/layouts.ts), so they
+// follow its slant in Rithika's picture. Tapping the board reads the wall.
+const SNAP = 22;
+function boardPhotos(s: Scene): string {
+  const shown = (s.photos ?? []).slice(0, 3);
+  if (!shown.length) return "";
+  const [tl, tr, br, bl] = layout().wallBoard;
+  const at = (u: number, v: number): Pt => {
+    const top: Pt = [tl[0] + (tr[0] - tl[0]) * u, tl[1] + (tr[1] - tl[1]) * u];
+    const bottom: Pt = [bl[0] + (br[0] - bl[0]) * u, bl[1] + (br[1] - bl[1]) * u];
+    return [top[0] + (bottom[0] - top[0]) * v, top[1] + (bottom[1] - top[1]) * v];
+  };
+  const slant = (Math.atan2(tr[1] - tl[1], tr[0] - tl[0]) * 180) / Math.PI;
+  const tilts = [-6, 4, -2];
+  return `<g class="board-photos" data-place="living" aria-hidden="true">${shown.map((p, i) => {
+    const [x, y] = at((i + 1) / (shown.length + 1), 0.5);
+    const w = SNAP;
+    const h = SNAP + 6;
+    return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${(slant + tilts[i]).toFixed(1)})">
+<rect x="${-w / 2 + 1}" y="${-h / 2 + 2}" width="${w}" height="${h}" fill="#000" opacity=".22"/>
+<rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" fill="#fffdf8"/>
+<image href="/photo/${p.id}" x="${-w / 2 + 2}" y="${-h / 2 + 2}" width="${w - 4}" height="${w - 4}" preserveAspectRatio="xMidYMid slice"/>
+<circle cy="${-h / 2 + 1}" r="2.4" fill="${p.color}" stroke="#00000033" stroke-width=".6"/>
+</g>`;
+  }).join("")}</g>`;
 }
 
 // A made house's inside joke hangs in a little wooden frame on the living
@@ -667,6 +700,7 @@ ${made() ? "" : kettleMaggi(s)}
 ${blanket(s, people.standing)}
 ${light(s)}
 ${jokeFrame()}
+${boardPhotos(s)}
 ${things(s)}
 ${roomThings(s)}
 ${party(s)}
