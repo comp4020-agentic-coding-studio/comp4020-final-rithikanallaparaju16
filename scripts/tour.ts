@@ -157,6 +157,18 @@ await signOut("1");
 await post("2", "/wall", { body: "got the internship!!! 🎉", big: "1" });
 await post("3", "/wall", { body: "who's up for movie night this weekend" });
 await post("5", "/wall", { body: "the bananas are still here. they're family now" });
+// Rithanya pins a photo on the memory wall (ADR 0024). For the tour it's a
+// crop of the house's own picture, the living room by the fire, cut out by
+// macOS's sips like the screenshots, so no new picture is kept in the repo.
+{
+  const snap = `${dataDir}/snap.jpg`;
+  execFileSync("sips", ["-c", "360", "450", "--cropOffset", "70", "660", "public/art/house.jpg", "--out", snap], { stdio: "ignore" });
+  const data = new FormData();
+  data.set("photo", new Blob([readFileSync(snap)], { type: "image/jpeg" }), "snap.jpg");
+  data.set("body", "sofa, fire, all five of us. this reminds me of you guys");
+  const res = await send(`${base}/wall/photo`, { method: "POST", headers: { cookie: await signIn("4") }, body: data, redirect: "manual" });
+  if (res.status !== 303) throw new Error(`the tour's photo wasn't pinned (${res.status})`);
+}
 await post("4", "/garden/plant", { item: "sunflower" });
 await post("5", "/garden/plant", { item: "tulsi" });
 await post("2", "/garden/plant", { item: "jasmine" });
@@ -275,6 +287,16 @@ await shot("/room/1", "21-look-out-from-bed", 1280, "1", {
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
     setTimeout(() => done(document.querySelector(".house-svg")?.getAttribute("viewBox")), 1500);
   })`,
+});
+
+// Rithanya's photo on the memory wall, on a phone.
+await shot("/living", "22-photo-on-the-wall-phone", 390, "1", { js: scrollTo(".note.photo") });
+// Rithika's home-screen widget: her link, and the iPhone's steps.
+await post("1", "/widget");
+await shot("/everyone", "23-widget-link-phone", 390, "1", {
+  // The key is a throwaway house's, but a picture of a link reads as one to
+  // copy, so it's shown with its key cut short.
+  js: `(() => { document.querySelector("#widget-iphone").open = true; const link = document.querySelector("#widget input.widget-link"); link.value = link.value.replace(/(\\/widget\\/\\d+\\.)[^/]+/, "$1••••••••"); const c = document.querySelector("#widget"); window.scrollTo(0, c.getBoundingClientRect().top + scrollY - 70); return link.value; })()`,
 });
 
 for (const who of ["1", "2", "3", "4", "5"]) await signOut(who);

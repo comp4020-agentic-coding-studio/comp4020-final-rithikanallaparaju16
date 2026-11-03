@@ -3168,3 +3168,69 @@ relavant screen shots".
 
 **Commits:** this entry and the screenshots; the merge and CI run are named
 in the reply.
+
+### 76. A widget like Locket, photos on the memory wall, the planner first on Movies (3 Nov 2026)
+
+**Asked:** "can you make this into sumn i can view on the homescreen, like
+locket?". The agent asked which phones and what it should show: Rithika
+picked iPhone and Android, and the newest thing a friend left you with
+everyone's faces and clocks. While it was building, she added "also, on
+memory wall, give the user an option to upload an image, so if sumn reminds
+them of the group, they can send an image saying, this reminds me of you
+guys", then "in movies tab, i want the time thing to come first and then
+suggestions".
+
+**Agent:** on the branch `photos-and-widget`:
+
+- Movies: the planner comes first, before suggesting a movie. Its "suggest
+  a movie first" link now goes to the suggestion form (`#suggest`).
+- Photos on the memory wall (ADR 0024): a "Pin a photo" form under the
+  wall's note form, its caption starting as "this reminds me of you guys".
+  It goes up as a polaroid and takes stickers. The picture is kept in a new
+  `photos` table in the house's own database; the note is an ordinary
+  `note` row with item `photo:<id>`. Read without a library
+  (`src/photos.ts`), up to 6 MB, and only real JPEG, PNG or WebP by their
+  first bytes. Served only to friends signed into that house. The browser
+  shrinks a phone's photo to 1600 px first: a 3024 × 4032 test photo went
+  up as 1200 × 1600, 64 KB.
+- The widget (ADR 0025): a private link per friend, made on her Everyone
+  tab. A widget app reads it as JSON: the newest thing a friend left her (a
+  photo first) and everyone's face and clock. Reading it isn't a visit and
+  never holds her window. A new link turns the old one off. iPhone: a
+  Scriptable script served with her link in it. Android: KWGT's steps.
+- Tests, in Rithika's house and a made one: pinning a photo, who can see
+  it, refusing a file that isn't a picture; the widget's link, what it
+  shows, that reading it doesn't hold her window, wrong and old keys;
+  Movies' order. `pnpm check` on a fresh throwaway server: 113 passed, 21
+  skipped.
+- Checked in a browser at 390: picking a photo and tapping Pin for real
+  (scripts/shot.ts learned `SHOT_FILE`), the polaroid, the widget card and
+  its button. The Scriptable script was run on a laptop with stand-ins for
+  Scriptable's parts, small and medium: it draws the photo, Neha's face and
+  words, and five faces with clocks, and tapping opens the living room.
+  It hasn't been tried on a real iPhone or in KWGT.
+- Screenshots retaken; the set they replace is kept in
+  `doc/screenshots/archive/2026-11-03-1654/`. New: 22 (a photo on the wall)
+  and 23 (the widget card, its key cut short). The tour's photo is a crop
+  of the house's own picture, made by `sips` as it runs.
+
+**What went wrong:**
+
+- The file picker's "No file chosen" made the living room 393 px wide on a
+  390 px phone. Found by hiding each new piece in turn; it now shrinks.
+- Two leftover throwaway servers held port 8099, so one full run was
+  against the older one (same code). Re-run on a fresh server.
+- Made-house faces are SVG, which Scriptable can't show; the widget draws a
+  friend's initial in her colour for those.
+
+Product calls, named for Rithika to redirect:
+
+- A photo on the widget beats a newer line of words unless the words are a
+  day newer.
+- There's no way to take a photo down, as with notes.
+- Android needs KWGT's Pro key (a few dollars) to read a link.
+
+**Correction:** none.
+
+**Commits:** `183b473` (photos, Movies), `ae63c78` (widget), and this
+entry's commit with the screenshots.

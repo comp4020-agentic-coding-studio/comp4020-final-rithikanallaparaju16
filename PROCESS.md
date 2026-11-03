@@ -126,6 +126,15 @@ him.
 
 ![The living room and the wall](doc/screenshots/07-living-room.jpg)
 
+**A photo on the memory wall.** If something reminds you of everyone, take a
+photo and pin it on the wall with a line about it ("this reminds me of you
+guys" to start). It goes up as a polaroid, friends can put stickers on it
+like any note, and only friends in the house can see it. The photo here is
+a crop of the house's own picture, standing in for a real one
+([`183b473`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/183b473)).
+
+![A photo pinned on the memory wall, on a phone](doc/screenshots/22-photo-on-the-wall-phone.jpg)
+
 **The kitchen and garden.** Food out for everyone stays three days or until
 someone eats it. A plate saved for a friend waits, covered, with her name on
 it, however long she's away. Only she can eat it, and the cook hears she
@@ -136,8 +145,9 @@ die.
 
 ![The kitchen at laptop width: saved plates, and who it's for](doc/screenshots/18-saved-plates.jpg)
 
-**Movies and UNO.** Suggest a movie or plan a movie night on the sofas. UNO is
-on Amirdhavarshini's mat: seven cards each, twenty seconds a turn.
+**Movies and UNO.** On Movies, the time for all of us comes first, then
+suggesting a movie and the list ([`183b473`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/183b473)). UNO is on
+Amirdhavarshini's mat: seven cards each, twenty seconds a turn.
 
 ![Movie time on a phone](doc/screenshots/10-movies-phone.jpg) ![UNO on the mat, mid-game](doc/screenshots/11-uno-phone.jpg)
 
@@ -188,6 +198,16 @@ and a little frame hangs on the living room wall in the picture ([`3aac38e`](htt
 **On a phone's home screen.** The house can be added to the home screen on
 Android and iPhone, with the living room fire as its icon, and it opens
 without the browser around it. A made house goes on under its own name.
+
+**A widget, like Locket.** Each of us can make a private link at the bottom
+of the Everyone tab. A widget app reads it to show the newest photo or note
+a friend left you, and everyone's face and clock. On an iPhone it uses the
+free Scriptable app, and the house gives you the script with your link
+already in it. On Android it uses KWGT. Making a new link turns the old one
+off ([`ae63c78`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/ae63c78)). I couldn't put it on a real phone from
+here, so it was checked by running its script on a laptop.
+
+![Making a widget link on a phone](doc/screenshots/23-widget-link-phone.jpg)
 
 ## Prompts
 
@@ -258,3 +278,6 @@ Every prompt I gave the agent from 8 October, word for word, with the commit it 
 - "open that branch, let me check it first": the `planner-strip` branch ran on this laptop and opened, no code change.
 - "instead of name initials there, becasue they might be similar, give their avatars maybe?": the time strip shows each friend's face, ringed in her colour, instead of her initial, [`8b13b9a`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/8b13b9a)
 - "yes merge all the chnages now, and pls update process.md with the relavant screen shots": the screenshots above are retaken, with dragging through time (20) and looking out from bed (21) added, the older set kept in `doc/screenshots/archive/`, and the branch merged and shipped, [`8b13b9a`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/8b13b9a)
+- "can you make this into sumn i can view on the homescreen, like locket?", answered as iPhone and Android, showing the newest thing left for you with everyone's faces and clocks: a private widget link per friend, read by Scriptable on an iPhone or KWGT on Android, [`ae63c78`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/ae63c78)
+- "also, on memory wall, give the user an option to upload an image, so if sumn reminds them of the group, they can send an image saying, this reminds me of you guys": photos pinned on the memory wall as polaroids, [`183b473`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/183b473)
+- "in movies tab, i want the time thing to come first and then suggestions": the planner comes first on Movies, [`183b473`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/183b473)
