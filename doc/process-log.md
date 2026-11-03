@@ -3300,3 +3300,64 @@ moderate, 1 low), untouched.
 **Correction:** none.
 
 **Commits:** `86c9c23` (the merge), and this entry's commit.
+
+### 79. Walking on a phone from either bottom corner (3 Nov 2026)
+
+**Asked** (while entry 78's checks were running): "on the phone, its a
+little tricky to move charaters, we need to go to the toggle thingee to move
+my person in phone, make it like you dont need to go till there, if i touch
+botton left or bottom right corner it should be for moving only, and make it
+come in phone in a nice way".
+
+**Agent:** first, CI on `main` had failed after entry 78's log-only commit:
+`spec/multiuser.test.ts` ("keeps each house's live news to that house")
+heard a `changed` in Rithika's house. Re-running it failed the same way, so
+it wasn't luck. A friend whose live page closes is only "gone" 3 seconds
+later (`GONE`, `src/live.ts`), and door.test.ts, which runs just before,
+closes some; that notice landed in the test's 500 ms window. The test now
+waits until its lines have been quiet for 3.5 s before listening. Door then
+multiuser passed locally; committed on `main` (`146d879`) and pushed. The
+live site had kept running `86c9c23`, which had passed.
+
+Then, on the branch `phone-walk-corners` (`1475dc3`):
+
+- On a touch screen both bottom corners of the house are only for walking
+  (`.walk-corner`). A thumb down anywhere in one brings the stick up with
+  its middle under the thumb, so landing never walks you; sliding past its
+  edge drags it along. Lifting the thumb hides it.
+- "In a nice way": each corner is a soft glow with a resting ring; they
+  rise in when the house loads, and the stick pops in under the thumb. No
+  animation under reduced motion.
+- The buttons (Go in, and whatever you're next to) used to sit in the
+  bottom-right corner; they now stand just above it. Putting them in the
+  middle covered your own sticker, which the phone keeps near the middle.
+- The hint says "Hold a corner to walk" on touch screens until you first
+  walk, as the keys hint does on a laptop. Laptops are unchanged.
+- `scripts/shot.ts` can put a finger down at a point and drag any way
+  (`SHOT_DRAG="@x,y dx,dy"`) and take the picture with it still down
+  (`SHOT_DRAG_HOLD`). The tour uses it for shot 25.
+- Checked with a real finger at 390: a drag from the left corner and from
+  the right walked her, the stick under the thumb; a tap on Go above the
+  corner went into her room; a tap on Neha's window at the door let her in.
+  Looked at a room page, the iPad (touch, 820) and a laptop. `pnpm check`
+  on a fresh throwaway server: 113 passed, 21 skipped.
+- Screenshots retaken; the set before is kept in
+  `doc/screenshots/archive/2026-11-03-2003/`. New: 25 (walking from a
+  corner). README, CLAUDE.md and PROCESS.md say how walking works now.
+
+**What went wrong:** the first try put the buttons in the middle, over
+Rithika's sticker; moved above the right corner. A tap check through
+`shot.ts`'s selector scrolled the page and reported the header over Go;
+it was the earlier drag having left her in a hall, where Go is hidden.
+
+Product calls, named for Rithika to redirect:
+
+- Each corner is about 160 × 128 px on the house (140 × 112 in a room), so
+  anything drawn there (a bed, Shinzo) can't be tapped in that corner.
+  Rooms and hotspots are still reachable by walking up to them.
+- The buttons are on the right, above the corner, as before.
+
+**Correction:** none.
+
+**Commits:** `146d879` (the flaky test, on `main`), `1475dc3` (walking,
+on `phone-walk-corners`), and this entry's commit.

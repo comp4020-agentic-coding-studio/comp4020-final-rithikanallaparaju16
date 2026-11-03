@@ -102,14 +102,19 @@ up to lights up, with its buttons above Go in (here, tidying my room).
 
 ![The whole house at laptop width](doc/screenshots/04-house.jpg)
 
-**On a phone** the house fills the screen, and you walk with the thumb stick.
-Standing by Neha offers a hug; by the sofa, a seat or a movie night.
+**On a phone** the house fills the screen. You walk by holding either bottom
+corner and sliding your thumb: the stick comes up wherever your thumb lands,
+so there's nothing to aim for, and the buttons stand above the corners, never
+in them ([`1475dc3`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/1475dc3)). Standing by Neha offers a hug; by the
+sofa, a seat or a movie night.
 
 **Writing back.** In my room, Neha has written back to the note I left on her
 desk, and it says which note it's answering. Any note on my desk can be
 written back to, once, and the answer goes on the writer's desk.
 
 ![The house on a phone, next to Neha](doc/screenshots/05-house-phone.jpg)
+
+![Walking from the bottom-left corner, the stick under the thumb](doc/screenshots/25-walk-from-a-corner-phone.jpg)
 
 ![My room, with Neha's reply on my desk and writing back open](doc/screenshots/06-your-room.jpg)
 
@@ -290,3 +295,4 @@ Every prompt I gave the agent from 8 October, word for word, with the commit it 
 - "in movies tab, i want the time thing to come first and then suggestions": the planner comes first on Movies, [`183b473`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/183b473)
 - "can we not show the pictures on the website itself? like small images": pinned photos show small beside their lines in Updates, as smaller polaroids on a phone's wall, and on the living room's cork board in the house, [`6468e4a`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/6468e4a)
 - "push everything and open it live": the photos, the widget and Movies' new order merged and shipped, and the live site opened, [`86c9c23`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/86c9c23)
+- "on the phone, its a little tricky to move charaters, we need to go to the toggle thingee to move my person in phone, make it like you dont need to go till there, if i touch botton left or bottom right corner it should be for moving only, and make it come in phone in a nice way": both bottom corners walk you, with the stick coming up under your thumb, and the buttons moved above them, [`1475dc3`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/1475dc3)
