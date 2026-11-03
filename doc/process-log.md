@@ -3361,3 +3361,19 @@ Product calls, named for Rithika to redirect:
 
 **Commits:** `146d879` (the flaky test, on `main`), `1475dc3` (walking,
 on `phone-walk-corners`), and this entry's commit.
+
+### 80. How many photos the memory wall holds (3 Nov 2026)
+
+**Asked:** "how many images can you hold on the memory wall".
+
+**Agent:** answered from the code, no change. There's no limit on how
+many: every photo is kept for good. What limits it is the Fly volume
+(1 GB, `fly.toml`), which made houses share. A photo shrunk by the page
+(1600 px JPEG) is usually a few hundred KB, so roughly 2,000 to 3,000 fit;
+one sent without the script can be up to 6 MB. The wall shows the newest
+24 notes and photos (`WALL_SHOWN`), older ones go into the memory box (all
+still shown there), and the house drawing's cork board shows the newest 3.
+
+**Correction:** none.
+
+**Commits:** this entry's commit (no code change).
