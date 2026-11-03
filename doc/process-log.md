@@ -3465,3 +3465,78 @@ October's recap on her next visit (not on a first visit ever).
 **Correction:** none.
 
 **Commits:** `65aaa81` (what went live), and this entry's commit.
+
+### 83. Walk from the screen's corners, like PUBG; where's the widget (3 Nov 2026)
+
+**Asked**, while log 82 was shipping: "the toggle is malfunctioning in
+phone, like in pubg if you see, when ever the user touches the bottom
+corners of the screen it is for movement, so it comes, here its not
+proper, try that well . on the phone when im in amirdhas room, i cant
+access the toggle because its far down, so even now if i touch the bottom
+corners of my screen it has to work like a toggle". Then: "please do the
+widget thing, how can i even ask the app to do that, where is the option".
+
+**Agent**, on the branch `phone-corners-widget`:
+
+- Walking. On a phone, Home's controls were already fixed to the screen,
+  but a room's were drawn at the bottom of the room's picture, which sits
+  in the middle of the screen (y 302–414 of 844 in Amirdhavarshini's
+  room). Touching the screen's bottom corners there did nothing. Now on a
+  phone the corners are the screen's own, fixed just above the tabs, on
+  a room's page as on Home, each nearly half the screen wide and 150 px
+  tall (more than their glow). The stick is placed on the screen where
+  the thumb lands. A quick tap in a corner (under 300 ms, under 10 px of
+  movement) goes through to what's beneath it, so a corner over a room's
+  buttons doesn't take them away; holding walks. Scrolled down a room's
+  page, away from the house, the corners hide. iOS is stopped from
+  scrolling or zooming from a corner. iPad and laptop are unchanged.
+- The widget. Its option was at the bottom of the Everyone tab, about
+  three screens down, behind a button that only gave a link. Now Home
+  shows "📱 Put the house on your home screen, like Locket ›" (a line
+  under the news on a phone, a card in the side column on a laptop) until
+  you've made one. "Put it on my home screen" on the Everyone tab makes
+  your widget and shows the iPhone steps opened: Get Scriptable (App
+  Store link), Copy your widget's script (one tap), Open Scriptable,
+  paste and name it, add the widget. Android has Chrome's Add to home
+  screen first, then KWGT.
+- A real bug in the iPhone widget: `scriptable.js` used `new URL(...)`,
+  which Scriptable (plain JavaScriptCore) doesn't have. The error was
+  caught as a network failure, so on a real iPhone it would only ever
+  have said "The house couldn't be reached". Addresses are now joined
+  by hand (checked to give the same result as `URL` for every address
+  the widget uses). The widget spec now runs the script in a bare
+  `node:vm` sandbox, with no `URL` or `fetch` and Scriptable's objects
+  stood in, against the house: it fails on the old script and passes on
+  the new one. It also checks the script is on the Everyone tab to copy
+  and that Home's way to the widget goes once it's made.
+- `scripts/shot.ts` can tap a point on the screen with a finger
+  (`SHOT_TAP_AT`), without scrolling anything into view.
+- Checked at 390 with a real finger: holding the bottom-left and the
+  bottom-right corners of the screen in Amirdhavarshini's room walked
+  Rithika, with the stick under the thumb; a quick tap on "Tidy up"
+  through the left corner tidied the room; scrolled down the corners
+  hide; Home fits with the new line, and a tap on it lands on the widget
+  card; "Put it on my home screen" then Copy ("Copied. Now open
+  Scriptable"); the door's windows still let you in. Looked at the iPad
+  (820, touch) and the laptop. `pnpm check` on a fresh throwaway server:
+  116 passed, 21 skipped.
+
+**What went wrong:** the laptop's link first came out with its emoji on a
+line of its own. It was given `side` as a modifier, and `.side` is Home's
+side column (a grid). Renamed `in-side`/`in-news`; CLAUDE.md now names
+both traps (`.side`, and Scriptable not being a browser).
+
+Product calls, named for Rithika to redirect:
+
+- On a phone each walking corner reaches nearly half the screen's width
+  and 150 px up. Only holding there walks; a quick tap is a tap.
+- In a room the buttons (Sit, Make Maggi, Go in) stay in the picture's
+  corner, not down by the screen's corners.
+- The Home line shows until you've made a widget, then goes. It never
+  nags elsewhere.
+- Not tested on a real iPhone or Android yet: Rithika is trying it on
+  her phone.
+
+**Correction:** none.
+
+**Commits:** this entry's commit.

@@ -173,7 +173,10 @@ accepted record.
 - Client JavaScript is enhancement only: `public/house.js` builds the walking
   controls (arrow keys/WASD, the thumb stick, the Go in button; on a touch
   screen both bottom corners, `.walk-corner`, are only for walking, the
-  stick coming up wherever a thumb lands, so keep buttons out of them), walks you to
+  stick coming up wherever a thumb lands, so keep buttons out of them; on
+  a phone they're fixed to the screen's corners above the tabs, rooms
+  included, a quick tap passes through to what's under them, and they hide
+  once the house is scrolled away), walks you to
   a tapped room, keeps a phone's view on you, zooms in going into a room and
   out leaving one, walks Shinzo along his day (`data-path`) and after
   whoever petted or fed him, lights up the hotspot you're next to, offers
@@ -311,7 +314,14 @@ accepted record.
   with the walking controls too: `.stick` is the thumb stick, hidden off
   touch screens, and a note's sticker toggle named `stick` vanished with it.
   `.who` is the drawing's name labels. Grep `public/style.css` before naming
-  a new class.
+  a new class. Modifiers too: `.side` is Home's side column, and a link
+  given `side` as a modifier turned into a grid.
+- `public/widget/scriptable.js` runs in Scriptable on an iPhone: plain
+  JavaScriptCore, with no browser's `URL`, `fetch`, `setTimeout` or
+  `document`. Its first version used `new URL` and would never have
+  loaded. The widget spec runs it in a bare `node:vm` sandbox with
+  Scriptable's objects stood in, which catches that; keep it to what
+  Scriptable has.
 
 ## Deploying
 

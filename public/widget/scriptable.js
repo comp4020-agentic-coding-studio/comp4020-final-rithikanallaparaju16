@@ -12,8 +12,18 @@ const cream = new Color("#fff8ec");
 const ink = new Color("#3b2a20");
 const soft = new Color("#7a6150");
 
+// Scriptable runs plain JavaScriptCore, which has no URL (a browser's), so
+// addresses are joined by hand: the widget's own pictures are relative to its
+// link ("photo/3", "./"), and where a tap goes starts at the site ("/h/…").
+const ORIGIN = LINK.match(/^https?:\/\/[^/]+/)[0];
+function at(path) {
+  if (/^https?:\/\//.test(path)) return path;
+  if (path.startsWith("/")) return ORIGIN + path;
+  return LINK + path.replace(/^\.\//, "");
+}
+
 async function get(path, as = "json") {
-  const req = new Request(new URL(path, LINK).toString());
+  const req = new Request(at(path));
   req.timeoutInterval = 20;
   return as === "image" ? req.loadImage() : req.loadJSON();
 }
@@ -45,7 +55,7 @@ async function build() {
     t.textColor = soft;
     return w;
   }
-  w.url = new URL(house.open, LINK).toString();
+  w.url = at(house.open);
   const size = config.widgetFamily ?? "medium";
   const latest = house.latest;
 

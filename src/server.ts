@@ -153,6 +153,15 @@ function widgetLink(req: IncomingMessage, me: Person): string | undefined {
   return key ? `${origin(req)}${house().base}/widget/${me.id}.${key}/` : undefined;
 }
 
+// The iPhone widget's script (Scriptable), with her own link written in.
+const scriptFor = (link: string): string => readFileSync(SCRIPTABLE, "utf8").replace("__LINK__", link);
+
+// Her widget's link and its script, for the Everyone tab, once she's made one.
+function widgetFor(req: IncomingMessage, me: Person): [string?, string?] {
+  const link = widgetLink(req, me);
+  return link ? [link, scriptFor(link)] : [];
+}
+
 // The friend a widget link belongs to, if its key is hers. Compared in
 // constant time, and an empty key (no widget made) never matches.
 function widgetFriend(id: string, key: string): Person | undefined {
@@ -179,6 +188,7 @@ function visit(me: Person, place = ""): Visit {
     now,
     // A friend's first visit is a welcome, not a recap.
     recap: seenUntil ? recapFor(things, monthClock(), now, store.recapRead(me.id)) : undefined,
+    widget: store.widgetKey(me.id) !== "",
   };
 }
 
@@ -349,7 +359,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     if (rest === "scriptable.js") {
       const link = `${origin(req)}${house().base}/widget/${friend.id}.${w[2]}/`;
       res.writeHead(200, { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-store", "content-disposition": `inline; filename="${friend.name.replace(/[^A-Za-z0-9 ]/g, "")} - home screen.js"` });
-      return void res.end(readFileSync(SCRIPTABLE, "utf8").replace("__LINK__", link));
+      return void res.end(scriptFor(link));
     }
     const face = rest.match(/^face\/([^/]+)$/);
     if (face) {
@@ -397,7 +407,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     if (!me) return redirect(res, "/");
     const v = visit(me);
     if (pathname === "/uno") return send(res, 200, unoPage(v, confirmation(did)));
-    return send(res, 200, pathname === "/updates" ? updatesPage(v) : pathname === "/everyone" ? everyonePage(v, confirmation(did), widgetLink(req, me)) : moviesPage(v, confirmation(did)));
+    return send(res, 200, pathname === "/updates" ? updatesPage(v) : pathname === "/everyone" ? everyonePage(v, confirmation(did), ...widgetFor(req, me)) : moviesPage(v, confirmation(did)));
   }
 
   const roomMatch = pathname.match(/^\/room\/([^/]+)(\/leave|\/tidy|\/mask|\/kettle|\/nap|\/wish|\/reply)?$/);

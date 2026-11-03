@@ -25,6 +25,10 @@
 // SHOT_DRAG="@<x>,<y> <dx>,<dy>" puts the finger down at a point on the
 // screen instead, and drags any way. SHOT_DRAG_HOLD=<ms> keeps it down that
 // long at the end and saves <out>-held.png before letting go.
+//
+// SHOT_TAP_AT="<x>,<y>" taps that point on the screen as it is, without
+// scrolling anything into view first, with a finger on a touch screen (a
+// quick touch down and up), and says what was under it.
 import { spawn } from "node:child_process";
 import { writeFileSync } from "node:fs";
 
@@ -131,6 +135,24 @@ if (tap) {
   if (!at) throw new Error(`nothing matches ${tap}`);
   console.log(`tap ${tap}: under the finger is ${at.hit}${at.inside ? "" : " (not the element: something is covering it)"}`);
   for (const type of ["mousePressed", "mouseReleased"]) await cdp("Input.dispatchMouseEvent", { type, x: at.x, y: at.y, button: "left", clickCount: 1 });
+  await new Promise((r) => setTimeout(r, 2500));
+  const where = await cdp("Runtime.evaluate", { expression: "location.pathname + location.search", returnByValue: true });
+  console.log(`after the tap: ${where.result?.value}`);
+}
+if (process.env.SHOT_TAP_AT) {
+  const [tx, ty] = process.env.SHOT_TAP_AT.split(",").map(Number);
+  const under = await cdp("Runtime.evaluate", {
+    returnByValue: true,
+    expression: `(() => { const h = document.elementFromPoint(${tx}, ${ty}); return h ? h.tagName.toLowerCase() + (typeof h.className === "string" && h.className.trim() ? "." + h.className.trim().replace(/\\s+/g, ".") : "") + (h.textContent ? " “" + h.textContent.trim().slice(0, 40) + "”" : "") : "nothing"; })()`,
+  });
+  console.log(`tap at ${tx},${ty}: on top is ${under.result?.value}`);
+  if (touch) {
+    await cdp("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: tx, y: ty }] });
+    await new Promise((r) => setTimeout(r, 60));
+    await cdp("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  } else {
+    for (const type of ["mousePressed", "mouseReleased"]) await cdp("Input.dispatchMouseEvent", { type, x: tx, y: ty, button: "left", clickCount: 1 });
+  }
   await new Promise((r) => setTimeout(r, 2500));
   const where = await cdp("Runtime.evaluate", { expression: "location.pathname + location.search", returnByValue: true });
   console.log(`after the tap: ${where.result?.value}`);

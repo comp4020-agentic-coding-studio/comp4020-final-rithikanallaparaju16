@@ -282,6 +282,27 @@ button.soft:focus-visible {
   fill: #e0a33a;
 }
 
+/* the way to the widget, until you've made one: under the news on a phone,
+   at the foot of the side column on a laptop (not .side or .top: .side is
+   that column itself) */
+.to-widget {
+  display: block;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.to-widget.in-news {
+  display: none;
+}
+
+.to-widget.in-side {
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: var(--card);
+  box-shadow: 0 2px 8px rgba(40, 20, 10, 0.12);
+  font-weight: 600;
+}
+
 @media (max-width: 699px) {
   :root {
     --bar-h: 54px;
@@ -404,9 +425,26 @@ button.soft:focus-visible {
     display: none;
   }
 
+  /* the way to the widget: a slim line under the news, until it's made */
+  .to-widget.in-news {
+    display: flex;
+    align-items: center;
+    height: var(--to-widget-h);
+    padding: 0 16px;
+    overflow: hidden;
+    background: #fff8ea;
+    border-bottom: 1px solid rgba(138, 90, 60, 0.14);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .page-home main:has(> .to-widget.in-news) {
+    --to-widget-h: 32px;
+  }
+
   /* on a phone the house fills the screen, and you pan it sideways */
   .page-home .map {
-    height: calc(100svh - var(--bar-h) - var(--news-h) - var(--tabs-h) - env(safe-area-inset-bottom));
+    height: calc(100svh - var(--bar-h) - var(--news-h) - var(--to-widget-h, 0px) - var(--tabs-h) - env(safe-area-inset-bottom));
     min-height: 320px;
     overflow-x: auto;
     overflow-y: hidden;
@@ -1956,12 +1994,12 @@ main.plain {
   }
 }
 
-/* the stick, under the thumb while it's down */
+/* the stick, under the thumb while it's down, placed on the screen */
 .stick {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
-  z-index: 1;
+  z-index: 26;
   width: 116px;
   height: 116px;
   margin: -58px 0 0 -58px;
@@ -2134,9 +2172,93 @@ button .emoji,
     margin: -52px 0 0 -52px;
   }
 
-  .page-room .pad {
-    --corner-w: 140px;
-    --corner-h: 112px;
+  /* the walking corners are the screen's own, like a game's: fixed just
+     above the tabs on a room's page as well as the house. Each takes a
+     thumb across its whole box, which reaches further in than its glow. */
+  .pad.touch {
+    --corner-w: 46vw;
+    --corner-h: 150px;
+  }
+
+  .pad.touch .walk-corner {
+    position: fixed;
+    z-index: 25;
+    bottom: calc(var(--tabs-h) + env(safe-area-inset-bottom));
+    border-radius: 0;
+    background: none;
+  }
+
+  .pad.touch .walk-corner.left {
+    left: 0;
+  }
+
+  .pad.touch .walk-corner.right {
+    right: 0;
+  }
+
+  /* the glow, a quarter circle in the corner, smaller than the box */
+  .pad.touch .walk-corner::before {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    width: 150px;
+    height: 120px;
+    pointer-events: none;
+  }
+
+  .pad.touch .walk-corner.left::before {
+    left: 0;
+    border-top-right-radius: 100% 100%;
+    background: radial-gradient(farthest-side at 0 100%, rgba(59, 42, 32, 0.34), rgba(59, 42, 32, 0.16) 70%, rgba(59, 42, 32, 0));
+  }
+
+  .pad.touch .walk-corner.right::before {
+    right: 0;
+    border-top-left-radius: 100% 100%;
+    background: radial-gradient(farthest-side at 100% 100%, rgba(59, 42, 32, 0.34), rgba(59, 42, 32, 0.16) 70%, rgba(59, 42, 32, 0));
+  }
+
+  .pad.touch .walk-corner::after {
+    bottom: 28px;
+  }
+
+  .pad.touch .walk-corner.left::after {
+    left: 28px;
+  }
+
+  .pad.touch .walk-corner.right::after {
+    right: 28px;
+  }
+
+  .pad.touch .walk-corner.held::before {
+    opacity: 0.55;
+  }
+
+  /* scrolled away from the house, they step aside for the page */
+  .pad.touch.away .walk-corner {
+    visibility: hidden;
+    animation: none;
+  }
+
+  .pad.touch.away .keys-hint {
+    visibility: hidden;
+  }
+
+  /* the hint floats between them, over their glow (a thumb goes through
+     it to the corner) */
+  .pad.touch .keys-hint {
+    z-index: 26;
+  }
+
+  .page-room .pad.touch .keys-hint {
+    position: fixed;
+    bottom: calc(var(--tabs-h) + env(safe-area-inset-bottom) + 14px);
+  }
+
+  /* in a room the buttons stay in the picture's corner, as on a laptop:
+     the walking corners are down at the screen's edge, out of their way */
+  .page-room .pad.touch .moves {
+    margin-bottom: 0;
   }
 
   .page-room .stick {
@@ -3783,6 +3905,44 @@ g.joke-frame {
   word-break: break-all;
 }
 
+/* "Put it on my home screen", the card's one big button */
+.home-widget form.inline button:not(.soft) {
+  padding: 10px 20px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* the iPhone script, to copy into Scriptable, and the buttons beside it */
+.home-widget textarea.widget-script {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 6px 8px;
+  border: 1px solid rgba(59, 42, 32, 0.25);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--soft-ink, #7a6150);
+  font: 0.7rem/1.3 ui-monospace, Menlo, monospace;
+  resize: vertical;
+}
+
+.home-widget a.button {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(59, 42, 32, 0.08);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.home-widget .small input.widget-link {
+  margin-top: 4px;
+  font-size: 0.72rem;
+}
+
 /* a photo from the wall, small, beside its line in Updates (ADR 0024) */
 .happenings li.with-photo {
   display: flex;
@@ -3927,9 +4087,11 @@ g.joke-frame {
   margin: 14px 0 6px;
 }
 
-/* an anchor (#memory-box, #recap) lands below the top bar, not under it */
+/* an anchor (#memory-box, #recap, #widget) lands below the top bar, not
+   under it */
 #memory-box,
 #recap,
-.envelope {
+.envelope,
+#widget {
   scroll-margin-top: 70px;
 }

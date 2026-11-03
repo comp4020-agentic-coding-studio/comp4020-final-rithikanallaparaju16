@@ -1,3 +1,4 @@
+import vm from "node:vm";
 import { JSDOM } from "jsdom";
 import { afterAll, describe, expect, inject, it } from "vitest";
 
@@ -283,6 +284,8 @@ describe.skipIf(!throwaway)("living in the house", () => {
     const [a, b] = await people();
     const before = await page("/everyone", a.id);
     expect(before.querySelector("#widget form[action='/widget'] button"), "there's no way to make a widget link").not.toBeNull();
+    // Home shows the way to it, so nobody has to know where it is.
+    expect((await page("/", a.id)).querySelector("a.to-widget")?.getAttribute("href"), "Home doesn't show the way to the widget").toBe("/everyone#widget");
 
     expect((await post("/widget", {}, a.id)).headers.get("location")).toBe("/everyone?did=widget#widget");
     const link = (await page("/everyone", a.id)).querySelector<HTMLInputElement>("#widget input.widget-link")?.getAttribute("value") ?? "";
@@ -314,6 +317,79 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect((await fetch(new URL(w.friends[0].face, new URL(path, baseUrl)))).status).toBe(200);
     const script = await (await fetch(new URL(`${path}scriptable.js`, baseUrl))).text();
     expect(script, "the iPhone script doesn't carry her link").toContain(`const LINK = "${new URL(path, baseUrl).origin}${path}";`);
+    // The same script is on her Everyone tab, ready to copy into Scriptable,
+    // and Home shows the way there only until she's made one.
+    expect((await page("/everyone", a.id)).querySelector("#widget textarea.widget-script")?.textContent, "the script isn't on the Everyone tab to copy").toBe(script);
+    expect((await page("/", a.id)).querySelector("a.to-widget"), "Home still offers a widget she's made").toBeNull();
+
+    // And it runs as Scriptable runs it: plain JavaScriptCore, with no
+    // browser's URL or fetch, only Scriptable's own Request, ListWidget and
+    // the rest (stood in for here). Its first version used URL, and would
+    // have failed on a real iPhone.
+    const asked: string[] = [];
+    let shown: { url?: string; texts: string[] } | undefined;
+    const sandbox = vm.createContext({
+      Request: class {
+        url: string;
+        timeoutInterval = 0;
+        constructor(url: string) {
+          this.url = url;
+          asked.push(url);
+        }
+        async loadJSON() {
+          return (await fetch(this.url)).json();
+        }
+        async loadImage() {
+          const r = await fetch(this.url);
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return {};
+        }
+      },
+      ListWidget: class {
+        url?: string;
+        texts: string[] = [];
+        addText(t: string) {
+          this.texts.push(t);
+          return {};
+        }
+        addStack() {
+          const texts = this.texts;
+          const stack: Record<string, unknown> = {
+            addText: (t: string) => (texts.push(t), {}),
+            addImage: () => ({}),
+            addSpacer: () => {},
+            addStack: () => stack,
+            layoutHorizontally: () => {},
+            layoutVertically: () => {},
+            centerAlignContent: () => {},
+          };
+          return stack;
+        }
+        addImage() {
+          return {};
+        }
+        addSpacer() {}
+        setPadding() {}
+        async presentMedium() {
+          shown = this;
+        }
+      },
+      Color: class {
+        static white() {
+          return {};
+        }
+      },
+      Font: { mediumSystemFont: () => ({}), boldSystemFont: () => ({}), systemFont: () => ({}) },
+      Size: class {},
+      config: { runsInWidget: false, widgetFamily: "medium" },
+      Script: { setWidget: () => {}, complete: () => {} },
+      console,
+    });
+    expect(vm.runInContext("typeof URL + ' ' + typeof fetch", sandbox), "the sandbox isn't as bare as Scriptable").toBe("undefined undefined");
+    await vm.runInContext(`(async () => {\n${script}\n})()`, sandbox);
+    expect(asked[0], "the iPhone widget didn't read her link").toBe(`${new URL(path, baseUrl).origin}${path}`);
+    expect(shown?.texts, "the iPhone widget doesn't show b's photo's words").toContain(`“${caption}”`);
+    expect(shown?.url, "tapping the iPhone widget doesn't go into the house").toMatch(new RegExp(`^${new URL(baseUrl).origin}/living#note-\\d+$`));
 
     // A widget reading the house isn't coming by: her window stays as it was.
     await signOut(a.id);

@@ -590,3 +590,33 @@
   all();
   document.addEventListener("house:fresh", all);
 })();
+
+// Copying your widget's script (src/pages.ts, the Everyone tab) in one tap,
+// for pasting into Scriptable. Without this the page says to select it by
+// hand; the button only shows where a browser lets a page copy.
+(() => {
+  function copyButtons() {
+    if (!navigator.clipboard?.writeText) return;
+    for (const button of document.querySelectorAll("button[data-copy]")) {
+      const from = document.getElementById(button.dataset.copy);
+      if (!from || button.dataset.ready) continue;
+      button.dataset.ready = "1";
+      button.hidden = false;
+      button.nextElementSibling?.classList.contains("widget-copy-by-hand") && button.nextElementSibling.remove();
+      const label = button.textContent;
+      button.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(from.value);
+          button.textContent = "Copied. Now open Scriptable";
+        } catch {
+          from.focus();
+          from.select();
+          button.textContent = "Select All, then Copy";
+        }
+        setTimeout(() => (button.textContent = label), 4000);
+      });
+    }
+  }
+  copyButtons();
+  document.addEventListener("house:fresh", copyButtons);
+})();

@@ -912,12 +912,15 @@
   // The stick comes up wherever a thumb lands in a bottom corner, with its
   // middle under the thumb, so landing never walks you. Sliding past its
   // edge brings it along, so a thumb never runs off it.
+  // On a phone the corners are the screen's own, like a game's (style.css),
+  // over a room's page as well as the house, and bigger than their glow.
   let thumb; // the pointer walking you, while it's down
-  let centre = [0, 0]; // the stick's middle, on the screen
+  let centre = [0, 0]; // the stick's middle, on the screen (it's fixed there)
+  let downAt = 0; // when the thumb went down
+  let wandered = 0; // and how far it's gone since
   function place() {
-    const box = pad.getBoundingClientRect();
-    stickEl.style.left = `${centre[0] - box.left}px`;
-    stickEl.style.top = `${centre[1] - box.top}px`;
+    stickEl.style.left = `${centre[0]}px`;
+    stickEl.style.top = `${centre[1]}px`;
   }
   function push(event) {
     if (busy) return;
@@ -943,12 +946,26 @@
     stickEl.classList.remove("on");
     for (const c of corners) c.classList.remove("held");
   }
+  // A quick tap in a corner isn't walking: it goes through to whatever's
+  // under it, a room in the house or a button on the page, as if the corner
+  // weren't there. Only holding walks.
+  function passOn(cx, cy) {
+    for (const c of corners) c.style.pointerEvents = "none";
+    const under = document.elementFromPoint(cx, cy);
+    for (const c of corners) c.style.pointerEvents = "";
+    if (!under) return;
+    const field = under.closest("input, textarea, select, [contenteditable]");
+    if (field) return field.focus();
+    under.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window, clientX: cx, clientY: cy, button: 0 }));
+  }
   for (const corner of corners) {
     corner.addEventListener("pointerdown", (event) => {
       if (thumb !== undefined || busy) return;
       event.preventDefault();
       corner.setPointerCapture(event.pointerId);
       thumb = event.pointerId;
+      downAt = event.timeStamp;
+      wandered = 0;
       centre = [event.clientX, event.clientY];
       place();
       corner.classList.add("held");
@@ -956,11 +973,32 @@
       push(event);
     });
     corner.addEventListener("pointermove", (event) => {
-      if (event.pointerId === thumb) push(event);
+      if (event.pointerId !== thumb) return;
+      wandered = Math.max(wandered, Math.hypot(event.clientX - centre[0], event.clientY - centre[1]));
+      push(event);
     });
-    corner.addEventListener("pointerup", letGo);
+    corner.addEventListener("pointerup", (event) => {
+      const tap = event.pointerId === thumb && event.timeStamp - downAt < 300 && wandered < 10;
+      letGo(event);
+      if (tap) passOn(event.clientX, event.clientY);
+    });
     corner.addEventListener("pointercancel", letGo);
     corner.addEventListener("lostpointercapture", letGo);
+    // touch-action alone doesn't always stop iOS scrolling the page, zooming
+    // on a double tap or holding up a magnifier: in a corner, it's walking.
+    for (const type of ["touchstart", "touchmove"]) corner.addEventListener(type, (event) => event.preventDefault(), { passive: false });
+  }
+  // Scrolled down a room's page, away from the house, the corners step
+  // aside for the page: there's nobody to walk that you can see.
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver(
+      ([seen]) => {
+        const away = seen.intersectionRatio < 0.4;
+        pad.classList.toggle("away", away);
+        if (away) letGo();
+      },
+      { threshold: [0, 0.2, 0.4, 0.6, 0.8, 1] },
+    ).observe(map);
   }
 
   /* ---------- tapping a room ---------- */

@@ -101,6 +101,9 @@ export type Visit = {
   // The month whose wall a recap is waiting for her, until she puts it away
   // (ADR 0026).
   recap?: string;
+  // Whether she's made a home-screen widget (ADR 0025); until she has, Home
+  // shows the way to one.
+  widget?: boolean;
 };
 
 const HOME_NOW = 10 * 60 * 1000;
@@ -856,12 +859,14 @@ export function housePage(v: Visit): string {
 ${bar(v, "home")}
 <main class="home">
   ${news(v)}
+  ${toWidget(v, "in-news")}
   <div class="home-grid">
     <section class="map" aria-label="The house">${houseSvg(scene(v))}</section>
     <aside class="side">
       ${recap(v, true)}
       ${away(v, 6)}
       ${everyone(v, false)}
+      ${toWidget(v, "in-side")}
       ${footer(v.me)}
     </aside>
   </div>
@@ -880,7 +885,7 @@ ${bar(v, "updates")}
 
 // Everyone's clock right now, then the next video call and the planner to
 // find a time that works for all of you.
-export function everyonePage(v: Visit, did?: Done, widgetLink?: string): string {
+export function everyonePage(v: Visit, did?: Done, widgetLink?: string, widgetScript?: string): string {
   return shell(`Everyone · ${houseName()}`, `
 ${bar(v, "everyone")}
 <main class="list">
@@ -888,46 +893,58 @@ ${bar(v, "everyone")}
   ${everyone(v, true)}
   ${callCard(v)}
   ${planner(v, "everyone")}
-  ${widgetCard(widgetLink)}
+  ${widgetCard(widgetLink, widgetScript)}
   ${footer(v.me)}
 </main>`, phase(clock(v.me.tz, v.now)), "page-list");
+}
+
+// The way to the widget from Home, until she's made one: a line under the
+// news on a phone, at the foot of the side column on a laptop. Asked for:
+// "please do the widget thing, how can i even ask the app to do that, where
+// is the option".
+function toWidget(v: Visit, where: "in-news" | "in-side"): string {
+  if (v.widget) return "";
+  return `<a class="to-widget ${where}" href="/everyone#widget">${emoji("widget")} Put the house on your home screen, like Locket ›</a>`;
 }
 
 // Getting the house onto your home screen as a widget, like Locket (ADR
 // 0025): your own link, and how to use it on an iPhone or an Android. The
 // link is only on your own Everyone tab, and making a new one turns the old
-// one off. `link` is the full address, from src/server.ts.
-function widgetCard(link?: string): string {
-  const make = `<form method="post" action="/widget" class="inline"><button class="${link ? "soft" : ""}">${emoji("widget")} ${link ? "Make a new link (the old one stops)" : "Make my widget link"}</button></form>`;
+// one off. `link` is the full address, from src/server.ts. The script for
+// an iPhone is right here to copy, with the link already in it, so getting
+// the widget is: get Scriptable, copy, paste, add it.
+function widgetCard(link?: string, script?: string): string {
+  const make = `<form method="post" action="/widget" class="inline"><button class="${link ? "soft" : ""}">${emoji("widget")} ${link ? "Make a new link (the old one stops)" : "Put it on my home screen"}</button></form>`;
   if (!link) {
     return `<section class="card home-widget" id="widget" aria-labelledby="widget-heading">
-    <h2 id="widget-heading">The house on your home screen</h2>
-    <p>Like Locket: a widget on your phone's home screen with the newest photo or note a friend left you, and everyone's faces and clocks. It's your own link, so keep it to yourself.</p>
+    <h2 id="widget-heading">${emoji("widget")} The house on your home screen</h2>
+    <p>Like Locket: a widget on your phone's home screen with the newest photo or note a friend left you, and everyone's faces and clocks. It's your own, so keep it to yourself.</p>
     ${make}
   </section>`;
   }
   return `<section class="card home-widget" id="widget" aria-labelledby="widget-heading">
-    <h2 id="widget-heading">The house on your home screen</h2>
-    <p>Your widget's link. It shows what friends left for you, so keep it to yourself.</p>
-    <p><input class="widget-link" readonly value="${esc(link)}" aria-label="Your widget's link" onfocus="this.select()"></p>
-    <details id="widget-iphone"><summary>On an iPhone</summary>
+    <h2 id="widget-heading">${emoji("widget")} The house on your home screen</h2>
+    <p>Your widget is ready. It shows what friends left for you, so keep it to yourself.</p>
+    <details id="widget-iphone" open><summary>On an iPhone</summary>
       <ol>
-        <li>Get <b>Scriptable</b> from the App Store (it's free).</li>
-        <li>On this phone, open <a href="${esc(link)}scriptable.js">your widget's script</a>, select all of it and copy it.</li>
-        <li>In Scriptable, tap <b>+</b>, paste it in, and name it “${esc(houseName())}”.</li>
-        <li>Hold down on your home screen, tap <b>+</b>, pick <b>Scriptable</b>, and add a small or medium widget.</li>
-        <li>Hold down on the widget, tap <b>Edit Widget</b>, and for Script pick “${esc(houseName())}”.</li>
+        <li>Get <a href="https://apps.apple.com/app/scriptable/id1405459188"><b>Scriptable</b></a> from the App Store (it's free).</li>
+        <li><button type="button" class="soft widget-copy" data-copy="widget-script" hidden>Copy your widget's script</button><span class="widget-copy-by-hand">Copy your widget's script: tap in the box below, Select All, then Copy.</span>
+          <textarea id="widget-script" class="widget-script" readonly rows="3" aria-label="Your widget's script">${esc(script ?? "")}</textarea></li>
+        <li><a class="button soft" href="scriptable:///add">Open Scriptable</a> (or open it yourself and tap <b>+</b>), paste it in, then tap the title at the top and name it “${esc(houseName())}”. Tap Done.</li>
+        <li>Go to your home screen, hold down on an empty spot, tap <b>Edit</b> then <b>Add Widget</b>, pick <b>Scriptable</b>, and add the small or medium size.</li>
+        <li>Hold down on the new widget, tap <b>Edit Widget</b>, and for Script pick “${esc(houseName())}”.</li>
       </ol>
     </details>
     <details id="widget-android"><summary>On an Android</summary>
+      <p>The easy way: in Chrome, tap ⋮ then <b>Add to home screen</b>. That puts the house itself there as an app.</p>
+      <p>For a widget like Locket's, it takes <b>KWGT</b> and its <b>Pro</b> key (a few dollars; it's what lets a widget read a link):</p>
       <ol>
-        <li>Get <b>KWGT</b> from the Play Store, and its <b>Pro</b> key (a few dollars; it's what lets a widget read a link).</li>
         <li>Add a KWGT widget to your home screen, tap it, and make a new one.</li>
         <li>Add an image and a text. For the image, use <code>$wg("${esc(link)}", json, .latest.photo)$</code> with your link in front, and for the text <code>$wg("${esc(link)}", json, .latest.text)$</code>.</li>
         <li>For the faces and clocks, add a text for each friend with <code>.friends[0].time</code>, <code>.friends[1].time</code> and so on.</li>
       </ol>
-      <p class="small">Or put the house itself on your home screen: in Chrome, ⋮ then Add to home screen.</p>
     </details>
+    <p class="small">Your widget's own link, if an app asks for it: <input class="widget-link" readonly value="${esc(link)}" aria-label="Your widget's link" onfocus="this.select()"></p>
     ${make}
   </section>`;
 }

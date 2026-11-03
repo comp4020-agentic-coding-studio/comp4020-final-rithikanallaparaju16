@@ -20,7 +20,7 @@ A good version of this house:
 
 The house is a cutaway seen from above, like a game, illustrated in Google Stitch. Amirdhavarshini's room is the big one in the corner, with the biggest bed and a round mat and cushions on the floor, because that's where everyone hangs out. The kitchen and the living room are in the middle, the garden is out the back, and Rithika's, Rithanya's, Aswathy's and Neha's rooms run along the front.
 
-Each of us is a little sticker in the house, and nobody moves unless they're the one moving. You walk yourself around: with the arrow keys or WASD on a laptop, or on a phone or iPad by holding either bottom corner of the house and sliding your thumb, like a game. The stick comes up wherever your thumb lands, so there's nothing to aim for, and the buttons stay out of those corners. Walk into a room and a button offers to take you in (Enter does it on a keyboard), and the house zooms in on it. You can also just tap a room, and you walk there and go in. When you're done in a room, walk out of it and the house zooms back out, with you where you stepped out.
+Each of us is a little sticker in the house, and nobody moves unless they're the one moving. You walk yourself around: with the arrow keys or WASD on a laptop, or on a phone by holding either bottom corner of the screen and sliding your thumb, like a game, in a room as much as in the whole house (on an iPad, the bottom corners of the house). The stick comes up wherever your thumb lands, so there's nothing to aim for, and the buttons stay out of those corners. A quick tap in a corner still taps whatever's under it. Walk into a room and a button offers to take you in (Enter does it on a keyboard), and the house zooms in on it. You can also just tap a room, and you walk there and go in. When you're done in a room, walk out of it and the house zooms back out, with you where you stepped out.
 
 Whatever you walk up to that you can use lights up gold: a bed, a desk, the cushions on Amirdhavarshini's mat, Rithanya's mirror, Aswathy's yoga mat, the sofas, the wall of notes, the stove, the garden patches, a birthday girl's balloons, Shinzo. Walk up to a friend who's here and you can hug her. Buttons for what you can do there appear above the Go in button. Sitting on Amirdhavarshini's mat with a friend, the button deals UNO. On a keyboard, Enter or E does the first one (ahead of going in), and the number keys do the rest.
 
@@ -91,7 +91,7 @@ Only one person can be each of us at a time. A friend's window at the door stays
 
 The house can go on a phone's home screen like an app, with the living room's fire as its icon. On an iPhone, open it in Safari, tap Share, then Add to Home Screen. On Android, open it in Chrome and choose Add to Home screen (or Install app) from the menu. It opens full-screen, without the browser around it. A made house goes on the home screen under its own name and opens straight to its own door.
 
-There's a widget too, like Locket: the newest photo or note a friend left you, with her face, and below it everyone's face and clock, glowing if she's home now. Tap it to go in. Make your own link at the bottom of the Everyone tab (it's yours alone, so keep it to yourself; making a new one turns the old one off). On an iPhone it's a widget in the free Scriptable app, and the Everyone tab gives you the script with your link already in it. On Android it's a KWGT widget (its Pro key is a few dollars). It refreshes every so often, when your phone lets it, and never sends a notification.
+There's a widget too, like Locket: the newest photo or note a friend left you, with her face, and below it everyone's face and clock, glowing if she's home now. Tap it to go in. Home shows the way to it ("Put the house on your home screen") until you've made yours; it's on the Everyone tab, and it's yours alone, so keep it to yourself (making a new one turns the old one off). On an iPhone it's a widget in the free Scriptable app: copy your script in one tap (your link's already in it), paste it into Scriptable, and add the widget. On Android it's a KWGT widget (its Pro key is a few dollars). It refreshes every so often, when your phone lets it, and never sends a notification.
 
 ## How it's built
 
@@ -155,7 +155,7 @@ Run it locally with `pnpm start` (it keeps its data in `./data`), then run `pnpm
 - the time for all of us comes first on Movies, before the suggestions
 - a photo pinned on the memory wall, with its words, is there for friends in the house and nobody else
 - the wall starts fresh each month, keeps every month before in the memory box, and a friend back after the 1st gets a recap of what she missed until she puts it away
-- each friend's home-screen widget link shows what friends left her and everyone's clocks, only with her own key, without coming in
+- each friend's home-screen widget link shows what friends left her and everyone's clocks, only with her own key, without coming in, and its iPhone script runs as Scriptable runs it
 - the house can go on an Android or iPhone home screen, and a made house goes on as itself
 - every common area stays lit whatever the time, and only bedrooms dim, by their owner's clock
 - friends who are close can hug, one or a group, up to all five
