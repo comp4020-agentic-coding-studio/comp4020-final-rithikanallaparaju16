@@ -20,6 +20,7 @@ import {
   manifest,
   MAX_DISH_NOTE,
   MAX_NOTE,
+  MAX_ABOUT,
   MAX_TITLE,
   messagePage,
   moviesPage,
@@ -206,6 +207,8 @@ function line(did: string | null, owner?: Person, me?: Person): string | undefin
       return "Marked as watched.";
     case "night":
       return `Movie night's planned. Everyone sees it in ${made() ? "their" : "her"} own time.`;
+    case "call":
+      return `The call's planned. Everyone sees it in ${made() ? "their" : "her"} own time, on the Everyone tab.`;
     case "uno":
       return "Dealt: seven cards each, and twenty seconds a turn.";
     case "unowon":
@@ -280,7 +283,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     if (!me) return redirect(res, "/");
     const v = visit(me);
     if (pathname === "/uno") return send(res, 200, unoPage(v, confirmation(did)));
-    return send(res, 200, pathname === "/updates" ? updatesPage(v) : pathname === "/everyone" ? everyonePage(v) : moviesPage(v, confirmation(did)));
+    return send(res, 200, pathname === "/updates" ? updatesPage(v) : pathname === "/everyone" ? everyonePage(v, confirmation(did)) : moviesPage(v, confirmation(did)));
   }
 
   const roomMatch = pathname.match(/^\/room\/([^/]+)(\/leave|\/tidy|\/mask|\/kettle|\/nap|\/wish|\/reply)?$/);
@@ -308,7 +311,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
 
   if (method !== "POST") return send(res, 404, messagePage("Nothing here", "There's no room by that name in this house."));
 
-  const writes = ["/wall", "/kitchen", "/kitchen/eat", "/garden/water", "/garden/plant", "/garden/dog", "/garden/treat", "/sit", "/here", "/movies", "/movies/watched", "/movies/night", "/uno", "/uno/move", "/hug", "/wall/sticker"];
+  const writes = ["/wall", "/kitchen", "/kitchen/eat", "/garden/water", "/garden/plant", "/garden/dog", "/garden/treat", "/sit", "/here", "/movies", "/movies/watched", "/movies/night", "/plan", "/uno", "/uno/move", "/hug", "/wall/sticker"];
   if (!writes.includes(pathname) && !roomMatch?.[2]) {
     return send(res, 404, messagePage("Nothing here", "There's no room by that name in this house."));
   }
@@ -464,6 +467,27 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     if (title.length > MAX_TITLE || why.length > MAX_DISH_NOTE) return send(res, 400, messagePage("Too long", "That's more than fits on the list.", "/movies"));
     store.leave({ author: me.id, kind: "movie", place: "movies", body: why ? `${title}\n${why}` : title });
     return redirect(res, "/movies?did=movie");
+  }
+
+  // A time for all of you (pages.ts planner()): a video call, or movie night
+  // with one of the suggestions. Planned from the Everyone tab or Movies, and
+  // back to whichever it was.
+  if (pathname === "/plan") {
+    const back = form.get("from") === "movies" ? "/movies" : "/everyone";
+    const at = fromLocal(form.get("when") ?? "", me.tz);
+    if (at === undefined) return send(res, 400, messagePage("When?", "Pick a day and a time.", `${back}#plan`));
+    if (at < Date.now() - 5 * 60 * 1000) return send(res, 400, messagePage("That's already gone", "Pick a time that hasn't happened yet.", `${back}#plan`));
+    if (form.get("what") === "movie") {
+      const movie = movies(store.things()).find((m) => String(m.thing.id) === form.get("movie"));
+      if (!movie) return send(res, 400, messagePage("Which movie?", "That isn't on the list.", `${back}#plan`));
+      store.leave({ author: me.id, kind: "movienight", place: `movie:${movie.thing.id}`, body: String(at) });
+      return redirect(res, `${back}?did=night`);
+    }
+    if (form.get("what") !== "call") return send(res, 400, messagePage("What for?", "Pick a video call or a movie night.", `${back}#plan`));
+    const about = text(form, "about");
+    if (about.length > MAX_ABOUT) return send(res, 400, messagePage("Too long", `Say what it's about in up to ${MAX_ABOUT} characters.`, `${back}#plan`));
+    store.leave({ author: me.id, kind: "call", place: "calls", item: String(at), body: about });
+    return redirect(res, `${back}?did=call`);
   }
 
   if (pathname === "/movies/watched" || pathname === "/movies/night") {

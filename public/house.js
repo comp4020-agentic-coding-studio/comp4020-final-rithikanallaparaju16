@@ -6,8 +6,11 @@
 // - on a phone or tablet with a thumb stick, and a Go in button;
 // - by tapping a room, which walks you there before the room opens.
 // Going into a room zooms in on it, and walking out of the room you're in
-// zooms back out to the whole house, with you where you stepped out. On a
-// phone the house is wider than the screen, so the view follows you.
+// zooms back out to the whole house, with you where you stepped out. In a
+// room, Esc (or the "See the whole house" button) zooms out to the whole
+// house right where you are, even lying in bed, to watch who's moving about,
+// and Esc again zooms back in. On a phone the house is wider than the
+// screen, so the view follows you.
 //
 // Walk up to something you can do something with (a bed, a desk, the wall,
 // Shinzo, a friend to hug) and it lights up, with a button for each thing you
@@ -184,20 +187,25 @@
 
   // Zoom so `to` (x, y, width, height in the picture's pixels) fills the part
   // of the house you can see, then carry on.
-  function zoom(to, then) {
-    if (still) return then();
+  // The viewBox that shows `to` in the drawing's box as it is on the page,
+  // with the drawing's size held there while the viewBox changes.
+  function fit(to) {
     const box = svg.getBoundingClientRect();
-    // Hold the drawing's size on the page while its viewBox changes.
     Object.assign(svg.style, { width: `${box.width}px`, height: `${box.height}px`, maxWidth: "none", maxHeight: "none", aspectRatio: "auto" });
     // A phone's house is wider than the screen; only what's on it counts.
     const seenW = Math.min(box.width, map.clientWidth);
     const scale = Math.min(seenW / to[2], box.height / to[3]);
-    const end = [
+    return [
       to[0] + to[2] / 2 - (map.scrollLeft + seenW / 2) / scale,
       to[1] + to[3] / 2 - box.height / 2 / scale,
       box.width / scale,
       box.height / scale,
     ];
+  }
+
+  function zoom(to, then) {
+    if (still) return then();
+    const end = fit(to);
     const from = [view.x, view.y, view.width, view.height];
     const begun = performance.now();
     const frame = (now) => {
@@ -232,6 +240,46 @@
       // you'll start back at your spot instead
     }
     zoom([0, 0, W, H], () => location.assign(at("/")));
+  }
+
+  // In a room, a look at the whole house without leaving it: you stay where
+  // you are (in bed, on a cushion), friends keep walking live, and the view
+  // goes back to the room after. Esc does it from anywhere on the page.
+  let wide = false;
+  const lookButton = current ? document.createElement("button") : undefined;
+  function lookOut() {
+    if (!current || busy) return;
+    wide = !wide;
+    map.classList.toggle("wide", wide);
+    if (lookButton) {
+      lookButton.firstChild.textContent = wide ? "Back to the room " : "See the whole house ";
+      lookButton.setAttribute("aria-pressed", String(wide));
+    }
+    // Zoomed out, the drawing keeps the room's frame on the page, with the
+    // whole house fitted inside it; zoomed back in, it's the room again.
+    const done = () => {
+      if (!wide) {
+        svg.setAttribute("viewBox", startView);
+        svg.removeAttribute("style");
+      }
+      busy = false;
+    };
+    if (still) {
+      if (wide) svg.setAttribute("viewBox", fit([0, 0, W, H]).map((n) => n.toFixed(2)).join(" "));
+      return done();
+    }
+    busy = true;
+    keys.clear();
+    zoom(wide ? [0, 0, W, H] : current.view, done);
+  }
+
+  if (lookButton) {
+    lookButton.type = "button";
+    lookButton.className = "look-out";
+    lookButton.innerHTML = "See the whole house <kbd>Esc</kbd>";
+    lookButton.setAttribute("aria-pressed", "false");
+    lookButton.addEventListener("click", lookOut);
+    map.append(lookButton);
   }
 
   /* ---------- Shinzo ---------- */
@@ -815,7 +863,16 @@
   };
 
   addEventListener("keydown", (event) => {
-    if (event.metaKey || event.ctrlKey || event.altKey || typing(event.target) || !inView()) return;
+    if (event.metaKey || event.ctrlKey || event.altKey || typing(event.target)) return;
+    // Esc, from anywhere on a room's page: the whole house, and back.
+    if (event.key === "Escape" && current) {
+      if (document.querySelector("details[open] :focus")) return;
+      event.preventDefault();
+      if (!wide) svg.scrollIntoView({ block: "nearest", behavior: still ? "auto" : "smooth" });
+      lookOut();
+      return;
+    }
+    if (!inView()) return;
     const way = KEYS[event.code];
     if (way) {
       event.preventDefault();
@@ -923,6 +980,8 @@
     if (!event.persisted) return;
     svg.setAttribute("viewBox", startView);
     svg.removeAttribute("style");
+    wide = false;
+    map.classList.remove("wide");
     [x, y] = where(me);
     keys.clear();
     letGo();

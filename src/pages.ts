@@ -26,6 +26,7 @@ import {
   mess,
   MOVIE_LOVER,
   movieNight,
+  nextCall,
   movies,
   partyHats,
   PLANTS,
@@ -535,6 +536,8 @@ function happening(t: Thing, me: Person, all: Thing[]): Happening | undefined {
       return { text: `${by} watched “${title()}”`, href: "/movies", forYou: false, at };
     case "movienight":
       return { text: `${by} planned movie night: “${title()}”, ${dayLabel(me.tz, Number(t.body))}`, href: "/movies", forYou: false, at };
+    case "call":
+      return { text: `${by} planned a video call${t.body ? ` (${t.body})` : ""}, ${dayLabel(me.tz, Number(t.item))} at ${clock(me.tz, Number(t.item)).label}`, href: "/everyone#call", forYou: !mine, at };
     // A game of UNO says who dealt it and who won it, not every card.
     case "uno": {
       const others = players(t).filter((p) => p !== t.author);
@@ -769,11 +772,16 @@ ${bar(v, "updates")}
 </main>`, phase(clock(v.me.tz, v.now)), "page-list");
 }
 
-export function everyonePage(v: Visit): string {
+// Everyone's clock right now, then the next video call and the planner to
+// find a time that works for all of you.
+export function everyonePage(v: Visit, did?: Done): string {
   return shell(`Everyone · ${houseName()}`, `
 ${bar(v, "everyone")}
 <main class="list">
+  ${done(did)}
   ${everyone(v, true)}
+  ${callCard(v)}
+  ${planner(v, "everyone")}
   ${footer(v.me)}
 </main>`, phase(clock(v.me.tz, v.now)), "page-list");
 }
@@ -1406,22 +1414,72 @@ export function gardenPage(v: Visit, did?: Done): string {
 
 export const MAX_TITLE = 80;
 
-// Movie night in each friend's own time, and whether that's in her sleep.
+// A moment in each friend's own time, and whether that's in her sleep.
+function timesList(at: number, v: Visit): string {
+  const rows = PEOPLE.map((p) => {
+    const c = clock(p.tz, at);
+    const you = p.id === v.me.id;
+    const late = asleep(p, c) ? (you ? " You're usually asleep then." : ` ${cap(theyre(p))} usually asleep then.`) : "";
+    return `<li data-person="${esc(p.id)}" style="--accent:${p.color}"><span class="name">${you ? "You" : esc(p.name)}</span> <span>${esc(dayLabel(p.tz, at))}, <span class="clock">${esc(c.label)}</span> in ${esc(p.city)}.${esc(late)}</span></li>`;
+  }).join("\n");
+  return `<ul class="times">\n${rows}\n</ul>`;
+}
+
 function nightCard(v: Visit): string {
   const night = movieNight(v.things, v.now);
   if (!night) return `<section class="card night" aria-labelledby="night-heading" data-live="night"><h2 id="night-heading">Movie night</h2><p class="empty">No movie night planned yet.</p></section>`;
-  const rows = PEOPLE.map((p) => {
-    const c = clock(p.tz, night.at);
-    const you = p.id === v.me.id;
-    const late = asleep(p, c) ? (you ? " You're usually asleep then." : ` ${cap(theyre(p))} usually asleep then.`) : "";
-    return `<li data-person="${esc(p.id)}" style="--accent:${p.color}"><span class="name">${you ? "You" : esc(p.name)}</span> <span>${esc(dayLabel(p.tz, night.at))}, <span class="clock">${esc(c.label)}</span> in ${esc(p.city)}.${esc(late)}</span></li>`;
-  }).join("\n");
   const pick = night.movie.thing.author === MOVIE_LOVER && !made() ? ` <span class="pick">${esc(nameOf(MOVIE_LOVER))}'s pick</span>` : "";
   return `<section class="card night" aria-labelledby="night-heading" data-live="night">
     <h2 id="night-heading">Movie night: “${esc(night.movie.title)}”${pick}</h2>
     <p class="small">Planned by ${esc(by(night.plan, v))}, ${esc(ago(night.plan.createdAt, v.now))}. Here's when it is for each of you:</p>
-    <ul class="times">\n${rows}\n</ul>
+    ${timesList(night.at, v)}
   </section>`;
+}
+
+// The next video call, in everyone's own time, on the Everyone tab.
+function callCard(v: Visit): string {
+  const call = nextCall(v.things, v.now);
+  if (!call) return `<section class="card night call" id="call" aria-labelledby="call-heading" data-live="call"><h2 id="call-heading">Video call</h2><p class="empty">No call planned. Pick a time below that works for everyone.</p></section>`;
+  return `<section class="card night call" id="call" aria-labelledby="call-heading" data-live="call">
+    <h2 id="call-heading">Video call${call.plan.body ? `: “${esc(call.plan.body)}”` : ""}</h2>
+    <p class="small">Planned by ${esc(by(call.plan, v))}, ${esc(ago(call.plan.createdAt, v.now))}. Here's when it is for each of you:</p>
+    ${timesList(call.at, v)}
+  </section>`;
+}
+
+export const MAX_ABOUT = 80;
+
+// Finding a time for all of you, for a video call or a movie night: the same
+// form on the Everyone tab (a call, first) and on Movies (movie night,
+// first). Every friend's clock is open to change, starting from now, so it's
+// just as good for checking what time it'll be for everyone. Nothing's saved
+// until you press the button. Live, so a friend's new movie suggestion shows
+// up in it too.
+function planner(v: Visit, from: "everyone" | "movies"): string {
+  const list = movies(v.things);
+  const movie = from === "movies" && list.length > 0;
+  const choices = list.map((m) => `<option value="${m.thing.id}">${esc(m.title)}</option>`).join("");
+  const film = list.length
+    ? `<label class="what"><input type="radio" name="what" value="movie"${movie ? " checked" : ""}> ${emoji("night")} Movie night on the sofas</label>
+      <label class="sub" for="plan-movie">Which movie?</label>
+      <select id="plan-movie" name="movie">${choices}</select>`
+    : `<p class="small">To plan movie night, <a href="/movies">suggest a movie</a> first.</p>`;
+  return `<form method="post" action="/plan" class="card compose plan-night" id="plan" data-live="plan">
+    <h2>A time for all of us</h2>
+    <p class="small">Change anyone's clock and everyone else's follows: for a video call, a movie night, or just to see what time it'll be for everyone.</p>
+    <input type="hidden" name="from" value="${from}">
+    ${whenPicker(v)}
+    <button type="reset" class="soft back-to-now">Back to now</button>
+    <fieldset class="plan-what">
+      <legend>What's it for?</legend>
+      <label class="what"><input type="radio" name="what" value="call"${movie ? "" : " checked"}> ${emoji("call")} A video call</label>
+      <label class="sub" for="plan-about">What about, if you like</label>
+      <input id="plan-about" name="about" maxlength="${MAX_ABOUT}" placeholder="catching up, Neha's news, a birthday…">
+      ${film}
+    </fieldset>
+    <p class="small">A new plan replaces the old one of the same kind.</p>
+    <button>${emoji("call")} Plan it</button>
+  </form>`;
 }
 
 function movieItem(m: Movie, v: Visit): string {
@@ -1441,28 +1499,30 @@ function movieItem(m: Movie, v: Visit): string {
 // Picking a time for all of you: a row of clocks, one each, in your own
 // time first. Change any of them and the others follow (public/live.js), so
 // you can start from whoever's hours are tightest, Neha up late or you up
-// early. Each says if it's in that friend's usual sleep. Without the script,
-// your own row is the one the house reads.
+// early. Each says if it's in that friend's usual sleep. It starts now (the
+// next quarter of an hour), and any time can be looked at; only planning
+// one that's gone is refused. Without the script, your own row is the one
+// the house reads.
 function whenPicker(v: Visit): string {
-  // Two hours from now, on the hour, as a starting point.
-  const start = Math.ceil((v.now + 2 * 60 * 60 * 1000) / (60 * 60 * 1000)) * 60 * 60 * 1000;
+  const QUARTER = 15 * 60 * 1000;
+  const start = Math.ceil(v.now / QUARTER) * QUARTER;
   const rows = [v.me, ...PEOPLE.filter((p) => p.id !== v.me.id)].map((p) => {
     const you = p.id === v.me.id;
     const c = clock(p.tz, start);
     const late = asleep(p, c);
     const [from, to] = p.sleep;
     const hours = `${hourLabel(from)} to ${hourLabel(to)}`;
-    const field = you ? `night-when` : `night-when-${p.id}`;
-    return `<li class="${["when-row", you ? "you" : "", late ? "late" : ""].filter(Boolean).join(" ")}" data-tz="${esc(p.tz)}" data-sleep="${from},${to}" style="--accent:${p.color}">
+    const field = you ? "plan-when" : `plan-when-${p.id}`;
+    const says = `${you ? "You're" : cap(theyre(p))} usually asleep then (${hours}).`;
+    return `<li class="${["when-row", you ? "you" : "", late ? "late" : ""].filter(Boolean).join(" ")}" data-person="${esc(p.id)}" data-tz="${esc(p.tz)}" data-sleep="${from},${to}" style="--accent:${p.color}">
       <label for="${field}"><span class="name">${you ? "You" : esc(p.name)}</span> <span class="where">in ${esc(p.city)}</span></label>
-      <input id="${field}" type="datetime-local" ${you ? `name="when" required min="${localInput(p.tz, v.now)}"` : `data-other`} value="${localInput(p.tz, start)}">
-      <span class="sleep-note" data-says="${esc(`${you ? "You're" : cap(theyre(p))} usually asleep then (${hours}).`)}">${late ? esc(`${you ? "You're" : cap(theyre(p))} usually asleep then (${hours}).`) : ""}</span>
+      <input id="${field}" type="datetime-local" ${you ? `name="when" required` : "data-other"} value="${localInput(p.tz, start)}">
+      <span class="sleep-note" data-says="${esc(says)}">${late ? esc(says) : ""}</span>
     </li>`;
   }).join("\n");
   return `<fieldset class="when-picker">
       <legend>When? Pick it in anyone's time</legend>
       <ul class="when-rows">\n${rows}\n</ul>
-      <p class="small when-help">Change any of these, and everyone else's clock moves with it. Someone up early or out late? Start from their row.</p>
     </fieldset>`;
 }
 
@@ -1476,17 +1536,6 @@ function hourLabel(h: number): string {
 
 export function moviesPage(v: Visit, did?: Done): string {
   const list = movies(v.things);
-  const choices = list.map((m) => `<option value="${m.thing.id}">${esc(m.title)}</option>`).join("");
-  // Live, so a friend's new suggestion shows up in the planner too.
-  const plan = list.length ? `
-  <form method="post" action="/movies/night" class="card compose plan-night" id="plan" data-live="plan">
-    <h2>Plan a movie night</h2>
-    <label for="night-movie">Which movie?</label>
-    <select id="night-movie" name="movie" required>${choices}</select>
-    ${whenPicker(v)}
-    <p class="small">A new plan replaces the old one.</p>
-    <button>${emoji("night")} Plan it</button>
-  </form>` : "";
 
   return shell(`Movies · ${houseName()}`, `
 ${bar(v, "movies")}
@@ -1509,7 +1558,7 @@ ${bar(v, "movies")}
     <h2 id="list-heading">Suggestions</h2>
     ${list.length ? `<ul class="movie-list">\n${list.map((m) => movieItem(m, v)).join("\n")}\n</ul>` : `<p class="empty">Nothing yet.${made() ? " Be the first to suggest one." : ` ${esc(nameOf(MOVIE_LOVER))} will have opinions.`}</p>`}
   </section>
-  ${plan}
+  ${planner(v, "movies")}
 </main>`, phase(clock(v.me.tz, v.now)), "page-list");
 }
 

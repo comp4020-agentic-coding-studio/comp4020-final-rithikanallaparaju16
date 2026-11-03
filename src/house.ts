@@ -200,6 +200,14 @@ export function movieNight(things: Thing[], now: number): { plan: Thing; at: num
   return plan && movie && at > now - 3 * HOUR ? { plan, at, movie } : undefined;
 }
 
+// The next video call: the latest plan, until two hours after it starts, as
+// movie night. The item is the moment, in milliseconds.
+export function nextCall(things: Thing[], now: number): { plan: Thing; at: number } | undefined {
+  const plan = latest(things, "call");
+  const at = Number(plan?.item);
+  return plan && at > now - 2 * HOUR ? { plan, at } : undefined;
+}
+
 // Sleeping in a bed (a "nap", in any bed) or sitting down (a "sit") lasts
 // until you've been somewhere else in the house, or for two hours. `where` and
 // `arrived` are each friend's place and when she came into it, from visits.

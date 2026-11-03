@@ -267,6 +267,16 @@
     const input = event.target;
     if (input instanceof HTMLInputElement && input.closest(".when-rows")) sync(input);
   });
+  // "Back to now" puts every clock back where the page started, and the
+  // sleep notes with them.
+  document.addEventListener("reset", (event) => {
+    const rows = event.target instanceof HTMLFormElement && event.target.querySelector(".when-rows");
+    if (!rows) return;
+    setTimeout(() => {
+      const mine = rows.querySelector(".when-row input");
+      if (mine) sync(mine);
+    });
+  });
   document.addEventListener("change", (event) => {
     const input = event.target;
     if (input instanceof HTMLInputElement && input.closest(".when-rows")) sync(input);
