@@ -334,3 +334,4 @@ Every prompt I gave the agent from 8 October, word for word, with the commit it 
 - "noo lets skip that, omnly a good, well designed website": no keepsake box either; the website only, [`d6976a7`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/d6976a7)
 - "buid a webapp of this that renders like a mobile app in phone,so even distribution becaomes easy
   same applies for make your owb house as well": each house hands itself out as an app (Install, Share, a QR code, steps per device), works offline kindly, and made houses too, [`2e3c9d2`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/2e3c9d2)
+- (a screenshot of her iPhone's widget) "as rithika why am i getting that widget?": it's Amirdhavarshini's widget, showing the note Rithika left her; a question, no code change

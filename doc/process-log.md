@@ -4060,3 +4060,25 @@ skipped; two specs added (Rithika's house, a made house).
 **Correction:** none.
 
 **Commits:** `2e3c9d2`, the PROCESS.md prompt line, and this entry's commit.
+
+### 96. "as rithika why am i getting that widget?" (5 Nov 2026)
+
+Asked: a screenshot of Rithika's iPhone at 10:17 am (the small widget:
+"Rithika left you a flower", with the note's words, 19 hours ago), and "as
+rithika why am i getting that widget?".
+
+**Agent:** a question, no code change. The desk card only ever shows a
+note on the widget owner's own desk, written by someone else
+(`widgetCards()`, `desk(v.things, v.me.id)`, author not her), so a card
+saying "Rithika left you" can't be on Rithika's widget: it's the widget of
+the friend Rithika left the flower for. Entry 89 found the widget on her
+iPhone is Amirdhavarshini's (made and first looked in on 4 November while
+signed in as her); this fits. The small size never says whose widget it is
+(only the medium and large everyone card does), which is why it looked like
+hers. Told her how to get her own, and offered to put the owner's name on
+every card. Didn't read the live database to check whose desk it was: that
+would mean reading what friends wrote.
+
+**Correction:** none.
+
+**Commits:** this entry's commit.
