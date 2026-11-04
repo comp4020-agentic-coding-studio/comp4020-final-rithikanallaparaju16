@@ -22,6 +22,10 @@ Done, and off the table:
   wins, and more places known, so Indiana, Western Australia and Dubai keep
   the right time (5 Nov).
 - **AA.** Birthday cards, sealed until her day (ADR 0030, 5 Nov).
+- **AC, AB, C, O and E** (ADR 0031, 5 Nov): leaving the light on, a line
+  under a photo, a message to send the group yourself, a made house's own
+  dog, and its own about page. Also new: on this day, and the next call
+  on the widget.
 - **AE**, in part: each widget says whose it is, made houses get faces and
   rooms on theirs, what's new for you shows first, and the wall reaches
   widgets only when its writer says (ADR 0028, 0029; 4 and 5 Nov). Still
@@ -64,22 +68,17 @@ skipped test is mostly done once that test passes.
 | ID | Change | Kind | Reach | Impact | Conf. | Effort | Score |
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
 | AE | Try the widget on the five's real phones, and fix what breaks | check | 45 | 2 | 80% | 0.5 | **144** |
-| AC | Light a lamp in a friend's window: a hug that waits for her | idea | 45 | 1 | 50% | 0.5 | **45** |
 | AD | The writer hears her desk note was found, once, without a time | idea | 45 | 0.5 | 50% | 0.5 | **22.5** |
-| C | "Tell them I was here": a ready message you send the group yourself | idea | 45 | 0.5 | 50% | 0.5 | **22.5** |
-| E | A made house's "What is this place?" shows Rithika's README | bug | 10 | 1 | 100% | 0.5 | **20** |
 | F | The Updates dot shows when there's nothing new to read there | bug | 20 | 0.25 | 100% | 0.25 | **20** |
 | G | A front door key for each house, so desk notes and photos are private | idea | 45 | 1 | 80% | 2 | **18** |
 | H | UNO deals a friend in after she's left the house | bug | 8 | 1 | 100% | 0.5 | **16** |
 | I | The live house maker waits up to about 40 s on a Claude it can't reach | ops | 10 | 0.5 | 80% | 0.25 | **16** |
 | AF | A free widget for Android: the house's own picture, refreshed | idea | 12 | 1 | 50% | 0.5 | **12** |
-| AB | Write a line under a friend's photo on the wall | idea | 45 | 0.5 | 50% | 1 | **11.25** |
 | J | A question on the wall now and then, for anyone to answer | idea | 45 | 0.5 | 50% | 1 | **11.25** |
 | K | The Everyone tab offers "Come in as" a friend who's already home | bug | 5 | 0.5 | 100% | 0.25 | **10** |
 | L | A second batch of kettle Maggi takes the first one's note with it | bug | 5 | 0.5 | 100% | 0.25 | **10** |
 | M | Updates stops at 40 lines, and its "more" link leads back to itself | bug | 10 | 0.5 | 100% | 0.5 | **10** |
 | N | A garden planted just now looks thirsty | bug | 10 | 0.25 | 100% | 0.25 | **10** |
-| O | Name the dog in a made house (it's always Shinzo) | idea | 40 | 0.25 | 50% | 0.5 | **10** |
 | P | Claude writes made houses on the live site (a key that calls Anthropic directly) | idea | 40 | 0.25 | 50% | 0.5 | **10** |
 | AH | A song left playing in the living room | idea | 45 | 0.5 | 50% | 1.5 | **7.5** |
 | S | A sticker's note to the writer cuts an emoji in half | bug | 5 | 0.25 | 100% | 0.25 | **5** |
@@ -179,11 +178,11 @@ scored the same as on 1 November for the same reasons.
    card. She can redirect either.
 3. **F, K, L and N together.** Four bugs, each a quarter of a day, each
    with a skipped test ready to turn back on. (A was done on 5 Nov.)
-4. **E.** A made house's first visit, which decides whether its maker
-   shares it. (D was done on 5 Nov.)
-5. **Ask Rithika about AD, AG and I.** AD is a line about privacy; AG needs
-   her to say whether the five celebrate Diwali; I is one command on her
-   secret.
+4. **E is done** (5 Nov), with D: a made house's first visit has its own
+   about page and the right clocks.
+5. **Ask Rithika about AD, AG and I.** On 5 November she passed on AD
+   ("found your note") and AG (Diwali) when picking features; I is one
+   command on her secret.
 6. **G after 9 November.**
 
 ## Not scored

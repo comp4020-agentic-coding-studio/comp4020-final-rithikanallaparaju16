@@ -117,6 +117,12 @@ export type Kind =
   // widgets (ADR 0029): the place is `note:<id>`, the item "yes" or "" (no).
   // Only the writer's own say counts, and her newest one.
   | "onwidget"
+  // Leaving the light on in a friend's window (RICE AC, ADR 0031): the place
+  // is her room. It glows until a visit of hers that began after it is over.
+  | "lamp"
+  // A line under a photo on the wall (RICE AB, ADR 0031): the place is
+  // `note:<id>`, the body the line. One each: a friend's newest is hers.
+  | "caption"
   // A birthday card, sealed until her day (RICE AA, ADR 0030): the place is
   // her room, the body the words, and the item the birthday it opens on, as
   // "YYYY-MM-DD" in her own calendar. Only she and its writer ever read it.
@@ -158,7 +164,7 @@ function statements(db: DatabaseSync) {
     ON CONFLICT (person) DO UPDATE SET token = excluded.token, claimed = excluded.claimed
   `);
   const releaseToken = db.prepare("UPDATE visits SET token = '' WHERE person = ? AND token = ?");
-  const selectVisits = db.prepare("SELECT person, last_seen, place, arrived, x, y FROM visits");
+  const selectVisits = db.prepare("SELECT person, last_seen, seen_until, place, arrived, x, y FROM visits");
   // An empty place (the whole house, Updates) keeps wherever you last were, and
   // staying in the same place keeps when you got there and where you stood.
   // Going into somewhere new puts you on its first spot.
@@ -286,6 +292,19 @@ export function things(): Thing[] {
 }
 
 // Only friends who've loaded a page; signing in alone isn't a visit.
+// When each friend's "new" starts: the end of her visit before the one
+// she's on, or her last visit if she's away. A light left on for her stays
+// lit until a visit that started after it is over (ADR 0031).
+export function newSince(): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const r of q().selectVisits.all()) {
+    const last = Number(r.last_seen);
+    if (!last) continue;
+    out.set(String(r.person), Date.now() - last > VISIT_GAP ? last : Number(r.seen_until));
+  }
+  return out;
+}
+
 export function lastSeen(): Map<string, number> {
   return new Map(q().selectVisits.all().filter((r) => Number(r.last_seen) > 0).map((r) => [String(r.person), Number(r.last_seen)]));
 }

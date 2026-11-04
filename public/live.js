@@ -635,3 +635,44 @@
   ipad.open = true;
   first.before(ipad);
 })();
+
+// Tell them you were here (src/pages.ts tellThem, ADR 0031): the phone's own
+// share sheet where there is one, copying otherwise. The house sends
+// nothing; she picks where it goes. Without this, the words are there to
+// select by hand.
+(() => {
+  function tellButtons() {
+    for (const button of document.querySelectorAll("button[data-share]")) {
+      const from = document.getElementById(button.dataset.share);
+      if (!from || button.dataset.ready || !navigator.share) continue;
+      button.dataset.ready = "1";
+      button.hidden = false;
+      button.addEventListener("click", async () => {
+        try {
+          await navigator.share({ text: from.value, url: new URL(from.dataset.link || "/", location.href).href });
+        } catch {
+          // she closed the sheet
+        }
+      });
+    }
+    for (const button of document.querySelectorAll("button[data-copy-text]")) {
+      const from = document.getElementById(button.dataset.copyText);
+      if (!from || button.dataset.ready || !navigator.clipboard?.writeText) continue;
+      button.dataset.ready = "1";
+      button.hidden = false;
+      const label = button.textContent;
+      button.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(`${from.value} ${new URL(from.dataset.link || "/", location.href).href}`);
+          button.textContent = "Copied";
+        } catch {
+          from.focus();
+          from.select();
+        }
+        setTimeout(() => (button.textContent = label), 3000);
+      });
+    }
+  }
+  tellButtons();
+  document.addEventListener("house:fresh", tellButtons);
+})();

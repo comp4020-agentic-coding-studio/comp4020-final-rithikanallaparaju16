@@ -590,6 +590,56 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect(text((await page("/updates", other.id)).querySelector("main")), "another friend heard about the surprise").not.toContain("birthday card");
   });
 
+  // ADR 0031: leaving the light on, a hug that waits for her.
+  it("leaves the light on in a friend's window, glowing until she comes home to it", async () => {
+    const [a, b, c] = await people();
+    expect((await post(`/room/${b.id}/lamp`, {}, a.id)).headers.get("location")).toBe(`/room/${b.id}?did=lamp`);
+    expect((await post(`/room/${a.id}/lamp`, {}, a.id)).status, "a light left on in your own window").toBe(400);
+    // Lit in the picture, for everyone, and c sees who left it.
+    const house = await page("/", c.id);
+    expect(house.querySelectorAll("g.light circle.left-on").length, "the window isn't lit in the picture").toBeGreaterThan(0);
+    expect(text((await page(`/room/${b.id}`, c.id)).querySelector(".left-on-line")), "the room doesn't say who left the light on").toContain(`${a.name} left the light on for ${b.name}`);
+    // b comes home to it: her room and Updates say who; nobody else is told.
+    expect(text((await page(`/room/${b.id}`, b.id)).querySelector(".left-on-line")), "she doesn't see who left it on").toContain(`${a.name} left the light on for you`);
+    expect(text((await page("/updates", b.id)).querySelector("main")), "Updates doesn't tell her").toContain(`${a.name} left the light on for you`);
+    expect(text((await page("/updates", c.id)).querySelector("main")), "a third friend heard about it").not.toContain("left the light on");
+  });
+
+  // ADR 0031: one line each under a friend's photo, never a thread.
+  it("lets each friend write one line under a friend's photo, and the photo's writer hears it", async () => {
+    const [a, b, c] = await people();
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP4v+7/fwAIDAN+M8x3iQAAAABJRU5ErkJggg==", "base64");
+    const data = new FormData();
+    data.set("photo", new Blob([png], { type: "image/png" }), "us.png");
+    data.set("body", unique("the beach"));
+    await fetch(new URL("/wall/photo", baseUrl), { method: "POST", headers: { cookie: await cookieFor(a.id) }, body: data, redirect: "manual" });
+    const living = await page("/living", b.id);
+    const note = [...living.querySelectorAll(".wall .note.photo")].find((n) => n.querySelector("form.photo-line-form"));
+    const id = note?.getAttribute("data-id") ?? "";
+    expect(id, "there's no way to write under a friend's photo").not.toBe("");
+    const first = unique("best day");
+    const second = unique("best day ever");
+    expect((await post("/wall/caption", { note: id, body: first }, b.id)).headers.get("location")).toBe(`/living?did=caption#note-${id}`);
+    expect((await post("/wall/caption", { note: id, body: second }, b.id)).status).toBe(303);
+    expect((await post("/wall/caption", { note: id, body: "mine" }, a.id)).status, "the writer wrote under her own photo").toBe(400);
+    const lines = [...(await page("/living", c.id)).querySelectorAll(`#note-${id} .photo-lines li`)].map(text);
+    expect(lines.filter((l) => l.includes("best day")), "a friend's lines became a thread, not one each").toEqual([`${second} ${b.name}`]);
+    expect(text((await page("/updates", a.id)).querySelector("main")), "the photo's writer doesn't hear the line").toContain(`${b.name} wrote under your photo`);
+  });
+
+  // ADR 0031: tell them I was here, a message to send yourself.
+  it("offers a message to send the group yourself, naming what you did and never what you wrote", async () => {
+    const [a, b] = await people();
+    const secret = unique("a secret for b");
+    await post(`/room/${b.id}/leave`, { item: "flower", body: secret }, a.id);
+    await post("/garden/water", {}, a.id);
+    const home = await page("/updates", a.id);
+    const message = home.querySelector("textarea.tell-message")?.textContent ?? "";
+    expect(message, "the message doesn't say what you did").toContain(`left ${b.name} something on`);
+    expect(message).toContain("watered the garden");
+    expect(message, "the message quotes what you wrote").not.toContain(secret);
+  });
+
   it("only lets the five leave things", async () => {
     const note = unique("from a stranger");
     expect((await post("/wall", { body: note })).status).toBe(403);

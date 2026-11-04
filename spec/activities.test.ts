@@ -148,6 +148,22 @@ it("tells you the same thing at the top of a made house's Home as in while you w
   expect(text(home.querySelector(".news")), "a made house's line says nobody came by").toContain("Rae came by");
 });
 
+// ADR 0031: on this day, from the memory box, by her own clock: a year ago
+// today before a month ago, never this month, and the widget only what its
+// writer shared. The same in a made house.
+it("brings back a note from this day in an earlier month or year, the longest ago first", async () => {
+  const { onThisDay } = await fromSrc();
+  const tz = "Australia/Sydney";
+  const now = Date.UTC(2026, 10, 5, 2); // 5 Nov, 1 pm in Canberra
+  const note = (id: number, y: number, m: number, d: number, body: string) => ({ id, author: "2", kind: "note" as const, place: "wall", body, item: "", createdAt: Date.UTC(y, m - 1, d, 2) });
+  const things = [note(4, 2026, 11, 1, "this month"), note(3, 2026, 10, 5, "a month ago"), note(2, 2025, 11, 5, "a year ago"), note(1, 2026, 9, 8, "near")];
+  expect(onThisDay(things, tz, now), "a year ago today doesn't come first").toMatchObject({ note: { body: "a year ago" }, ago: "a year ago today" });
+  expect(onThisDay(things.filter((t) => t.id !== 2), tz, now)?.note.body).toBe("a month ago");
+  expect(onThisDay([things[0]], tz, now), "this month's wall came back as a memory").toBeUndefined();
+  expect(onThisDay([things[3]], tz, now), "nothing within a few days").toMatchObject({ ago: "about 2 months ago" });
+  expect(onThisDay(things, tz, now, (t) => t.id === 3)?.note.body, "the widget showed something its writer didn't share").toBe("a month ago");
+});
+
 // BUG: the Updates dot counts any new row, but a sticker on someone else's note lists nothing
 it.skip("only puts the dot on Updates when there's something new to read there", async () => {
   const now = Date.now();

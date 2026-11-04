@@ -201,11 +201,10 @@ describe.skipIf(!throwaway)("making a house for any five friends", () => {
     expect(broken, "a picture in the made house is missing").toEqual([]);
   });
 
-  // BUG: /h/<code>/readme/ (linked from the made house's door and bar as
-  // "What is this place?" / "About this place") renders Rithika's README, so
+  // Fixed 5 Nov (RICE E): /h/<code>/readme/ rendered Rithika's README, so
   // strangers read her five's names, cities, birthdays, sleep hours, KitKats,
-  // masks and kettle (src/server.ts:249 serves README.md in every house).
-  it.skip("keeps Rithika's five's own details out of a made house's about page", async () => {
+  // masks and kettle. A made house has its own page now.
+  it("keeps Rithika's five's own details out of a made house's about page", async () => {
     const h = await strangeHouse();
     const res = await fetch(new URL(`${h.base}readme/`, baseUrl), { redirect: "manual" });
     if (res.status === 200) {
@@ -264,6 +263,45 @@ describe.skipIf(!throwaway)("making a house for any five friends", () => {
     const w = await (await fetch(new URL(new URL(link).pathname, baseUrl))).json();
     expect(w.cards.find((c: { kind: string }) => c.kind === "cards"), "Rae's widget doesn't say a card's waiting").toMatchObject({ title: "A birthday card waiting", from: [{ name: "Kit" }] });
     expect(JSON.stringify(w), "Rae's widget reads her sealed card").not.toContain(forRae);
+  });
+
+  // RICE O and E, ADR 0031: a made house names its own dog, and its about
+  // page is about its own friends.
+  it("names a made house's own dog, and tells its own story on its about page", async () => {
+    const h = await makeHouse({ friends: "4", ...named(FOUR), "city-1": "London", dog: "Biscuit" });
+    const garden = await inside(h, "garden", "1");
+    expect(text(garden.querySelector("main")), "the made house's dog is still Shinzo").toContain("Biscuit");
+    expect(text(garden.querySelector("main")), "Shinzo is still in a house that named its dog").not.toContain("Shinzo");
+    const about = parse(await (await fetch(new URL(`${h.base}readme/`, baseUrl))).text());
+    expect(text(about.querySelector("article")), "the about page doesn't name its friends").toContain("Ivy");
+    expect(text(about.querySelector("article")), "the about page doesn't name its dog").toContain("Biscuit");
+    // A house that left it blank has Shinzo.
+    const plain = await makeHouse({ friends: "2", ...named(["Sam", "Lea"]) });
+    expect(text((await inside(plain, "garden", "1")).querySelector("main"))).toContain("Shinzo");
+    expect((await postMake({ ...named(), dog: "d".repeat(31) })).status, "a 31-character dog name was taken").toBe(400);
+  });
+
+  // ADR 0031 in a made house: the light left on, a line under a photo, and
+  // a message to send the group yourself.
+  it("lets a made house's friends leave the light on, write under photos, and tell the group", async () => {
+    const h = await makeHouse({ friends: "4", ...named(FOUR) });
+    expect((await post(h, "room/2/lamp", {}, "1")).headers.get("location")).toBe(`${h.base}room/2?did=lamp`);
+    expect(text((await inside(h, "room/2", "2")).querySelector(".left-on-line")), "Rae doesn't see Ivy left the light on").toContain("Ivy left the light on for you");
+    expect((await inside(h, "", "3")).querySelectorAll("g.light circle.left-on").length, "Rae's window isn't lit").toBeGreaterThan(0);
+
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP4v+7/fwAIDAN+M8x3iQAAAABJRU5ErkJggg==", "base64");
+    const data = new FormData();
+    data.set("photo", new Blob([png], { type: "image/png" }), "us.png");
+    data.set("body", "the lake");
+    await fetch(new URL(`${h.base}wall/photo`, baseUrl), { method: "POST", headers: { cookie: await cookieIn(h, "1") }, body: data, redirect: "manual" });
+    const id = (await inside(h, "living", "3")).querySelector(".wall .note.photo")?.getAttribute("data-id") ?? "";
+    const line = unique("that lake");
+    expect((await post(h, "wall/caption", { note: id, body: line }, "3")).headers.get("location")).toBe(`${h.base}living?did=caption#note-${id}`);
+    expect(text((await inside(h, "living", "2")).querySelector(`#note-${id} .photo-lines`)), "Kit's line isn't under the photo").toContain(line);
+
+    const tell = (await inside(h, "updates", "1")).querySelector("textarea.tell-message");
+    expect(tell?.textContent ?? "", "the message doesn't name the made house or what Ivy did").toMatch(/I came by .+: .*left the light on for Rae/);
+    expect(tell?.getAttribute("data-link"), "the message links to the wrong house").toBe(`${h.base}`);
   });
 
   it("lets a made house's friends save a plate for each other and write back to notes", async () => {

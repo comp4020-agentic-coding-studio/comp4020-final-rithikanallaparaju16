@@ -293,6 +293,49 @@ async function left(w, card, size) {
   say(w, card.ago, Font.systemFont(10), soft, 1);
 }
 
+// The next video call or movie night, in her own time (ADR 0031).
+function planCard(w, card, size) {
+  warm(w, "#2f2740", "#4a3b63");
+  say(w, card.title.startsWith("Movie") ? "🍿" : "📞", Font.systemFont(size === "small" ? 22 : 26), Color.white(), 1);
+  w.addSpacer(4);
+  say(w, card.title, Font.boldSystemFont(size === "small" ? 13 : 16), Color.white(), 2);
+  w.addSpacer(4);
+  say(w, size === "small" ? card.when : card.line, Font.mediumSystemFont(12), new Color("#e9e2fb"), 3);
+  w.addSpacer();
+}
+
+// On this day (ADR 0031): a note or photo from the memory box.
+async function memoryCard(w, card, size) {
+  const img = card.photo ? await picture(card.photo) : undefined;
+  if (img && size === "small") {
+    w.backgroundImage = img;
+    w.addSpacer();
+    shadowed(say(w, `🕰️ ${card.title}`, Font.boldSystemFont(12), Color.white(), 1));
+    shadowed(say(w, card.text || `from ${card.by}`, Font.mediumSystemFont(11), Color.white(), 2));
+    return;
+  }
+  warm(w, "#fbf1dc", "#f3e2c7");
+  say(w, `🕰️ ${card.title}`, Font.boldSystemFont(size === "small" ? 12 : 14), ink, 1);
+  w.addSpacer(6);
+  const row = w.addStack();
+  row.centerAlignContent();
+  if (img) {
+    const i = row.addImage(img);
+    i.imageSize = size === "large" ? new Size(150, 150) : new Size(84, 84);
+    i.applyFillingContentMode();
+    i.cornerRadius = 6;
+    row.addSpacer(10);
+  } else {
+    await faceIn(row, card.face, 30, card.color, card.by);
+    row.addSpacer(8);
+  }
+  const words = row.addStack();
+  words.layoutVertically();
+  say(words, card.by, Font.boldSystemFont(12), new Color(card.color), 1);
+  if (card.text) say(words, card.text, Font.mediumSystemFont(12), ink, size === "large" ? 6 : 3);
+  w.addSpacer();
+}
+
 // Birthday cards waiting for her (ADR 0030): who wrote them, never what.
 async function cardsCard(w, card, size) {
   warm(w, "#ffe3ee", "#fff4d6");
@@ -465,6 +508,8 @@ function accessory(w, card) {
   const words = {
     birthday: `🎂 ${card.title}`,
     cards: `💝 ${card.title}`,
+    plan: `📞 ${card.title}, ${card.when}`,
+    memory: `🕰️ ${card.title}`,
     desk: `💌 ${card.title}`,
     plate: `🍱 ${card.title}`,
     wall: `📌 ${card.title}`,
@@ -501,7 +546,7 @@ async function build() {
   // in its turn, not news.
   const said = readKept("newest");
   const shown = Number(said || 0) || 0;
-  const fresh = said !== undefined && house.newest > shown ? cards.find((c) => ["desk", "plate", "wall", "cards"].includes(c.kind) && c.at === house.newest) : undefined;
+  const fresh = said !== undefined && house.newest > shown ? cards.find((c) => ["desk", "plate", "wall", "cards", "plan"].includes(c.kind) && c.at === house.newest) : undefined;
   if (fresh || said === undefined) {
     try {
       fm.writeString(file("newest"), String(house.newest));
@@ -514,6 +559,8 @@ async function build() {
   if (size.startsWith("accessory")) accessory(w, card);
   else if (card.kind === "birthday") await birthdayCard(w, card, size);
   else if (card.kind === "cards") await cardsCard(w, card, size);
+  else if (card.kind === "plan") planCard(w, card, size);
+  else if (card.kind === "memory") await memoryCard(w, card, size);
   else if (card.kind === "desk" || card.kind === "plate") await left(w, card, size);
   else if (card.kind === "wall") await wallCard(w, card, size);
   else if (card.kind === "room" || card.kind === "dog") await pictureCard(w, card, size);

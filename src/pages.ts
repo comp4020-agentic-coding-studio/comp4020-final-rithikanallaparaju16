@@ -11,7 +11,7 @@ import {
   desk,
   dishName,
   dog,
-  DOG,
+  dogName,
   find,
   food,
   FOOD,
@@ -38,8 +38,11 @@ import {
   thirsty,
   STICKERS,
   stickersOn,
+  captionsOn,
+  MAX_CAPTION,
   photoOf,
   onWidget,
+  onThisDay,
   monthClock,
   monthLabel,
   monthOf,
@@ -100,6 +103,9 @@ export type Visit = {
   arrived: Map<string, number>;
   spots: Map<string, [number, number]>;
   seenUntil: number;
+  // When each friend's "new" starts (store.newSince()), for lights left on
+  // for her (ADR 0031). Missing in hand-built visits: then her last page load.
+  newSince?: Map<string, number>;
   now: number;
   // The month whose wall a recap is waiting for her, until she puts it away
   // (ADR 0026).
@@ -136,6 +142,19 @@ const allOfYou = (): string => (PEOPLE.length === 2 ? "both of you" : `all ${NUM
 const friendsWord = (): string => `${NUMBER[PEOPLE.length] ?? PEOPLE.length} friends`;
 
 // Saying where your own note shows (ADR 0029) is housekeeping, not news.
+// The lights left on in a friend's window, newest first, still lit: left
+// since her "new" began, so she comes home to it and it glows all visit;
+// it's out the next time (RICE AC, ADR 0031). Who left them, by id.
+function lampsFor(owner: Person, v: Visit): Thing[] {
+  const since = owner.id === v.me.id ? v.seenUntil : v.newSince?.get(owner.id) ?? v.seen.get(owner.id) ?? 0;
+  const seen = new Set<string>();
+  return v.things.filter((t) => {
+    if (t.kind !== "lamp" || t.place !== roomPlace(owner.id) || t.createdAt <= since || seen.has(t.author)) return false;
+    seen.add(t.author);
+    return true;
+  });
+}
+
 const isNew = (t: Thing, v: Visit): boolean => t.author !== v.me.id && t.createdAt > v.seenUntil && t.kind !== "onwidget";
 
 function homeNow(p: Person, v: Visit): boolean {
@@ -409,6 +428,7 @@ function scene(v: Visit, focus?: string, did?: string): Scene {
         mess: mess(v.things, owner.id, v.now),
         desk: deskSpots(owner, v),
         lamp: !zz,
+        lit: lampsFor(owner, v).map((t) => t.author),
         birthday: birthday(owner, v.now),
         things: thingsOf(owner),
         drawings: drawingsOf(owner),
@@ -638,9 +658,9 @@ function happening(t: Thing, me: Person, all: Thing[]): Happening | undefined {
     case "plant":
       return { text: `${by} planted ${find(PLANTS, t.item)?.label ?? "something"} in the garden`, href: "/garden", forYou: false, at };
     case "play":
-      return { text: `${by} petted ${DOG}`, href: "/garden", forYou: false, at };
+      return { text: `${by} petted ${dogName()}`, href: "/garden", forYou: false, at };
     case "treat":
-      return { text: `${by} gave ${DOG} a treat`, href: "/garden", forYou: false, at };
+      return { text: `${by} gave ${dogName()} a treat`, href: "/garden", forYou: false, at };
     case "hug": {
       const others = t.item.split(",").filter(Boolean);
       const href = pageOf(t.place);
@@ -651,6 +671,21 @@ function happening(t: Thing, me: Person, all: Thing[]): Happening | undefined {
       }
       const who = names(others.map(nameOf));
       return { text: one ? `${by} hugged ${who}` : `${by} pulled ${who} into a group hug`, href, forYou: false, at };
+    }
+    // A line under her photo: she hears it, and what it says (it's on the
+    // wall for everyone anyway). Nobody else is told.
+    case "caption": {
+      const note = all.find((n) => n.kind === "note" && `note:${n.id}` === t.place);
+      if (!note || note.author !== me.id || mine || !t.body) return undefined;
+      if (all.find((c) => c.kind === "caption" && c.place === t.place && c.author === t.author) !== t) return undefined;
+      return { text: `${by} wrote under your photo: “${t.body.length > 40 ? `${[...t.body].slice(0, 40).join("").trimEnd()}…` : t.body}”`, href: `/living#note-${note.id}`, forYou: true, at };
+    }
+    // A light left on in a window: for her, who left it on; for anyone
+    // else, only that it's lit, in the picture (ADR 0031).
+    case "lamp": {
+      const owner = ownerOf(t.place);
+      if (!owner || owner.id !== me.id || mine) return undefined;
+      return { text: `${by} left the light on for you`, href: `/room/${me.id}`, forYou: true, at };
     }
     // A birthday card: she hears there's one waiting, never what's in it,
     // and nobody else hears at all, so it stays a surprise (ADR 0030).
@@ -735,6 +770,70 @@ function recap(v: Visit, short: boolean): string {
   return slot("recap", `<section class="card recap" id="recap" aria-labelledby="recap-heading">
     <h2 id="recap-heading">${esc(`${name} on the wall`)}</h2>
     ${body}
+  </section>`);
+}
+
+// Tell them I was here (RICE C, ADR 0031): once you've done something this
+// visit, a message you can send your group chat yourself, saying what you
+// did and never quoting what you wrote. The house still sends nothing.
+function whatIDid(t: Thing, v: Visit): string | undefined {
+  const owner = ownerOf(t.place);
+  const them1 = owner && owner.id !== v.me.id ? owner.name : undefined;
+  switch (t.kind) {
+    case "desk": return them1 && `left ${them1} something on ${their(owner)} desk`;
+    case "reply": return them1 && `wrote back to ${them1}`;
+    case "card": return them1 && `left ${them1} a birthday card`;
+    case "lamp": return them1 && `left the light on for ${them1}`;
+    case "tidy": return them1 ? `tidied ${them1}'s room` : "tidied my room";
+    case "dish": {
+      const forWhom = savedFor(t);
+      const what = (find(FOOD, food(t))?.short ?? "something").replace(/^a /, "");
+      return forWhom ? `saved ${nameOf(forWhom)} some ${what}` : `made ${what} for everyone`;
+    }
+    case "note": return photoOf(t) ? "pinned a photo on the wall" : "wrote on the wall";
+    case "water": return "watered the garden";
+    case "plant": return "planted something in the garden";
+    case "play": return `petted ${dogName()}`;
+    case "treat": return `gave ${dogName()} a treat`;
+    case "wish": return them1 && `wished ${them1} a happy birthday`;
+    case "movie": return "suggested a movie";
+    case "call": return "planned a video call";
+    case "movienight": return "planned movie night";
+    case "kettle": return "made kettle Maggi";
+    default: return undefined;
+  }
+}
+
+function tellThem(v: Visit): string {
+  const start = v.seenUntil;
+  // Newest first: what she just did matters most if there's a lot.
+  const did = [...new Set(v.things.filter((t) => t.author === v.me.id && t.createdAt > start).map((t) => whatIDid(t, v)).filter((x): x is string => !!x))];
+  if (!did.length) return slot("tell", "");
+  const where = made() ? houseName() : "the house";
+  const link = house().base ? `${house().base}/` : "/";
+  const message = `I came by ${where}: ${names(did.slice(0, 5))}${did.length > 5 ? ", and more" : ""} 🏠`;
+  return slot("tell", `<section class="card tell-them" aria-labelledby="tell-heading">
+    <h2 id="tell-heading">${emoji("share")} Tell them you were here</h2>
+    <p class="small">The house never pings anyone. If you like, send this to your group chat yourself.</p>
+    <textarea id="tell-message" class="tell-message" rows="3" cols="1" readonly data-link="${esc(link)}">${esc(message)}</textarea>
+    <div class="tell-actions"><button type="button" class="soft" data-share="tell-message" hidden>${emoji("share")} Share it</button><button type="button" class="soft" data-copy-text="tell-message" hidden>Copy it</button></div>
+  </section>`);
+}
+
+// On this day (ADR 0031): a note or photo from the memory box, from this
+// day in an earlier month or year by your own clock. Nobody has to write
+// anything for it; it's the house remembering.
+function onThisDayCard(v: Visit): string {
+  const found = onThisDay(v.things, v.me.tz, v.now);
+  if (!found) return slot("onthisday", "");
+  const t = found.note;
+  const photo = photoOf(t);
+  const who = t.author === v.me.id ? "You" : nameOf(t.author);
+  const what = photo ? (t.body ? `pinned a photo: “${t.body}”` : "pinned a photo") : `wrote “${t.body}”`;
+  return slot("onthisday", `<section class="card on-this-day" aria-labelledby="onthisday-heading">
+    <h2 id="onthisday-heading">${emoji("recap")} ${esc(cap(found.ago))}</h2>
+    ${photo ? `<a class="otd-photo" href="/living#note-${t.id}"><img src="/photo/${photo}" alt="${esc(`A photo from ${nameOf(t.author)}${t.body ? `: ${t.body}` : ""}`)}" loading="lazy"></a>` : ""}
+    <p><a href="/living#note-${t.id}">${esc(`${who} ${what}`)}</a></p>
   </section>`);
 }
 
@@ -843,6 +942,8 @@ export type WidgetFriend = { id: string; name: string; color: string; time: stri
 export type WidgetCard =
   | { kind: "birthday"; who: string; name: string; color: string; face: string; when: "today" | "tomorrow"; title: string; line: string; open: string }
   | { kind: "cards"; title: string; line: string; from: { name: string; color: string; face: string }[]; open: string; at: number }
+  | { kind: "plan"; title: string; when: string; line: string; open: string; at: number }
+  | { kind: "memory"; title: string; by: string; color: string; face: string; text: string; photo?: string; open: string }
   | { kind: "desk"; by: string; color: string; face: string; gift?: string; emoji?: string; text: string; ago: string; title: string; open: string; at: number }
   | { kind: "plate"; by: string; color: string; face: string; food: string; emoji: string; text: string; ago: string; title: string; open: string; at: number }
   | { kind: "wall"; title: string; photos: { src: string; by: string; caption?: string }[]; notes: { by: string; color: string; text: string }[]; open: string; at: number }
@@ -896,7 +997,7 @@ export function widget(v: Visit): Widget {
   return {
     house: houseName(),
     for: v.me.name,
-    newest: Math.max(0, ...cards.map((c) => (c.kind === "desk" || c.kind === "plate" || c.kind === "wall" || c.kind === "cards" ? c.at : 0))),
+    newest: Math.max(0, ...cards.map((c) => (c.kind === "desk" || c.kind === "plate" || c.kind === "wall" || c.kind === "cards" || c.kind === "plan" ? c.at : 0))),
     latest,
     friends: PEOPLE.map((p) => {
       const c = clock(p.tz, v.now);
@@ -987,6 +1088,38 @@ function widgetCards(v: Visit): WidgetCard[] {
     });
   }
 
+  // The next video call or movie night, in her own time (ADR 0031): the
+  // sooner of the two, while it's still to come. `at` is when it was planned,
+  // so a new plan shows first.
+  const call = nextCall(v.things, v.now);
+  const night = movieNight(v.things, v.now);
+  const soon = [
+    call && call.at > v.now ? { title: call.plan.body ? `Video call: ${short(call.plan.body, 40)}` : "Video call", at: call.at, plan: call.plan, open: "/everyone#call" } : undefined,
+    night && night.at > v.now ? { title: `Movie night: ${short(night.movie.title, 40)}`, at: night.at, plan: night.plan, open: "/movies" } : undefined,
+  ].filter((x) => x !== undefined).sort((a, b) => a.at - b.at)[0];
+  if (soon) {
+    const when = `${dayLabel(v.me.tz, soon.at)}, ${clock(v.me.tz, soon.at).label}`;
+    cards.push({ kind: "plan", title: soon.title, when, line: `${when} your time. Planned by ${soon.plan.author === v.me.id ? "you" : nameOf(soon.plan.author)}.`, open: soon.open, at: soon.plan.author === v.me.id ? 0 : soon.plan.createdAt });
+  }
+
+  // On this day (ADR 0031): something from the memory box from today's date
+  // in an earlier month or year, if its writer let it onto widgets.
+  const memory = onThisDay(v.things, v.me.tz, v.now, (t) => onWidget(v.things, t));
+  const remembered = memory && personById(memory.note.author);
+  if (memory && remembered) {
+    const photo = photoOf(memory.note);
+    cards.push({
+      kind: "memory",
+      title: cap(memory.ago),
+      by: remembered.id === v.me.id ? "You" : remembered.name,
+      color: remembered.color,
+      face: faceOf(remembered),
+      text: memory.note.body ? `“${short(memory.note.body)}”` : photo ? "pinned a photo" : "",
+      ...(photo ? { photo: `photo/${photo}` } : {}),
+      open: `/living#note-${memory.note.id}`,
+    });
+  }
+
   // The memory board: this month's photos, or its notes if there are none.
   // The wall is for everyone in the house, but a home screen is out in the
   // world, so only what its writer said may go there (ADR 0029; Rithika,
@@ -1029,7 +1162,7 @@ function widgetCards(v: Visit): WidgetCard[] {
   if (where) {
     cards.push({
       kind: "dog",
-      title: DOG,
+      title: dogName(),
       picture: art(layout().picture),
       view: where.view,
       dog: art("laddoo.png"),
@@ -1058,6 +1191,8 @@ ${bar(v, "home")}
     <section class="map" aria-label="The house">${houseSvg(scene(v))}</section>
     <aside class="side">
       ${recap(v, true)}
+      ${tellThem(v)}
+      ${onThisDayCard(v)}
       ${away(v, 6)}
       ${everyone(v, false)}
       ${toWidget(v, "in-side")}
@@ -1072,6 +1207,8 @@ export function updatesPage(v: Visit): string {
 ${bar(v, "updates")}
 <main class="list">
   ${recap(v, false)}
+  ${tellThem(v)}
+  ${onThisDayCard(v)}
   ${away(v, 40)}
   ${slot("earlier", earlier(v))}
 </main>`, phase(clock(v.me.tz, v.now)), "page-list");
@@ -1101,7 +1238,7 @@ ${bar(v, "everyone")}
 function widgetAsk(v: Visit): string {
   if (!v.widget || v.widget.seen || v.widget.later) return "";
   return `<section class="widget-ask" aria-labelledby="widget-ask-heading" data-live="widget-ask">
-    <p id="widget-ask-heading"><span class="emoji" aria-hidden="true">📱</span> <b>Put ${esc(houseName())} on your home screen?</b> <span class="widget-ask-why">A little window that keeps changing: birthdays, what friends left you, the memory wall, your room, everyone, and ${DOG}.</span></p>
+    <p id="widget-ask-heading"><span class="emoji" aria-hidden="true">📱</span> <b>Put ${esc(houseName())} on your home screen?</b> <span class="widget-ask-why">A little window that keeps changing: birthdays, what friends left you, the memory wall, your room, everyone, and ${dogName()}.</span></p>
     <div class="widget-ask-answers">
       <form method="post" action="/widget/yes" class="inline"><button class="widget-yes">Yes<span class="widget-ask-more">, show me how</span></button></form>
       <form method="post" action="/widget/later" class="inline"><button class="soft">Not now</button></form>
@@ -1187,7 +1324,7 @@ ${bar(v, "everyone")}
   <section class="card home-widget" id="widget" aria-labelledby="widget-heading">
     <h2 id="widget-heading">${emoji("widget")} ${name} on your home screen</h2>
     <p class="widget-whose"><img src="${avatarUrl(v.me)}" alt="" width="36" height="48"><span>This is <b>${esc(v.me.name)}'s</b> widget: it shows what friends left for ${esc(v.me.name)}. If you're someone else, go back to the door and come in as yourself first.</span></p>
-    <p>A little window on your home screen that shows something new each time your phone refreshes it (every quarter of an hour or so; your phone decides): a friend's birthday (that day and the day before), a note or a plate someone left you, the memory wall, your room, everyone's faces and clocks, and ${DOG}. Something new for you shows first. Only notes left for you show, never a friend's, and only what friends chose to share from the wall. Each refresh asks the house one small question, and every picture is kept on your phone once it has it, so it's easy on your battery. It's yours, so keep its link to yourself.</p>
+    <p>A little window on your home screen that shows something new each time your phone refreshes it (every quarter of an hour or so; your phone decides): a friend's birthday (that day and the day before), a note or a plate someone left you, the memory wall, your room, everyone's faces and clocks, and ${dogName()}. Something new for you shows first. Only notes left for you show, never a friend's, and only what friends chose to share from the wall. Each refresh asks the house one small question, and every picture is kept on your phone once it has it, so it's easy on your battery. It's yours, so keep its link to yourself.</p>
     ${status}
     ${ways.join("\n    ")}
     <details class="widget-way"${link ? "" : " hidden"}><summary>Its link, and starting again</summary>
@@ -1245,9 +1382,9 @@ function laddooCard(place: string, v: Visit): string {
   const petted = d.last ? ` ${d.last.kind === "treat" ? "Last treat from" : "Last petted by"} ${by(d.last, v)}, ${ago(d.last.createdAt, v.now)}.` : "";
   const button = (action: string, key: string, label: string): string =>
     `<form method="post" action="${action}" class="inline"><input type="hidden" name="at" value="${esc(place)}"><button class="soft">${emoji(key)} ${label}</button></form>`;
-  const pet = here ? `<div class="doings">${button("/garden/dog", "play", `Pet ${DOG}`)}${button("/garden/treat", "treat", `Give ${DOG} a treat`)}</div>` : "";
+  const pet = here ? `<div class="doings">${button("/garden/dog", "play", `Pet ${dogName()}`)}${button("/garden/treat", "treat", `Give ${dogName()} a treat`)}</div>` : "";
   return `<section class="card laddoo-card" aria-labelledby="dog-heading">
-    <h2 id="dog-heading">${DOG}</h2>
+    <h2 id="dog-heading">${dogName()}</h2>
     <p>${place === "garden" ? "Everyone's dog. " : ""}${esc(line + petted)}</p>
     ${pet}
   </section>`;
@@ -1668,17 +1805,25 @@ export function bedroomPage(owner: Person, v: Visit, did?: Done): string {
     : "";
 
   const title = mine ? "Your room" : `${owner.name}'s room`;
+  // Lights left on in this window (ADR 0031): who, never when.
+  const lit = lampsFor(owner, v).map((t) => (t.author === v.me.id ? "you" : nameOf(t.author)));
+  const litLine = lit.length
+    ? `<p class="left-on-line" data-live="lamp">${emoji("lamp")} ${esc(mine ? `${cap(names(lit))} left the light on for you.` : `${cap(names(lit))} left the light on for ${owner.name}. It's glowing until ${they(owner)} next ${verb(owner, "comes", "come")} home.`)}</p>`
+    : `<p class="left-on-line" data-live="lamp"></p>`;
+  const lampButton = mine ? "" : `<form method="post" action="/room/${esc(owner.id)}/lamp" class="inline"><button class="soft">${emoji("lamp")} Leave the light on for ${esc(owner.name)}</button></form>`;
   return roomPage(v, roomPlace(owner.id), title, `
   ${slot("head", roomHead(title, line, owner.about, owner.color))}
   ${done(did)}
   ${slot("birthday", birthdayCard(owner, v))}
   ${slot("cards", cardsCard(owner, v))}
   <p class="status" data-live="mess">${esc(messLine)} ${esc(tidyLine)}</p>
+  ${litLine}
   ${slot("resting", restingIn(roomPlace(owner.id), v))}
   ${slot("hugs", hugButtons(v))}
   <div class="doings">
     <form method="post" action="/room/${esc(owner.id)}/tidy" class="inline"><button class="soft">${emoji("tidy")} ${mine ? "Tidy your room" : `Tidy up ${esc(owner.name)}'s room`}</button></form>
     <form method="post" action="/room/${esc(owner.id)}/nap" class="inline"><button class="soft">${emoji("nap")} Sleep in ${mine ? "your" : `${esc(owner.name)}'s`} bed</button></form>
+    ${lampButton}
     ${seat}
   </div>
   ${inRoom}
@@ -1727,7 +1872,15 @@ function wallNote(t: Thing, v: Visit): string {
     ? `<a class="snap" href="/photo/${photo}"><img src="/photo/${photo}" alt="${esc(t.body ? `A photo from ${nameOf(t.author)}: ${t.body}` : `A photo from ${nameOf(t.author)}`)}" loading="lazy"></a>`
     : "";
   const words = t.body ? `<p class="body hand">${esc(t.body)}</p>` : "";
-  return `<li class="${cls}" id="note-${t.id}" data-id="${t.id}" style="--paper:${paper}">${isNew(t, v) ? `<span class="tag">new</span>` : ""}${picture}${words}<p class="by">${esc(by(t, v))}, ${esc(ago(t.createdAt, v.now))}</p>${chips ? `<ul class="stickers">${chips}</ul>` : ""}${picker}${widgetSay}</li>`;
+  // On a photo, a line each from friends underneath, like the back of a
+  // print (ADR 0031); on a friend's photo, yours to write or change.
+  const lines = photo ? captionsOn(v.things, t) : [];
+  const under = lines.length ? `<ul class="photo-lines">${lines.map((c) => `<li><span class="hand">${esc(c.body)}</span> <span class="line-by">${esc(c.author === v.me.id ? "you" : nameOf(c.author))}</span></li>`).join("")}</ul>` : "";
+  const myLine = lines.find((c) => c.author === v.me.id)?.body ?? "";
+  const write = photo && t.author !== v.me.id
+    ? `<details class="photo-line"${myLine ? "" : ""}><summary>${emoji("caption")} ${myLine ? "Change your line" : "Write a line under it"}</summary><form method="post" action="/wall/caption" class="photo-line-form"><input type="hidden" name="note" value="${t.id}"><input name="body" maxlength="${MAX_CAPTION}" value="${esc(myLine)}" placeholder="this was the best day" aria-label="Your line under ${esc(nameOf(t.author))}'s photo"><button>${myLine ? "Change it" : "Write it"}</button></form></details>`
+    : "";
+  return `<li class="${cls}" id="note-${t.id}" data-id="${t.id}" style="--paper:${paper}">${isNew(t, v) ? `<span class="tag">new</span>` : ""}${picture}${words}<p class="by">${esc(by(t, v))}, ${esc(ago(t.createdAt, v.now))}</p>${under}${chips ? `<ul class="stickers">${chips}</ul>` : ""}${picker}${write}${widgetSay}</li>`;
 }
 
 // The memory box (ADR 0026): this month's oldest notes, if the wall's full,
@@ -2075,6 +2228,43 @@ ${bar(v, "movies")}
 }
 
 /* ---------- plain pages ---------- */
+
+// A made house's "What is this place?" (RICE E): about this house and its
+// friends, from its own spec, never Rithika's README, which names her five
+// and their details. Plain words, the same promises the house keeps.
+export function aboutHousePage(): string {
+  const spec = house().spec;
+  const friends = PEOPLE.map((p) => `<li><b>${esc(p.name)}</b>${p.city ? `, in ${esc(p.city)}` : ""}</li>`).join("");
+  return shell(`About ${houseName()}`, `
+<main class="plain">
+  <nav class="crumbs"><a href="/">‹ Back to the house</a></nav>
+  <article class="paper readme about-house">
+    <h1>${esc(houseName())}</h1>
+    <p>A little house shared by ${esc(allOfYou())}, who live far apart. Everyone has a room that keeps their own time, and everyone shares the living room, the kitchen, the garden and ${esc(dogName())} the dog.</p>
+    <ul>${friends}</ul>
+    ${spec?.joke ? `<blockquote>${esc(spec.joke)}</blockquote>` : ""}
+    <h2>How it works</h2>
+    <p>Come in whenever you're free, leave something for someone, and go. Whoever comes by next finds it, an hour or a week later. Nobody has to be online at the same time, nothing pings you, and there's nothing to like or count. When you come back, the house tells you who came by and what's new.</p>
+    <p>Walk yourself around: with the arrow keys on a laptop, or on a phone by holding either bottom corner and sliding your thumb. Whatever you can use lights up as you walk up to it.</p>
+    <h2>What you can do</h2>
+    <ul>
+      <li>Leave a note and a little gift on a friend's desk. Only they read it, and they can write back.</li>
+      <li>Cook in the kitchen, or save a plate for one friend that waits however long they're away.</li>
+      <li>Pin a note or a photo on the memory wall. It starts fresh each month, and every month is kept in the memory box.</li>
+      <li>Water and plant the garden, tidy a room, sleep in a friend's bed, pet ${esc(dogName())} or give him a treat.</li>
+      <li>Leave the light on in a friend's window, a hug that waits for them.</li>
+      <li>Write a birthday card any time of year, sealed until their birthday.</li>
+      <li>Plan a video call or a movie night with everyone's clocks side by side.</li>
+      <li>If friends are in at the same time, see each other walk, hug, and play UNO round the coffee table.</li>
+      <li>Put the house on your phone's home screen as a widget that keeps changing.</li>
+    </ul>
+    <h2>Nothing is punished for being away</h2>
+    <p>Plants get thirsty but never die, rooms get lived-in but never gross, ${esc(dogName())} naps but is never sad, and a saved plate never goes off.</p>
+    <h2>Who can come in</h2>
+    <p>Anyone with this house's address can pick a friend's window at the door, so keep the address among yourselves. Only one person can be each friend at a time.</p>
+  </article>
+</main>`, "day", "page-plain");
+}
 
 export function readmePage(html: string): string {
   return shell(`About ${houseName()}`, `

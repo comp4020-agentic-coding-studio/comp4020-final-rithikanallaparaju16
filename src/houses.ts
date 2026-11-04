@@ -56,6 +56,9 @@ export type HouseSpec = {
   // Houses made before it was asked, or left blank, have neither.
   together?: string;
   joke?: string;
+  // The house dog's name, asked on the form (RICE O); "Shinzo" if blank,
+  // and in houses made before it was asked. His picture is still his.
+  dog?: string;
   createdAt: number;
 };
 

@@ -3,7 +3,7 @@ import { readFileSync, statSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { ART, ART_TYPES, isArt } from "./assets.ts";
 import { avatarSvg, parseLook } from "./avatars.ts";
-import { counter, desk, DOG, find, FOOD, gifts, KETTLE_ROOM, MASK_ROOM, monthClock, movies, onWidget, pastMonths, photoOf, PLANTS, recapFor, resting, roomPlace, savedFor, seats, STICKERS, wall } from "./house.ts";
+import { counter, desk, dogName, find, FOOD, gifts, KETTLE_ROOM, MASK_ROOM, MAX_CAPTION, monthClock, movies, onWidget, pastMonths, photoOf, PLANTS, recapFor, resting, roomPlace, savedFor, seats, STICKERS, wall } from "./house.ts";
 import { closeHouses, findHouse, house, inHouse, made, ORIGINAL } from "./houses.ts";
 import * as live from "./live.ts";
 import { make } from "./maker.ts";
@@ -27,6 +27,7 @@ import {
   messagePage,
   moviesPage,
   readmePage,
+  aboutHousePage,
   unoPage,
   updatesPage,
   type Device,
@@ -40,7 +41,7 @@ import { layout, matWords } from "./layouts.ts";
 import { isPlace, placeAt } from "./scene.ts";
 import * as store from "./store.ts";
 import { birthday, fromLocal, nextBirthday } from "./time.ts";
-import { cap, their, them, they } from "./words.ts";
+import { cap, their, them, they, verb } from "./words.ts";
 import { dealFor, gameOf, isWild, play, replay, stillIn } from "./uno.ts";
 
 const MAX_FORM = 8 * 1024;
@@ -140,6 +141,7 @@ function look(me: Person): Visit {
     arrived: store.arrivals(),
     spots: store.spots(),
     seenUntil: store.seenSince(me.id),
+    newSince: store.newSince(),
     now: Date.now(),
   };
 }
@@ -222,6 +224,7 @@ function visit(me: Person, place = ""): Visit {
     arrived: store.arrivals(),
     spots: store.spots(),
     seenUntil,
+    newSince: store.newSince(),
     now,
     // A friend's first visit is a welcome, not a recap.
     recap: seenUntil ? recapFor(things, monthClock(), now, store.recapRead(me.id)) : undefined,
@@ -274,9 +277,14 @@ function line(did: string | null, owner?: Person, me?: Person): string | undefin
       return "In the memory box, with every month before it. Nothing's gone; it's all kept here.";
     case "sticker":
       return "Stuck on. Whoever wrote it will know you read it, and how you felt.";
+    case "lamp":
+      if (!owner) return undefined;
+      return `The light's on in ${owner.name}'s window. It'll be glowing when ${they(owner)} next ${verb(owner, "comes", "come")} home.`;
     case "card":
       if (!owner) return undefined;
       return `Sealed. It opens on ${their(owner)} birthday, and only ${they(owner)}'ll read it.`;
+    case "caption":
+      return "Written under it. Whoever pinned it will see your line.";
     case "onwidget":
       return "It can show on your friends' home-screen widgets now.";
     case "offwidget":
@@ -294,9 +302,9 @@ function line(did: string | null, owner?: Person, me?: Person): string | undefin
     case "plant":
       return "Planted. Come back in a few days to see it grow.";
     case "play":
-      return `${DOG} loved that. He's coming with you wherever you go, for a while.`;
+      return `${dogName()} loved that. He's coming with you wherever you go, for a while.`;
     case "treat":
-      return `Gone in one crunch. ${DOG}'s coming with you wherever you go, for a while.`;
+      return `Gone in one crunch. ${dogName()}'s coming with you wherever you go, for a while.`;
     case "nap":
       return "Tucked in. Anyone who comes by finds you asleep here, until you get up and go somewhere else.";
     case "sit":
@@ -362,7 +370,9 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   if (route === "GET /live") return live.subscribe(res, mine && { person: mine.me.id, token: mine.token });
 
   if (route === "GET /readme") return redirect(res, "/readme/");
-  if (route === "GET /readme/") return send(res, 200, readmePage(markdown(readFileSync(README, "utf8"))));
+  // Rithika's house is described by README.md; a made house by its own page,
+  // from its own spec, so strangers never read her five's details (RICE E).
+  if (route === "GET /readme/") return send(res, 200, made() ? aboutHousePage() : readmePage(markdown(readFileSync(README, "utf8"))));
   // The page's own stylesheet and scripts. Asked for by their fingerprint
   // (`own()`, src/assets.ts), a copy can be kept for good: a change is a new
   // address. Asked for without one, the browser checks back every time.
@@ -494,7 +504,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     return send(res, 200, pathname === "/updates" ? updatesPage(v) : pathname === "/everyone" ? everyonePage(v, confirmation(did)) : moviesPage(v, confirmation(did)));
   }
 
-  const roomMatch = pathname.match(/^\/room\/([^/]+)(\/leave|\/tidy|\/mask|\/kettle|\/nap|\/wish|\/reply|\/card)?$/);
+  const roomMatch = pathname.match(/^\/room\/([^/]+)(\/leave|\/tidy|\/mask|\/kettle|\/nap|\/wish|\/reply|\/card|\/lamp)?$/);
   const owner = roomMatch ? personById(roomMatch[1]) : undefined;
   if (roomMatch && !owner) return send(res, 404, messagePage("No such room", `There are ${PEOPLE.length} rooms in this house, and that isn't one of them.`));
   // The face mask powder is in Rithanya's room, and the kettle in Amirdhavarshini's.
@@ -519,7 +529,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
 
   if (method !== "POST") return send(res, 404, messagePage("Nothing here", "There's no room by that name in this house."));
 
-  const writes = ["/wall", "/wall/photo", "/kitchen", "/kitchen/eat", "/garden/water", "/garden/plant", "/garden/dog", "/garden/treat", "/sit", "/here", "/movies", "/movies/watched", "/movies/night", "/plan", "/uno", "/uno/move", "/hug", "/wall/sticker", "/wall/recap", "/wall/widget"];
+  const writes = ["/wall", "/wall/photo", "/kitchen", "/kitchen/eat", "/garden/water", "/garden/plant", "/garden/dog", "/garden/treat", "/sit", "/here", "/movies", "/movies/watched", "/movies/night", "/plan", "/uno", "/uno/move", "/hug", "/wall/sticker", "/wall/recap", "/wall/widget", "/wall/caption"];
   if (!writes.includes(pathname) && !roomMatch?.[2]) {
     return send(res, 404, messagePage("Nothing here", "There's no room by that name in this house."));
   }
@@ -586,6 +596,15 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     return redirect(res, `/room/${owner.id}?did=wish`);
   }
 
+  // Leaving the light on in a friend's window (RICE AC, ADR 0031): a hug
+  // that waits for her. Not in your own.
+  if (owner && roomMatch?.[2] === "/lamp") {
+    const back = `/room/${owner.id}`;
+    if (owner.id === me.id) return send(res, 400, messagePage("That's your own window", "Leave the light on for a friend instead. Yours glows when they leave it on for you.", back));
+    store.leave({ author: me.id, kind: "lamp", place: roomPlace(owner.id) });
+    return redirect(res, `${back}?did=lamp`);
+  }
+
   // A birthday card, sealed until her next birthday by her own clock (RICE
   // AA, ADR 0030). Any time of year; not to yourself; one line of words.
   if (owner && roomMatch?.[2] === "/card") {
@@ -635,6 +654,17 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     const note = store.leave({ author: me.id, kind: "note", place: "wall", body, item: form.get("big") === "1" ? "big" : "" });
     if (form.get("widget") === "yes") store.leave({ author: me.id, kind: "onwidget", place: `note:${note}`, item: "yes" });
     return redirect(res, "/living?did=wall");
+  }
+
+  // A line under a friend's photo (RICE AB, ADR 0031): one each, a newer one
+  // replaces hers, and an empty one takes it back. Photos only, not your own.
+  if (pathname === "/wall/caption") {
+    const note = wall(store.things()).find((t) => String(t.id) === form.get("note"));
+    if (!note || !photoOf(note)) return send(res, 400, messagePage("Which photo?", "That photo isn't on the wall.", "/living#wall"));
+    if (note.author === me.id) return send(res, 400, messagePage("That's your own photo", "What you wrote when you pinned it is under it already.", `/living#note-${note.id}`));
+    if (body.length > MAX_CAPTION) return send(res, 400, messagePage("Too long", `A line fits up to ${MAX_CAPTION} characters.`, `/living#note-${note.id}`));
+    store.leave({ author: me.id, kind: "caption", place: `note:${note.id}`, body: body.replace(/\s+/g, " ") });
+    return redirect(res, `/living?did=caption#note-${note.id}`);
   }
 
   // The writer changing her mind about her note showing on friends' widgets

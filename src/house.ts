@@ -1,4 +1,4 @@
-import { made } from "./houses.ts";
+import { house, made } from "./houses.ts";
 import { layout } from "./layouts.ts";
 import { PEOPLE } from "./people.ts";
 import type { Thing } from "./store.ts";
@@ -34,8 +34,10 @@ export const PLANTS: Item[] = [
 
 // Everyone's dog. He was Laddoo until session 7, when Rithika named him
 // Shinzo; his stored "play" and "treat" rows don't name him, and his code
-// and picture keep the old `laddoo` name.
+// and picture keep the old `laddoo` name. A made house names its own on the
+// form (RICE O); one made before it was asked has Shinzo.
 export const DOG = "Shinzo";
+export const dogName = (): string => house().spec?.dog || DOG;
 
 // Rithanya keeps face mask powder for everyone, and the hostel kettle lives in
 // Amirdhavarshini's room. Their rooms, by id.
@@ -144,6 +146,33 @@ export const recapFor = (things: Thing[], tz: string, now: number, read: Month):
   return last && last > read ? last : undefined;
 };
 
+// On this day (ADR 0031): something from the wall on today's date in an
+// earlier month or year, by `tz`'s calendar; if nothing then, within a few
+// days of it, a month or more ago. The longest ago first ("a year ago
+// today" over "a month ago"). Only from the memory box: never this month.
+// `ok` says what may be shown (a widget only shows what its writer shared).
+export function onThisDay(things: Thing[], tz: string, now: number, ok: (t: Thing) => boolean = () => true): { note: Thing; ago: string } | undefined {
+  const [y, m, d] = ymd(tz, now);
+  const thisMonth = monthOf(tz, now);
+  const old = wall(things).filter((t) => t.item !== "big" && monthOf(tz, t.createdAt) !== thisMonth && ok(t));
+  const at = (t: Thing): { months: number; off: number } => {
+    const [ty, tm, td] = ymd(tz, t.createdAt);
+    const months = (y - ty) * 12 + (m - tm);
+    // How many days from today's date in that month, so 3 Oct is 0 for 3 Nov.
+    const off = Math.abs(Date.UTC(ty, tm - 1, d) - Date.UTC(ty, tm - 1, td)) / (24 * 60 * 60 * 1000);
+    return { months, off };
+  };
+  const pick = (within: number) => old
+    .map((t) => ({ t, ...at(t) }))
+    .filter((x) => x.months >= 1 && x.off <= within)
+    .sort((a, b) => b.months - a.months || a.off - b.off || a.t.createdAt - b.t.createdAt)[0];
+  const best = pick(0) ?? pick(3);
+  if (!best) return undefined;
+  const years = Math.floor(best.months / 12);
+  const span = best.months % 12 === 0 && years ? (years === 1 ? "a year" : `${years} years`) : best.months === 1 ? "a month" : `${best.months} months`;
+  return { note: best.t, ago: best.off === 0 ? `${span} ago today` : `about ${span} ago` };
+}
+
 // A note on the wall with a photo pinned to it (ADR 0024): its item is
 // `photo:<id>`, the photo's row in the house's own `photos` table. Big news
 // keeps item "big", so a photo is never big news.
@@ -161,6 +190,22 @@ export function onWidget(things: Thing[], note: Thing): boolean {
   // Things come newest first, so the first word of hers is her latest.
   const said = things.find((t) => t.kind === "onwidget" && t.place === place && t.author === note.author);
   return said?.item === "yes";
+}
+
+// Lines under a photo on the wall (RICE AB, ADR 0031), like writing on the
+// back of a print: one each, a friend's newest is hers, and "" takes it
+// back. Oldest first, as they'd be written down the back. Never a thread.
+export const MAX_CAPTION = 120;
+export function captionsOn(things: Thing[], note: Thing): { author: string; body: string; at: number }[] {
+  const place = `note:${note.id}`;
+  const seen = new Set<string>();
+  const out: { author: string; body: string; at: number; id: number }[] = [];
+  for (const t of things) {
+    if (t.kind !== "caption" || t.place !== place || seen.has(t.author)) continue;
+    seen.add(t.author);
+    if (t.body) out.push({ author: t.author, body: t.body, at: t.createdAt, id: t.id });
+  }
+  return out.sort((a, b) => a.at - b.at || a.id - b.id);
 }
 
 // Stickers for a note on the wall: how a friend felt about it, and that she

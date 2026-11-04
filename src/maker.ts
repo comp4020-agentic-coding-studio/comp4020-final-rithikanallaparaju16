@@ -32,11 +32,12 @@ const MAX_CITY = 60;
 const MAX_TITLE = 60;
 const MAX_TOGETHER = 120;
 const MAX_JOKE = 280;
+const MAX_DOG = 30;
 
 // What one friend's block of the form says.
 // `things` are keys from BELONGINGS (src/belongings.ts), the pictures ticked.
 type Answer = { name: string; city: string; gender: Gender; qualities: string; things: string[]; birthday: [number, number] };
-type Answers = { title: string; friends: Answer[]; memories: string; together: string; joke: string };
+type Answers = { title: string; friends: Answer[]; memories: string; together: string; joke: string; dog: string };
 
 // What Claude (or the local maker) writes; tidied into a HouseSpec after.
 type Written = {
@@ -120,6 +121,11 @@ export function makePage(answers?: Answers, problem?: string, size = FRIENDS): s
     </section>
     ${blocks}
     <section class="card compose">
+      <label for="dog">What's the house dog called?</label>
+      <input id="dog" name="dog" maxlength="${MAX_DOG}" autocomplete="off" placeholder="Shinzo" value="${esc(answers?.dog ?? "")}">
+      <p class="small">Everyone's dog, who naps in the garden and follows whoever pets him. Leave it blank and he's Shinzo.</p>
+    </section>
+    <section class="card compose">
       <label for="memories">Memories for the living room wall, one per line</label>
       <textarea id="memories" name="memories" rows="5" maxlength="${MAX_FIELD}" placeholder="the road trip where the car broke down&#10;3 am chai in the hostel">${esc(answers?.memories ?? "")}</textarea>
     </section>
@@ -171,6 +177,7 @@ function read(form: URLSearchParams): Answers {
     memories: field(form, "memories"),
     together: field(form, "together").replace(/\s+/g, " "),
     joke: field(form, "joke"),
+    dog: field(form, "dog").replace(/\s+/g, " "),
   };
 }
 
@@ -181,6 +188,7 @@ function problemWith(a: Answers): string | undefined {
   if (a.friends.some((f) => f.name.length > MAX_NAME)) return `Names fit up to ${MAX_NAME} characters.`;
   if (a.friends.some((f) => f.city.length > MAX_CITY)) return `Places fit up to ${MAX_CITY} characters.`;
   if (a.title.length > MAX_TITLE) return `The house's name fits up to ${MAX_TITLE} characters.`;
+  if (a.dog.length > MAX_DOG) return `The dog's name fits up to ${MAX_DOG} characters.`;
   if (a.together.length > MAX_TOGETHER) return `What you did together fits up to ${MAX_TOGETHER} characters.`;
   if (a.joke.length > MAX_JOKE) return `The inside joke fits up to ${MAX_JOKE} characters.`;
   if (a.together && !a.joke) return "What was the inside joke from it? Add it, or clear what you did together.";
@@ -460,6 +468,7 @@ export function tidy(w: Written, a: Answers, code: string): HouseSpec {
     friends,
     memories,
     ...(a.joke ? { joke: a.joke, ...(a.together ? { together: a.together } : {}) } : {}),
+    ...(a.dog ? { dog: a.dog } : {}),
     createdAt: Date.now(),
   };
 }

@@ -3,7 +3,7 @@ import { art } from "./assets.ts";
 import { avatarUrl } from "./avatars.ts";
 import { belonging, belongingArt } from "./belongings.ts";
 import { BOX, drawingShapes, type Drawing } from "./drawings.ts";
-import { along, DOG, KETTLE_ROOM, MASK_ROOM, rejoin, YOGA_ROOM, type DogSpot, type Pose, type Waypoint } from "./house.ts";
+import { along, dogName, KETTLE_ROOM, MASK_ROOM, rejoin, YOGA_ROOM, type DogSpot, type Pose, type Waypoint } from "./house.ts";
 import { house, made } from "./houses.ts";
 import { esc } from "./html.ts";
 import { layout, matWords, oval, type Pt } from "./layouts.ts";
@@ -80,6 +80,9 @@ export type Bedroom = {
   desk: Spot[];
   // A lamp's on at night when the owner's awake.
   lamp: boolean;
+  // Lights friends left on for her (ADR 0031), by who, still lit: a warm
+  // glow in her window at any hour, until the visit she comes home to ends.
+  lit: string[];
   // Her birthday month (1), or the day itself (2), by her own clock.
   birthday: 0 | 1 | 2;
 };
@@ -171,7 +174,9 @@ function light(s: Scene): string {
     const shade = SHADE[b.phase];
     const fill = shade ? `<polygon points="${pts(room.outline)}" fill="${shade[0]}" opacity="${shade[1]}"/>` : "";
     const lamp = b.lamp && dark(b.phase) && room.desk ? `<circle cx="${room.desk[0][0]}" cy="${room.desk[0][1]}" r="120" fill="url(#glow)"/>` : "";
-    return fill + lamp;
+    // A light a friend left on: brighter, and on in daylight too.
+    const left = b.lit.length && room.desk ? `<circle class="left-on" cx="${room.desk[0][0]}" cy="${room.desk[0][1]}" r="150" fill="url(#glow)"/><circle class="left-on" cx="${room.desk[0][0]}" cy="${room.desk[0][1]}" r="70" fill="url(#glow)"/>` : "";
+    return fill + lamp + left;
   }).join("");
   const [fx, fy] = layout().fireplace;
   const fire = dark(s.light) ? `<circle cx="${fx}" cy="${fy}" r="140" fill="url(#glow)"/>` : "";
@@ -305,8 +310,8 @@ function laddoo(s: Scene, standing: Map<string, Pt>): string {
   const d = dogState(s, standing);
   const [x, y] = d.at;
   const doings: Doing[] = [
-    { label: `Pet ${DOG}`, emoji: EMOJI.play, post: "/garden/dog", fields: { at: s.dog.place } },
-    { label: `Give ${DOG} a treat`, emoji: EMOJI.treat, post: "/garden/treat", fields: { at: s.dog.place } },
+    { label: `Pet ${dogName()}`, emoji: EMOJI.play, post: "/garden/dog", fields: { at: s.dog.place } },
+    { label: `Give ${dogName()} a treat`, emoji: EMOJI.treat, post: "/garden/treat", fields: { at: s.dog.place } },
   ];
   const cls = ["laddoo", d.pose === "nap" ? "napping" : "awake", d.pose === "walk" ? "walking" : ""].filter(Boolean).join(" ");
   const lying = `<g class="lying" transform="scale(${d.lying})"><ellipse class="halo" cy="16" rx="92" ry="48"/><image href="${art("laddoo.png")}" x="-80" y="-46" width="160" height="92"/><text class="zz" x="52" y="-30">z</text><text class="zz small" x="66" y="-46">z</text></g>`;
@@ -335,6 +340,8 @@ function pops(s: Scene, standing: Map<string, Pt>): string {
     tidy: room?.mess ?? [],
     desk: above(room?.desk?.[0], 28),
     card: above(room?.desk?.[0], 28),
+    lamp: above(room?.desk?.[0], 28),
+    caption: [l.wallMiddle],
     reply: above(room?.desk?.[0], 28),
     kettle: above(MAT_TABLE, 44),
     wall: [l.wallMiddle],
@@ -430,7 +437,9 @@ function hotspots(s: Scene): string {
       const desk: Doing = mine
         ? { label: "See what's on your desk", emoji: EMOJI.look, href: `/room/${id}#desk` }
         : { label: `Leave something on ${name}'s desk`, emoji: EMOJI.desk, href: `/room/${id}#leave-something` };
-      spots.push({ place, area: room.deskArea, doings: [desk] });
+      // A friend's window: leave the light on for her (ADR 0031).
+      const light: Doing[] = mine ? [] : [{ label: `Leave the light on for ${name}`, emoji: EMOJI.lamp, post: `/room/${id}/lamp` }];
+      spots.push({ place, area: room.deskArea, doings: [desk, ...light] });
     }
     for (const [x, y] of (room.mess ?? []).slice(0, b.mess)) {
       spots.push({ place, area: oval(x, y, 26, 18), doings: [{ label: mine ? "Tidy your room" : `Tidy up ${name}'s room`, emoji: EMOJI.tidy, post: `/room/${id}/tidy` }] });
