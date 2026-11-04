@@ -3992,7 +3992,8 @@ g.joke-frame {
 }
 
 .widget-ask button,
-.home-widget button.widget-yes {
+.home-widget button.widget-yes,
+.app-actions button.widget-yes {
   min-height: 40px;
   padding: 8px 16px;
   border-radius: 999px;
@@ -4000,7 +4001,8 @@ g.joke-frame {
 }
 
 .widget-ask button.widget-yes,
-.home-widget button.widget-yes {
+.home-widget button.widget-yes,
+.app-actions button.widget-yes {
   border: 0;
   background: var(--accent);
   color: #fff;
@@ -4763,4 +4765,151 @@ g.light circle.left-on {
   border-radius: 10px;
   background: #fff1d6;
   border-left: 4px solid var(--accent);
+}
+
+/* ---------- the house as an app (ADR 0033) ---------- */
+
+.app-card {
+  max-width: 640px;
+}
+
+.app-head {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 14px;
+}
+
+.app-icon {
+  flex: none;
+  width: 96px;
+  height: 96px;
+  border-radius: 22px;
+  box-shadow: 0 6px 18px rgba(40, 20, 10, 0.25);
+}
+
+.app-head h1 {
+  margin: 0 0 4px;
+}
+
+.app-who {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.app-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.app-actions:not(:has(button:not([hidden]))) {
+  display: none;
+}
+
+.app-installed {
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #e5f3df;
+}
+
+.app-scan {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin: 18px 0;
+  padding: 14px;
+  border-radius: 14px;
+  background: #fff8ea;
+  border: 1px solid rgba(138, 90, 60, 0.16);
+}
+
+.app-scan h2 {
+  margin: 0 0 6px;
+  font-size: 1.1rem;
+}
+
+.app-scan p {
+  margin: 0 0 6px;
+}
+
+svg.qr {
+  flex: none;
+  width: 156px;
+  height: 156px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(40, 20, 10, 0.15);
+}
+
+.app-link code {
+  overflow-wrap: anywhere;
+}
+
+details.app-way {
+  margin: 8px 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #fffdf7;
+  border: 1px solid rgba(138, 90, 60, 0.16);
+}
+
+details.app-way summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+details.app-way ol {
+  margin: 8px 0;
+  padding-left: 1.3em;
+}
+
+.app-glyph {
+  display: inline-block;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: #eef3fb;
+}
+
+/* A phone has no laptop to scan from; the code is for laptops. */
+@media (pointer: coarse) and (max-width: 600px), (pointer: coarse) and (max-height: 500px) {
+  .app-page .app-scan {
+    display: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .app-scan {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+/* Opened from the home screen, the house is an app: the bar reaches under
+   the notch, there's no long-press menu on its buttons, and pulling down
+   doesn't bounce the page. */
+html.as-app body {
+  overscroll-behavior-y: none;
+}
+
+html.as-app .bar {
+  padding-top: max(4px, env(safe-area-inset-top));
+}
+
+html.as-app button,
+html.as-app .tabs a,
+html.as-app .house-svg {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+@media (display-mode: standalone) {
+  body {
+    overscroll-behavior-y: none;
+  }
+
+  .bar {
+    padding-top: max(4px, env(safe-area-inset-top));
+  }
 }

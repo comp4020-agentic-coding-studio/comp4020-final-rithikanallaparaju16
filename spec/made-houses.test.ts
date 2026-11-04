@@ -265,6 +265,30 @@ describe.skipIf(!throwaway)("making a house for any five friends", () => {
     expect(JSON.stringify(w), "Rae's widget reads her sealed card").not.toContain(forRae);
   });
 
+  // ADR 0033, for made houses: "same applies for make your owb house as well".
+  it("hands a made house out as its own app, from the ready page and its own app page", async () => {
+    const h = await makeHouse({ friends: "3", ...named(["Ivy", "Rae", "Kit"]), title: "The Lake House" });
+    // The ready page: a code and a way to send it.
+    expect(h.ready.querySelector("svg.qr"), "the ready page has no code to scan").not.toBeNull();
+    expect(h.ready.querySelector(`button[data-share-link$="${h.base}"]`), "the ready page can't send the address").not.toBeNull();
+    expect(h.ready.querySelector(`a[href="${h.base}app"]`), "the ready page doesn't offer the app").not.toBeNull();
+    // Its own app page, open to anyone with the address.
+    const res = await fetch(new URL(`${h.base}app`, baseUrl));
+    expect(res.status).toBe(200);
+    const app = parse(await res.text());
+    expect(text(app.querySelector("h1")), "the app page is Rithika's").toBe("The Lake House");
+    expect(text(app.querySelector(".app-who"))).toContain("Ivy, Rae and Kit");
+    expect(new URL(app.querySelector("button[data-share-link]")?.getAttribute("data-share-link") ?? "").pathname, "it shares the wrong house").toBe(h.base);
+    expect(text(app.querySelector("main")), "Rithika's five are on a made house's app page").not.toMatch(/Rithanya|Amirdhavarshini|Aswathy|Neha/);
+    // Its own service worker and manifest, scoped to it.
+    const sw = await (await fetch(new URL(`${h.base}sw.js`, baseUrl))).text();
+    expect(sw, "the made house's service worker is Rithika's").toContain(`const BASE = "${h.base.replace(/\/$/, "")}";`);
+    const manifest = await (await fetch(new URL(`${h.base}manifest.webmanifest`, baseUrl))).json();
+    expect(manifest.id).toBe(h.base);
+    expect(manifest.scope).toBe(h.base);
+    expect(manifest.name).toBe("The Lake House");
+  });
+
   // RICE O and E, ADR 0031: a made house names its own dog, and its about
   // page is about its own friends.
   it("names a made house's own dog, and tells its own story on its about page", async () => {

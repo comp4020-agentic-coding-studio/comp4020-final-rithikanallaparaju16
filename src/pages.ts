@@ -61,6 +61,7 @@ import {
 } from "./house.ts";
 import { house, houseName, made } from "./houses.ts";
 import { esc } from "./html.ts";
+import { qrSvg } from "./qr.ts";
 import { layout, matWords } from "./layouts.ts";
 import { PEOPLE, personById, type Person } from "./people.ts";
 import { their, them, they, theyre, verb } from "./words.ts";
@@ -274,14 +275,23 @@ export function manifest(): string {
     name: houseName(),
     short_name: shortName(),
     description: made() ? `${houseName()}: a little house for friends who live far apart.` : "A little house for five friends who live far apart.",
+    id: `${base}/`,
     start_url: `${base}/`,
     scope: `${base}/`,
     display: "standalone",
+    display_override: ["standalone", "minimal-ui"],
     // On the home screen, the house opens sideways (ADR 0032). Android keeps
     // to it; an iPhone ignores it, so the page asks to be turned instead.
     orientation: "landscape",
     background_color: "#f3e6cf",
     theme_color: "#a8d8f0",
+    categories: ["social", "lifestyle"],
+    // Held down on the home screen, the icon offers these (ADR 0033).
+    shortcuts: [
+      { name: "Updates", short_name: "Updates", url: `${base}/updates`, icons: [{ src: art("icon-192.png"), sizes: "192x192" }] },
+      { name: "Movies", short_name: "Movies", url: `${base}/movies`, icons: [{ src: art("icon-192.png"), sizes: "192x192" }] },
+      { name: "Everyone", short_name: "Everyone", url: `${base}/everyone`, icons: [{ src: art("icon-192.png"), sizes: "192x192" }] },
+    ],
     icons: [
       { src: art("icon-192.png"), sizes: "192x192", type: "image/png" },
       { src: art("icon-512.png"), sizes: "512x512", type: "image/png" },
@@ -306,6 +316,7 @@ export function shell(title: string, body: string, light: Phase, kind: string): 
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="${esc(shortName())}">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="format-detection" content="telephone=no">
 <meta name="theme-color" content="#a8d8f0">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -361,6 +372,8 @@ const footer = (me: Person): string => `
   <form method="post" action="/leave"><button class="link">Not ${esc(me.name)}?</button></form>
   <span aria-hidden="true">·</span>
   <a href="/readme/">About this place</a>
+  <span aria-hidden="true">·</span>
+  <a href="/app">Get the app</a>
 </footer>`;
 
 // What you just did (`key`, a `did` from src/server.ts) and the line that
@@ -554,7 +567,7 @@ export function doorPage(seen: Map<string, number>, now: number, taken: Set<stri
 ${people}
     </ul>
   </form>
-  <p class="hint">Each window shows the sky where that friend is right now. <a href="/readme/">What is this place?</a></p>
+  <p class="hint">Each window shows the sky where that friend is right now. <a href="/readme/">What is this place?</a> · <a href="/app">${emoji("widget")} Get the app</a></p>
   <p class="make-link"><a class="make-door" href="/make">🏡 Make your own house</a></p>
 </main>`, "dusk", "page-door");
 }
@@ -2277,6 +2290,69 @@ export function aboutHousePage(): string {
     <p>Anyone with this house's address can pick a friend's window at the door, so keep the address among yourselves. Only one person can be each friend at a time.</p>
   </article>
 </main>`, "day", "page-plain");
+}
+
+// The page that hands the house out as an app (ADR 0033), open to anyone
+// with the address: its icon and name, a QR code for a phone to scan off a
+// laptop, a way to share it, and how to put it on each kind of phone. The
+// Install button only shows where the browser offers one (public/live.js).
+export function appPage(link: string, on: Device): string {
+  const name = esc(houseName());
+  const who = names(PEOPLE.map((p) => p.name));
+  const steps: Record<string, [string, string]> = {
+    iphone: ["On an iPhone", `<ol><li>Open this page in <b>Safari</b>.</li><li>Tap <b>Share</b> <span class="app-glyph" aria-hidden="true">⎙</span> at the bottom.</li><li>Tap <b>Add to Home Screen</b>, then <b>Add</b>.</li></ol><p class="small">It opens full-screen, sideways, like any app.</p>`],
+    ipad: ["On an iPad", `<ol><li>Open this page in <b>Safari</b>.</li><li>Tap <b>Share</b> <span class="app-glyph" aria-hidden="true">⎙</span> at the top.</li><li>Tap <b>Add to Home Screen</b>, then <b>Add</b>.</li></ol>`],
+    android: ["On an Android", `<ol><li>Open this page in <b>Chrome</b>.</li><li>Tap <b>Install</b> above, or ⋮ › <b>Add to home screen</b> › <b>Install</b>.</li></ol><p class="small">It opens full-screen and sideways, with its own icon.</p>`],
+    windows: ["On Windows", `<ol><li>In <b>Chrome</b> or <b>Edge</b>, click <b>Install</b> above, or the install icon at the end of the address bar.</li></ol><p class="small">It gets its own window and a place in the Start menu.</p>`],
+    mac: ["On a Mac", `<ol><li>In <b>Safari</b>: <b>File</b> › <b>Add to Dock</b>.</li><li>In <b>Chrome</b>: click <b>Install</b> above.</li></ol>`],
+  };
+  const first = on === "other" ? "iphone" : on;
+  const order = [first, ...Object.keys(steps).filter((k) => k !== first)];
+  return shell(`Get the app · ${houseName()}`, `
+<main class="plain app-page">
+  <article class="paper app-card">
+    <header class="app-head">
+      <img class="app-icon" src="${art("icon-192.png")}" alt="" width="96" height="96">
+      <div>
+        <h1>${name}</h1>
+        <p class="app-who">${esc(made() ? `A little house for ${who}.` : `A little house for ${who}, who live far apart.`)}</p>
+      </div>
+    </header>
+    <div class="app-actions">
+      <button type="button" class="app-install widget-yes" hidden>${emoji("widget")} Install the app</button>
+      <button type="button" class="soft" data-share-link="${esc(link)}" data-share-title="${name}" hidden>Share it</button>
+      <button type="button" class="soft" data-copy-link="${esc(link)}" hidden>Copy the link</button>
+    </div>
+    <p class="app-installed" hidden>${emoji("widget")} It's on this device. Open it from your home screen.</p>
+    <div class="app-scan">
+      ${qrSvg(link, `A code for ${houseName()}'s address`)}
+      <div>
+        <h2>On a laptop?</h2>
+        <p>Point your phone's camera at this, and the house opens on your phone. Then add it to your home screen.</p>
+        <p class="small app-link"><code>${esc(link)}</code></p>
+      </div>
+    </div>
+    <h2>Put it on your home screen</h2>
+    ${order.map((k) => `<details class="app-way" id="app-${k}"${k === first ? " open" : ""}><summary>${steps[k][0]}</summary>${steps[k][1]}</details>`).join("\n    ")}
+    <p class="small">There's nothing to download from a store, and nothing to sign up for: the app is the house itself, always the newest. Anyone with this address can come in, so share it only with your friends.</p>
+    <p><a class="go-in" href="/">Go to the house ›</a></p>
+  </article>
+</main>`, "day", "page-plain page-app");
+}
+
+// What the app shows when the phone has no connection (public/sw.js): kind,
+// and it tries again by itself.
+export function offlinePage(): string {
+  return shell(houseName(), `
+<main class="plain">
+  <article class="paper message offline">
+    <h1>The house is just out of reach</h1>
+    <p>This phone isn't online right now. Everything you and your friends left is safe in the house, waiting.</p>
+    <p class="small">It'll come back by itself when you're connected.</p>
+    <p><a class="go-in" href="/">Try again ›</a></p>
+  </article>
+</main>
+<script>addEventListener("online", () => location.reload());</script>`, "day", "page-plain page-offline");
 }
 
 export function readmePage(html: string): string {

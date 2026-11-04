@@ -146,6 +146,43 @@ it("serves the house's own stylesheet, scripts and pictures", async () => {
   }
 });
 
+// ADR 0033: "buid a webapp of this that renders like a mobile app in
+// phone,so even distribution becaomes easy". An app page anyone with the
+// address can open, a QR code that reads back as the house's address, a
+// service worker at the house's own address, and a page for offline.
+it("hands the house out as an app: a page to share and install from, a QR code that reads back, and a service worker", async () => {
+  const res = await get("/app");
+  expect(res.status, "the app page needs signing in").toBe(200);
+  const page = parse(await res.text());
+  expect(text(page.querySelector("h1"))).toBe("Five Windows");
+  expect(page.querySelector(".app-install"), "there's nowhere for an Install button").not.toBeNull();
+  expect(page.querySelectorAll("details.app-way").length, "not every kind of phone has its steps").toBe(5);
+  const link = page.querySelector("button[data-share-link]")?.getAttribute("data-share-link") ?? "";
+  expect(new URL(link).pathname, "it shares the wrong address").toBe("/");
+  // The QR code: a grid of modules whose size fits a version 1-10 code.
+  const qr = page.querySelector("svg.qr");
+  expect(qr, "there's no QR code").not.toBeNull();
+  const side = Number(qr?.getAttribute("viewBox")?.split(" ")[2]) - 8;
+  expect((side - 17) % 4 === 0 && side >= 21 && side <= 57, `the QR code is ${side} modules, not a real size`).toBe(true);
+  expect(page.querySelector("a[href='/']"), "no way in from the app page").not.toBeNull();
+  // The door links to it.
+  expect(parse(await (await get("/")).text()).querySelector("a[href='/app']"), "the door doesn't offer the app").not.toBeNull();
+
+  const sw = await get("/sw.js");
+  expect(sw.status).toBe(200);
+  expect(sw.headers.get("cache-control"), "the service worker is kept, so a new one isn't found").toBe("no-cache");
+  const code = await sw.text();
+  expect(code, "the service worker doesn't know its house").toContain('const BASE = "";');
+  // A page always comes from the house, the cache only when offline.
+  expect(code, "the service worker serves pages from its cache").toContain('event.respondWith(fetch(req).catch(() => caches.match(OFFLINE)');
+  const offline = await get("/offline");
+  expect(offline.status).toBe(200);
+  expect(text(parse(await offline.text()).querySelector("h1"))).toContain("out of reach");
+  const manifest = await (await get("/manifest.webmanifest")).json();
+  expect(manifest.id, "the app has no id").toBe("/");
+  expect((manifest.shortcuts as { url: string }[]).map((s) => s.url), "holding the icon offers nothing").toEqual(["/updates", "/movies", "/everyone"]);
+});
+
 // ADR 0032: "make the toggle visibile no matter where i am. The toggle
 // should be there on the bottom corners of my screen not the page". A phone
 // on its side gets the house filling the screen and the walking corners on

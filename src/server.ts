@@ -27,6 +27,8 @@ import {
   messagePage,
   moviesPage,
   readmePage,
+  offlinePage,
+  appPage,
   aboutHousePage,
   unoPage,
   updatesPage,
@@ -51,6 +53,7 @@ const README = new URL("../README.md", import.meta.url);
 const STYLE = new URL("../public/style.css", import.meta.url);
 const SCRIPT = new URL("../public/house.js", import.meta.url);
 const LIVE = new URL("../public/live.js", import.meta.url);
+const WORKER = new URL("../public/sw.js", import.meta.url);
 const SCRIPTABLE = new URL("../public/widget/scriptable.js", import.meta.url);
 
 store.onChange(live.broadcast);
@@ -390,6 +393,18 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   }
   // For a phone's home screen (Android); an iPhone reads the page's own tags.
   if (route === "GET /manifest.webmanifest") return send(res, 200, manifest(), "application/manifest+json; charset=utf-8");
+  // The house as an app (ADR 0033): its service worker, at this house's own
+  // address so its scope is this house, never kept so a new one is found;
+  // the page it shows offline; and the page that hands the app out, open to
+  // anyone with the address, since that's who the house is shared with.
+  if (route === "GET /sw.js") {
+    const code = readFileSync(WORKER, "utf8");
+    const version = createHash("sha256").update(code).update(String(statSync(STYLE).mtimeMs)).digest("hex").slice(0, 10);
+    res.writeHead(200, { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-cache", "service-worker-allowed": `${house().base}/` });
+    return void res.end(code.replace("__BASE__", house().base).replace("__VERSION__", version));
+  }
+  if (route === "GET /offline") return send(res, 200, offlinePage());
+  if (route === "GET /app") return send(res, 200, appPage(`${origin(req)}${house().base}/`, device(req)));
   // A made friend's sticker, drawn on the server from her look
   // (src/avatars.ts). The same look always draws the same picture.
   const sticker = method === "GET" ? pathname.match(/^\/avatar\/([a-z0-9-]+)\.svg$/) : null;

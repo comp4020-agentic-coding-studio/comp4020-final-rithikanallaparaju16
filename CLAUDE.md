@@ -333,6 +333,10 @@ accepted record.
   which catches that and counts what each draw fetches; keep it to what
   Scriptable has. A change to `widget.js` reaches phones by itself (the
   JSON's `code` is its fingerprint), so don't make friends paste again.
+- The house is an app (ADR 0033): `/app` hands it out (Install, Share, a
+  QR code from `src/qr.ts`, steps per device), and `public/sw.js` is served
+  at each house's own `/sw.js`, `no-cache`, keeping art and fonts but never
+  a page. Don't let it keep pages: everything friends see is in SQLite.
 - The page's own `style.css`, `house.js` and `live.js` are asked for by
   fingerprint (`own()` in `src/assets.ts`) and kept for good; until 4
   November they weren't, and a phone ran yesterday's walking under

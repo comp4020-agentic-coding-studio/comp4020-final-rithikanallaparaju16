@@ -676,3 +676,62 @@
   tellButtons();
   document.addEventListener("house:fresh", tellButtons);
 })();
+
+// The house as an app (ADR 0033): the service worker, at this house's own
+// address, which is what lets a browser offer to install it; the Install
+// button, shown only when the browser has offered; and sharing the house's
+// address from the app page. Every page works without any of it.
+(() => {
+  const base = document.body.dataset.base || "";
+  if ("serviceWorker" in navigator) {
+    addEventListener("load", () => {
+      navigator.serviceWorker.register(`${base}/sw.js`, { scope: `${base}/` }).catch(() => {});
+    });
+  }
+  const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+  if (standalone) document.documentElement.classList.add("as-app");
+
+  const install = document.querySelector(".app-install");
+  const installed = document.querySelector(".app-installed");
+  if (standalone && installed) installed.hidden = false;
+  let offer;
+  addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    offer = event;
+    if (install) install.hidden = false;
+  });
+  install?.addEventListener("click", async () => {
+    if (!offer) return;
+    offer.prompt();
+    const { outcome } = await offer.userChoice.catch(() => ({ outcome: "dismissed" }));
+    offer = undefined;
+    install.hidden = true;
+    if (outcome === "accepted" && installed) installed.hidden = false;
+  });
+  addEventListener("appinstalled", () => {
+    if (install) install.hidden = true;
+    if (installed) installed.hidden = false;
+  });
+
+  for (const button of document.querySelectorAll("button[data-share-link]")) {
+    if (!navigator.share) continue;
+    button.hidden = false;
+    button.addEventListener("click", () => {
+      navigator.share({ title: button.dataset.shareTitle || document.title, text: `Come into ${button.dataset.shareTitle || "the house"} with me`, url: button.dataset.shareLink }).catch(() => {});
+    });
+  }
+  for (const button of document.querySelectorAll("button[data-copy-link]")) {
+    if (!navigator.clipboard?.writeText) continue;
+    button.hidden = false;
+    const label = button.textContent;
+    button.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(button.dataset.copyLink);
+        button.textContent = "Copied";
+      } catch {
+        // the address is on the page to copy by hand
+      }
+      setTimeout(() => (button.textContent = label), 3000);
+    });
+  }
+})();

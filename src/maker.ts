@@ -8,6 +8,7 @@ import { belonging, belongingArt, BELONGINGS, MAX_BELONGINGS } from "./belonging
 import { saveHouse, type Friend, type HouseSpec } from "./houses.ts";
 import { SIZES } from "./layouts.ts";
 import type { Gender } from "./people.ts";
+import { qrSvg } from "./qr.ts";
 import { esc } from "./html.ts";
 import { messagePage, shell } from "./pages.ts";
 
@@ -570,6 +571,14 @@ function readyPage(spec: HouseSpec, by: "claude" | "offline", host: string): str
     ${note}
     <p class="small">Send this address to the others. Anyone with it can come in, so keep it between you.</p>
     <p class="made-url"><code>${esc(url)}</code></p>
+    <div class="app-actions">
+      <button type="button" class="soft" data-share-link="${esc(url)}" data-share-title="${esc(spec.title)}" hidden>Send it to them</button>
+      <button type="button" class="soft" data-copy-link="${esc(url)}" hidden>Copy the link</button>
+    </div>
+    <div class="app-scan">
+      ${qrSvg(url, `A code for ${spec.title}'s address`)}
+      <p>Or have them point their phone's camera at this. It's an app too: <a href="/h/${esc(spec.code)}/app">put it on your home screen</a>.</p>
+    </div>
     <p><a class="go-in" href="/h/${esc(spec.code)}/">Go in ›</a></p>
   </article>
 </main>`, "day", "page-plain");
