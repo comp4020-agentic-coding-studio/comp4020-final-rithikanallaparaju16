@@ -3998,3 +3998,31 @@ each browser asked); one changed to the new rule.
 **Correction:** none.
 
 **Commits:** `397f8b1`, the PROCESS.md prompt lines, and this entry's commit.
+
+### 94. A keepsake box, a TestFlight app, then neither (5 Nov 2026)
+
+Asked, while entry 93 was being built and shipped:
+
+- "i also want like a diary or memory box thing, for each avatar. for
+  example i like the birthday card neha wrote for me, i should be able to
+  save it and revisit later. if i like sumn from memory wall, i should be
+  abke to save a copy of it. if the memory is exceeding, give the user an
+  option to save it to their devices and delete a few. make these chnages
+  for the made houses also"
+- "also, make it into a testflight app for now, for android also sumn like
+  that"
+- "then push everything to live, i want it to work amazing on testflight"
+
+**Agent:** finished and shipped entry 93 first (live and checked), then
+asked about the app: TestFlight needs a paid Apple Developer account and
+Xcode, and Android a Play account, which the agent can't sign up for.
+Rithika answered "nvm, lets j do website for now". The agent said it would
+build the keepsake box next ("keepsake box", so it isn't confused with the
+wall's memory box, in her own room, 30 keepsakes, download when full), and
+Rithika answered "noo lets skip that, omnly a good, well designed website".
+The empty `keepsakes` branch was deleted; nothing was written for either.
+
+**Correction:** both the TestFlight app and the keepsake box were called
+off before any code: the website only, done well.
+
+**Commits:** this entry's commit; the live site is at `d6976a7`.
