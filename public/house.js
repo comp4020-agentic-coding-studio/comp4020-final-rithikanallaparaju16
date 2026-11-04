@@ -716,14 +716,26 @@
     if (current && !busy && !inside([x, y], current.outline) && !near([x, y], current.outline, 10)) leave();
   }
 
-  // Keep you in the middle part of a phone's screen.
+  // Keep you on a phone's screen, where the house is wider than it. Walking,
+  // the view leads the way you're going, like a game's camera: you drift to
+  // a third of the way in from the side you came from, so most of the screen
+  // is what's ahead (the kitchen, walking out of Amirdhavarshini's room).
+  // Standing still, it only moves if you're near an edge.
+  let going = 0; // how far sideways you're walking, -1 to 1, this frame
+  let lead = 0; // the same, eased, so the view swings round gently
   function follow() {
     if (!map || map.scrollWidth <= map.clientWidth) return;
     const scale = svg.getBoundingClientRect().width / view.width;
-    const at = (x - view.x) * scale - map.scrollLeft;
-    const edge = map.clientWidth * 0.3;
+    const w = map.clientWidth;
+    const at = (x - view.x) * scale - map.scrollLeft; // you, on the screen
+    if (going) {
+      lead += (going - lead) * 0.06;
+      map.scrollLeft += (at - (w / 2 - lead * w * 0.2)) * 0.1;
+      return;
+    }
+    const edge = w * 0.3;
     if (at < edge) map.scrollLeft -= edge - at;
-    else if (at > map.clientWidth - edge) map.scrollLeft += at - (map.clientWidth - edge);
+    else if (at > w - edge) map.scrollLeft += at - (w - edge);
   }
 
   const keys = new Set();
@@ -745,6 +757,7 @@
 
   function step(now) {
     const [dx, dy] = heading();
+    going = busy ? 0 : dx;
     if (busy || (!dx && !dy)) {
       walking = false;
       me.classList.remove("walking");

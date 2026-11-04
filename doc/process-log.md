@@ -3556,3 +3556,33 @@ around it. Asked Rithika to say "push it".
 **Correction:** none.
 
 **Commits:** this entry's commit (no code change).
+
+### 85. The toggle on the phone still, and the kitchen out of sight (4 Nov 2026)
+
+**Asked:** "in my phone, the toggle is still not fixed / i cant see the
+kicthen when im trying to move an avatar".
+
+**Agent:** the toggle fix (log 83) still wasn't live, since its push was
+refused (log 84), so Rithika's phone had the old corners. For the
+kitchen: on a phone the house is wider than the screen and scrolls
+sideways, and it only followed you once you were within 30% of the
+screen's edge. Walking from Amirdhavarshini's room toward the kitchen,
+the kitchen stayed mostly off-screen until you were in it. Now, while
+you walk, the view leads the way you're going, like a game's camera:
+you ease to a third of the way in from the side you came from, so most
+of the screen is what's ahead. Standing still it behaves as before.
+Checked at 390 with a real finger: walking right from Amirdhavarshini's
+room, the whole kitchen (stove, kettle, island, shelves) is on screen
+with Rithika at x 127 of 390; walking left it runs to the house's edge.
+`pnpm check` on a fresh throwaway server: 116 passed, 21 skipped.
+
+Product call, named for Rithika to redirect: the view swings ahead
+gently (about half a second), not instantly.
+
+Noticed, not changed: in a hall, the Go in button keeps offering the
+last room you were in (`lastRoom` in `house.js`), on purpose ("inside a
+wall, the one you just left").
+
+**Correction:** none.
+
+**Commits:** this entry's commit.
