@@ -248,11 +248,24 @@ describe.skipIf(!throwaway)("making a house for any five friends", () => {
     expect(text((await inside(h, "room/1", "3")).body), "Kit can read Rae's reply to Ivy").not.toContain(answer);
   });
 
-  it("gives a made house's friends their own home-screen widget, at that house's address, and pins photos on its wall", async () => {
+  // "make sure all these chnaged are done to "make your own house" as well.
+  // even new users using this app, need to get the same experience" (4 Nov):
+  // a made house's friends are asked on Home, get the steps and the cards,
+  // and each friend's widget is her own.
+  it("asks a made house's friends about the widget on Home, and gives each her own, at that house's address", async () => {
     const h = await makeHouse({ friends: "4", ...named(FOUR) });
-    expect((await post(h, "widget", {}, "1")).headers.get("location")).toBe(`${h.base}home-screen?did=widget#widget`);
-    const link = (await inside(h, "home-screen", "1")).querySelector("#widget input.widget-link")?.getAttribute("value") ?? "";
+    const home = await inside(h, "", "1");
+    expect(home.querySelector(`.widget-ask form[action="${h.base}widget/yes"] button`), "a made house's Home doesn't ask about the widget").not.toBeNull();
+    expect(home.querySelector(`.widget-ask form[action="${h.base}widget/later"] button`), "a made house's question has no not now").not.toBeNull();
+    expect((await post(h, "widget/yes", {}, "1")).headers.get("location")).toBe(`${h.base}home-screen#widget`);
+    const steps = await inside(h, "home-screen", "1");
+    expect(text(steps.querySelector(".widget-whose")), "the page doesn't say whose widget it is").toContain("Ivy's");
+    expect(steps.querySelectorAll("details.widget-way[data-device]").length, "a made house's steps aren't all there").toBe(4);
+    const link = steps.querySelector("#widget input.widget-link")?.getAttribute("value") ?? "";
     expect(new URL(link).pathname, "the widget's link isn't at the made house").toMatch(new RegExp(`^${h.base}widget/1\\.`));
+    const script = steps.querySelector("textarea.widget-script")?.textContent ?? "";
+    expect(script, "the made house's script doesn't carry its own link").toContain(`const LINK = "${link}";`);
+    expect((await fetch(new URL(`${new URL(link).pathname}widget.js`, baseUrl))).status, "the made house doesn't serve the widget itself").toBe(200);
 
     const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP4v+7/fwAIDAN+M8x3iQAAAABJRU5ErkJggg==", "base64");
     const data = new FormData();
@@ -262,14 +275,36 @@ describe.skipIf(!throwaway)("making a house for any five friends", () => {
     expect(pinned.headers.get("location")).toBe(`${h.base}living?did=photo#wall`);
     const src = (await inside(h, "living", "3")).querySelector(".note.photo .snap img")?.getAttribute("src") ?? "";
     expect(src, "the photo isn't served from the made house").toMatch(new RegExp(`^${h.base}photo/\\d+$`));
+    const forIvy = unique("for ivy only");
+    expect((await post(h, "room/1/leave", { item: "flower", body: forIvy }, "2")).status).toBe(303);
 
     const w = await (await fetch(new URL(new URL(link).pathname, baseUrl))).json();
     expect(w.house).not.toBe("Five Windows");
+    expect(w.for).toBe("Ivy");
     expect(w.friends.map((f: { name: string }) => f.name)).toEqual(["You", "Rae", "Kit", "Bo"]);
     expect(w.latest).toMatchObject({ by: "Rae", caption: "this reminds me of you guys" });
     expect(w.open, "tapping it doesn't open the made house").toMatch(new RegExp(`^${h.base}`));
+    expect(w.cards.map((c: { kind: string }) => c.kind).filter((k: string) => k !== "birthday"), "a made house's widget cards").toEqual(["desk", "wall", "room", "everyone", "dog"]);
+    expect(w.cards.find((c: { kind: string }) => c.kind === "desk"), "Ivy's widget doesn't show Rae's note").toMatchObject({ by: "Rae", text: `“${forIvy}”` });
     for (const c of w.cards) expect(c.open, `the ${c.kind} card doesn't open the made house`).toMatch(new RegExp(`^${h.base}`));
     expect(w.cards.find((c: { kind: string }) => c.kind === "everyone")?.title, "a made house's widget says all five").not.toMatch(/five/);
+    // A made house's friends are drawn in SVG: the widget is handed it (and
+    // draws it into a picture once), so a new house gets faces and its
+    // friend standing in her room, as Rithika's five do.
+    const room = w.cards.find((c: { kind: string }) => c.kind === "room");
+    expect(room?.sticker?.src, "a made friend isn't in her room on the widget").toMatch(/^face\/1\?v=/);
+    const face = await fetch(new URL(room.sticker.src, new URL(new URL(link).pathname, baseUrl)));
+    expect(face.headers.get("content-type"), "a made friend's face isn't her drawing").toMatch(/^image\/svg\+xml/);
+
+    // Each friend's widget is her own: Kit's says it's Kit's, and Ivy's note isn't on it.
+    expect((await post(h, "widget/yes", {}, "3")).status).toBe(303);
+    const kitLink = (await inside(h, "home-screen", "3")).querySelector("#widget input.widget-link")?.getAttribute("value") ?? "";
+    expect(kitLink, "Kit got Ivy's link").not.toBe(link);
+    const kit = await (await fetch(new URL(new URL(kitLink).pathname, baseUrl))).json();
+    expect(kit.for).toBe("Kit");
+    expect(kit.friends.find((f: { name: string }) => f.name === "You")?.id, "Kit's widget thinks she's someone else").toBe("3");
+    expect(JSON.stringify(kit.cards), "Ivy's private note is on Kit's widget").not.toContain(forIvy);
+
     // Rithika's house doesn't know this house's widget, and its photo.
     expect((await fetch(new URL(new URL(link).pathname.replace(h.base, "/"), baseUrl))).status).toBe(404);
     expect((await fetch(new URL(src.replace(h.base, "/"), baseUrl), { headers: { cookie: await cookieIn(h, "2") } })).status).not.toBe(200);

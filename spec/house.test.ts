@@ -458,6 +458,19 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect(seen.slice(1).flatMap((d) => d.asked).filter((u) => u.endsWith("widget.js") || u === `${origin}${path}`), "the widget kept asking the house").toEqual([]);
     expect(seen[seen.length - 1].asked, "the widget fetched a picture it already had").toEqual([]);
 
+    // Each friend's widget is her own (Rithika, 4 Nov: "when i login as
+    // rithika, i want my widget also to show updates for me"): b's says it's
+    // b's, and a's private note isn't on it.
+    await post("/widget/yes", {}, b.id);
+    const bSteps = await page("/home-screen", b.id);
+    expect(text(bSteps.querySelector(".widget-whose")), "the page doesn't say whose widget it is").toContain(`${b.name}'s`);
+    const bLink = bSteps.querySelector("input.widget-link")?.getAttribute("value") ?? "";
+    expect(bLink, "b got a's link").not.toBe(link);
+    const bw = await (await fetch(new URL(new URL(bLink).pathname, baseUrl))).json();
+    expect(bw.for).toBe(b.name);
+    expect(bw.friends.find((f: { name: string }) => f.name === "You")?.id, "b's widget thinks she's someone else").toBe(b.id);
+    expect(JSON.stringify(bw.cards), "a's private note is on b's widget").not.toContain(note);
+
     // Her widget looked in: her page says it's working, and Home stops asking.
     expect((await page("/home-screen", a.id)).querySelector(".widget-status.working"), "the page doesn't say her widget's working").not.toBeNull();
     expect((await page("/", a.id)).querySelector(".widget-ask"), "Home still asks once her widget's working").toBeNull();
@@ -491,6 +504,11 @@ describe.skipIf(!throwaway)("living in the house", () => {
     const home = parse(await (await fetch(new URL("/", baseUrl), { headers: { cookie: `${await cookieFor(c.id)}; ${later}` } })).text());
     expect(home.querySelector(".widget-ask"), "Home still asks after not now").toBeNull();
     expect(home.querySelector("a.to-widget")?.getAttribute("href"), "there's no way back to the widget").toBe("/home-screen#widget");
+    // That way back leads somewhere useful: with no widget made yet, the page
+    // offers to make it rather than an empty box to copy.
+    const steps = await page("/home-screen", c.id);
+    expect(steps.querySelector("textarea.widget-script"), "an empty script to copy, before the widget's made").toBeNull();
+    expect(steps.querySelector("#on-iphone form[action='/widget/yes'] button"), "the page can't make the widget from here").not.toBeNull();
   });
 
   it("only lets the five leave things", async () => {

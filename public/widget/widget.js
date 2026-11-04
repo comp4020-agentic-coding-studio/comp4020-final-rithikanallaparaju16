@@ -115,9 +115,39 @@ async function picture(path) {
     const req = new Request(at(path));
     req.timeoutInterval = 15;
     const data = await req.load();
-    const img = Image.fromData(data);
-    if (img) fm.write(kept, data);
+    let img = Image.fromData(data);
+    let keep = data;
+    // A made house's friends are drawn (SVG), which a widget can't show:
+    // drawn once into a picture in a hidden web view, then kept like any
+    // other, so it's only ever done once per friend.
+    if (!img && /svg/.test(String((req.response && req.response.mimeType) || "")) && typeof WebView === "function") {
+      keep = await fromSvg(data.toRawString());
+      img = keep ? Image.fromData(keep) : null;
+    }
+    if (img) fm.write(kept, keep);
     return img || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+async function fromSvg(svg) {
+  try {
+    const view = new WebView();
+    await view.loadHTML("<body style='margin:0'></body>");
+    const png = await view.evaluateJavaScript(`
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement("canvas");
+        c.width = img.naturalWidth * 2 || 360;
+        c.height = img.naturalHeight * 2 || 484;
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        completion(c.toDataURL("image/png").split(",")[1]);
+      };
+      img.onerror = () => completion("");
+      img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(${JSON.stringify(svg)});
+    `, true);
+    return png ? Data.fromBase64String(png) : undefined;
   } catch {
     return undefined;
   }
@@ -379,7 +409,12 @@ async function pictureCard(w, card, size) {
 
 async function everyoneCard(w, card, house, size) {
   warm(w, "#fff8ec", "#f6e3c4");
-  say(w, card.title, Font.boldSystemFont(size === "small" ? 12 : 14), ink, 1);
+  const top = w.addStack();
+  top.centerAlignContent();
+  say(top, card.title, Font.boldSystemFont(size === "small" ? 12 : 14), ink, 1);
+  top.addSpacer();
+  // Whose widget this is, so a phone that's someone else's is plain to see.
+  if (house.for && size !== "small") say(top, `${house.for}'s window`, Font.mediumSystemFont(10), soft, 1);
   w.addSpacer();
   const edge = size === "small" ? 30 : size === "large" ? 48 : 38;
   const perRow = size === "small" ? 3 : house.friends.length;

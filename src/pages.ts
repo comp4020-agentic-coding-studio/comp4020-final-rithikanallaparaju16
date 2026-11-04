@@ -903,7 +903,9 @@ function widgetCards(v: Visit): WidgetCard[] {
   const giver = onDesk && personById(onDesk.author);
   if (onDesk && giver) {
     const gift = onDesk.kind === "desk" ? find(GIFTS, onDesk.item) : undefined;
-    const title = onDesk.kind === "reply" ? `${giver.name} wrote back` : gift ? `${giver.name} left you ${gift.short.replace(/^an? /, "")}` : `${giver.name} left you a note`;
+    // "left you a flower", "left you a KitKat", "left you masala chai": the
+    // gift's own short words, which carry their own "a" where it belongs.
+    const title = onDesk.kind === "reply" ? `${giver.name} wrote back` : gift ? `${giver.name} left you ${gift.short}` : `${giver.name} left you a note`;
     cards.push({
       kind: "desk",
       by: giver.name,
@@ -955,9 +957,10 @@ function widgetCards(v: Visit): WidgetCard[] {
       title: "Your room",
       picture: art(layout().picture),
       view: room.view,
-      ...(v.me.look ? {} : { sticker: { src: faceOf(v.me), at: room.walk[0] } }),
+      sticker: { src: faceOf(v.me), at: room.walk[0] },
       dark: ["night", "dusk"].includes(phase(c)),
-      line: `${c.label} in ${v.me.city}${wished ? ", with birthday wishes waiting" : ""}.`,
+      // A made house's friend may have left her city blank.
+      line: `${c.label}${v.me.city ? ` in ${v.me.city}` : " where you are"}${wished ? ", with birthday wishes waiting" : ""}.`,
       open: `/room/${v.me.id}`,
     });
   }
@@ -1086,8 +1089,12 @@ export function homeScreenPage(v: Visit, did: Done | undefined, on: Device, link
     ? `<p class="widget-status working" data-live="widget-status"><span class="emoji" aria-hidden="true">✅</span> It's working. Your widget last looked in ${esc(ago(w.seen, v.now))}.</p>`
     : `<p class="widget-status waiting" data-live="widget-status"><span class="emoji" aria-hidden="true">⏳</span> This page says so here as soon as your widget first looks in.</p>`;
   const name = esc(houseName());
-  const copy = `<button type="button" class="widget-copy widget-yes" data-copy="widget-script" hidden>Copy my widget</button><span class="widget-copy-by-hand">Tap in the box, Select All, then Copy.</span>
-          <textarea id="widget-script" class="widget-script" readonly rows="3" aria-label="Your widget's few lines for Scriptable">${esc(script ?? "")}</textarea>`;
+  // Here by the quiet link or the Everyone card, before saying yes: there's
+  // nothing to copy until her widget's link is made.
+  const copy = link
+    ? `<button type="button" class="widget-copy widget-yes" data-copy="widget-script" hidden>Copy my widget</button><span class="widget-copy-by-hand">Tap in the box, Select All, then Copy.</span>
+          <textarea id="widget-script" class="widget-script" readonly rows="3" aria-label="Your widget's few lines for Scriptable">${esc(script ?? "")}</textarea>`
+    : `<form method="post" action="/widget/yes" class="inline"><button class="widget-yes">${emoji("widget")} Make my widget</button></form> Then copy it from here.`;
   const iphone = (what: string): string => `<ol class="widget-steps">
         <li>Get <a href="${SCRIPTABLE_APP}"><b>Scriptable</b></a> from the App Store. It's free, and it's what lets a website be a widget on ${what}.</li>
         <li>${copy}</li>
@@ -1110,7 +1117,7 @@ export function homeScreenPage(v: Visit, did: Done | undefined, on: Device, link
     way("android", "On an Android", `<p>Android doesn't let a website be a widget on its own, so it takes the <a href="${KWGT_APP}"><b>KWGT</b></a> app and its Pro key (a few dollars), which lets a widget read a link:</p>
       <ol class="widget-steps">
         <li>Add a KWGT widget to your home screen, tap it, and make a new one.</li>
-        <li>Add a text, and for it use <code>$wg("${esc(link ?? "")}", json, .cards[0].title)$</code>; add an image with <code>.latest.photo</code> after your link.</li>
+        <li>${link ? `Add a text, and for it use <code>$wg("${esc(link)}", json, .cards[0].title)$</code>; add an image with <code>.latest.photo</code> after your link.` : `<form method="post" action="/widget/yes" class="inline"><button class="widget-yes">${emoji("widget")} Make my widget</button></form> first, and its link shows here.`}</li>
         <li>For everyone's clocks, add a text each with <code>.friends[0].time</code>, <code>.friends[1].time</code> and so on.</li>
       </ol>
       <p class="small">Just want the house as an app? In Chrome, tap ⋮ › <b>Add to home screen</b>.</p>`),
@@ -1125,10 +1132,11 @@ ${bar(v, "everyone")}
   ${done(did)}
   <section class="card home-widget" id="widget" aria-labelledby="widget-heading">
     <h2 id="widget-heading">${emoji("widget")} ${name} on your home screen</h2>
+    <p class="widget-whose"><img src="${avatarUrl(v.me)}" alt="" width="36" height="48"><span>This is <b>${esc(v.me.name)}'s</b> widget: it shows what friends left for ${esc(v.me.name)}. If you're someone else, go back to the door and come in as yourself first.</span></p>
     <p>A little window on your home screen that shows something new each time your phone refreshes it (every quarter of an hour or so; your phone decides): a friend's birthday (that day and the day before), a note or a plate someone left you, the memory wall, your room, everyone's faces and clocks, and ${DOG}. Each refresh asks the house one small question, and every picture is kept on your phone once it has it, so it's easy on your battery. It's yours, so keep its link to yourself.</p>
     ${status}
     ${ways.join("\n    ")}
-    <details class="widget-way"><summary>Its link, and starting again</summary>
+    <details class="widget-way"${link ? "" : " hidden"}><summary>Its link, and starting again</summary>
       <p class="small">Your widget's own link, if an app asks for it: <input class="widget-link" readonly value="${esc(link ?? "")}" aria-label="Your widget's link" onfocus="this.select()"></p>
       <form method="post" action="/widget" class="inline"><button class="soft">${emoji("widget")} Make a new link (the old one stops)</button></form>
     </details>

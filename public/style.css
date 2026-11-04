@@ -3982,7 +3982,24 @@ g.joke-frame {
   }
 }
 
-/* the widget's page: is it working yet, and the steps for each device */
+/* the widget's page: whose widget it is, is it working yet, and the steps
+   for each device */
+.widget-whose {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.widget-whose img {
+  flex: none;
+  width: 36px;
+  height: 48px;
+  object-fit: contain;
+}
+
 .widget-status {
   padding: 10px 14px;
   border-radius: 10px;

@@ -422,9 +422,8 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
       const p = personById(face[1]);
       if (!p) return json(404, { error: "No such friend." });
       // The same picture the house shows, from wherever it's kept. A made
-      // house's friends are drawn in SVG, which a widget can't show: it
-      // draws her initial instead.
-      if (p.look) return json(404, { error: "No picture a widget can show." });
+      // house's friends are drawn in SVG; the widget turns that into a
+      // picture once and keeps it (ADR 0027), so new houses get faces too.
       return redirect(res, avatarUrl(p).replace(/^\//, `${origin(req)}/`));
     }
     const snap = rest.match(/^photo\/(\d+)$/);
