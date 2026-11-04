@@ -4082,3 +4082,55 @@ would mean reading what friends wrote.
 **Correction:** none.
 
 **Commits:** this entry's commit.
+
+### 97. "suggest me ways to login as only rithika" (5 Nov 2026)
+
+Asked: "nono, dont have to add a line, but suggest me ways to login as only
+rithika, idk why im making the mistake of loggin in as some other person
+everytime" (declining entry 96's offer of the owner's name on every widget
+card).
+
+**Agent:** suggestions, no code. Three likely causes: "Come in as" on each
+row of Everyone (one tap, no question), testing the house as friends in the
+same browser, and the bar's face and "Not ___?" looking the same at a
+glance. Three things she could do without code: a separate browser for
+testing as friends, the house on her home screen added while signed in as
+herself, and a look at the bar before setting anything up. Four changes:
+A, "This is my phone, I'm Rithika" puts her window first at the door; B,
+"Come in as" on Everyone asks first; C, a brief "Hi Rithika 👋" on arrival;
+D, take "Come in as" off Everyone. Suggested A and B together.
+
+**Correction:** none.
+
+**Commits:** none of its own; it led to entry 98's.
+
+### 98. "i like C", then "push it live" (5 Nov 2026)
+
+Asked: "i like C"; then, while the agent was writing the ADR, "push it
+live".
+
+**Agent:** built C for Rithika's house and made houses (ADR 0034). Coming in
+as anyone, at the door or with "Come in as" on Everyone, redirects to
+`/?hi=1`. Home then shows a card under the bar: her sticker, "Hi Rithika
+👋", and "Not you? Change", which posts to `/leave` and lands on the door.
+The script fades it after 4.5 s (or on a tap), takes `?hi=1` out of the
+address, and skips the fade under reduced motion; a live re-fetch never
+carries it. Two specs (Rithika's house, a made house). Looked at it on a
+laptop and a phone on its side, and tapped "Change" for real (under the
+finger: `button.link`, then the door). Merged to main and pushed (with
+entry 96's commit); CI's check and deploy passed. Live: the door, `/readme/`
+and `/app` load, the read-only spec passes (24 passed, 131 skipped), and the
+live `live.js` and `style.css` carry the greeting. Didn't sign in live as a
+friend to see it, since that would hold her window and record a visit.
+
+**What went wrong:** the full check failed twice. The greeting test's
+friend was still held by another test (409), so it signs out first and uses
+Aswathy. A run now makes more than the maker's 30 houses an hour (429), so
+the cap reads `MAKE_CAP` on a test server; CI's container sets 100, and Fly
+doesn't set it. After both fixes: 137 passed, 18 skipped. The first draft
+of ADR 0034 described options A, B and D wrongly from memory; checked
+against the transcript and fixed before committing.
+
+**Correction:** none.
+
+**Commits:** `272a413`, the PROCESS.md prompt lines, and this entry's commit.
