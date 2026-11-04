@@ -3731,3 +3731,56 @@ carried only the RICE change; a failed edit stopped the rest, which went in
 the next commit.)
 
 **Commits:** `eee8d97`, the PROCESS.md prompt line, and this entry's commits.
+
+### 89. Rithika's own widget, and the same widget in made houses (4 Nov 2026)
+
+Asked: "also pls check the login, when i login as rithika, i want my widget
+also to show updates for me, pls check that. make sure all these chnaged
+are done to "make your own house" as well. even new users using this app,
+need to get the same experience".
+
+**Rithika's widget.** The code already gave each friend her own: the
+widget's link carries the friend's id and key, and the spec checked it. The
+live logs showed why her phone looked wrong. Amirdhavarshini's widget key
+was made at 09:23 UTC and her widget checked in at 09:25. Rithika's key
+(made 09:09) has never checked in, and a browser said "not now" as Rithika
+at 11:39. So the widget on her iPhone is Amirdhavarshini's: it was set up
+while signed in as Amirdhavarshini. Nothing was changed in the data. To make it
+plain next time, the widget page now opens with "This is Rithika's widget:
+it shows what friends left for Rithika", with her face, and the medium and
+large everyone card says "Rithika's window". A new spec checks that a second
+friend's widget is hers, with her own link, and without the first friend's
+private note.
+
+**Made houses.** Walked through a three-friend house as a new user would
+(Ivy in London, Rae in Toronto, Kit in Sydney), at 390 px. Home's question,
+Yes, the steps, the cards and live "It's working" were all there already.
+What fell short:
+
+- A made friend's face is an SVG drawing, which Scriptable can't open, so her
+  widget showed initials and her room card had nobody in it. The widget now
+  draws each SVG into a picture once, in Scriptable's hidden web view, and
+  keeps it (ADR 0028, superseding one line of 0025). The face route stopped
+  refusing made friends.
+- The widget page, before Yes (reached from the quiet link after Not now),
+  showed an empty box to copy. It now offers "Make my widget" in the iPhone,
+  iPad and Android steps, and the link's own section stays hidden until
+  there is one. Spec'd.
+- "Ivy's" on the whose line broke into columns (flex on bare text); wrapped.
+- Desk card: "Rae left you flower" became "left you a flower". A blank city
+  no longer reads "in .".
+
+The made-house spec now checks Home asks, the four device steps, the script
+carrying the made house's own link, `widget.js` served there, the cards
+(desk, wall, room, everyone, dog), the room's sticker being her drawing, and
+Kit's widget being Kit's.
+
+`pnpm check` against a fresh `HOUSE_MAKER=fake` server: 118 passed, 21
+skipped (the sweep's bug tests). Looked at the made house's widget page at
+390 px, signed in as Kit. The SVG drawing step was checked in the widget
+sandbox, not on a real iPhone. Not pushed: waiting for Rithika's go-ahead,
+along with log 88's documents on the same branch.
+
+**Correction:** none.
+
+**Commits:** `68a3b38`, the PROCESS.md prompt line, and this entry's commit.
