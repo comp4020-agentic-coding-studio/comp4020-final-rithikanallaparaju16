@@ -300,6 +300,8 @@ export const POP: Record<string, string[]> = {
   wish: ["🎉", "🎂", "🎈"],
   uno: ["🃏"],
   sticker: ["💛", "✨"],
+  onwidget: ["📱", "💛"],
+  offwidget: ["📌"],
 };
 
 export const emoji = (key: string): string => (EMOJI[key] ? `<span class="emoji" aria-hidden="true">${EMOJI[key]}</span>` : "");

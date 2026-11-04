@@ -152,6 +152,17 @@ export const photoOf = (t: Thing): number | undefined => {
   return m ? Number(m[1]) : undefined;
 };
 
+// Whether a note or photo on the wall may show on friends' home-screen
+// widgets (ADR 0029). The wall is for everyone in the house, but a home
+// screen is out in the world, so it's the writer's say: her newest word on
+// it, and no until she says yes. Nobody else's word counts.
+export function onWidget(things: Thing[], note: Thing): boolean {
+  const place = `note:${note.id}`;
+  // Things come newest first, so the first word of hers is her latest.
+  const said = things.find((t) => t.kind === "onwidget" && t.place === place && t.author === note.author);
+  return said?.item === "yes";
+}
+
 // Stickers for a note on the wall: how a friend felt about it, and that she
 // read it. Each friend has one sticker on a note at most; picking another
 // swaps it, and peeling it off leaves none. Never counted, always named.

@@ -313,6 +313,7 @@ describe.skipIf(!throwaway)("living in the house", () => {
     const data = new FormData();
     data.set("photo", new Blob([png], { type: "image/png" }), "us.png");
     data.set("body", caption);
+    data.set("widget", "yes");
     await fetch(new URL("/wall/photo", baseUrl), { method: "POST", headers: { cookie: await cookieFor(b.id) }, body: data, redirect: "manual" });
     const note = unique("for the exam, you've got this");
     expect((await post(`/room/${a.id}/leave`, { item: "chocolate", body: note }, b.id)).status).toBe(303);
@@ -509,6 +510,62 @@ describe.skipIf(!throwaway)("living in the house", () => {
     const steps = await page("/home-screen", c.id);
     expect(steps.querySelector("textarea.widget-script"), "an empty script to copy, before the widget's made").toBeNull();
     expect(steps.querySelector("#on-iphone form[action='/widget/yes'] button"), "the page can't make the widget from here").not.toBeNull();
+  });
+
+  // Rithika, 4 Nov: "when amirdha puts a note on my desk, i want a small
+  // preview. if theres an update on the mermory wall i want a small preview
+  // on my widget / if amirdha leaves a note on nehas desk, i dont need a
+  // preview, but if food is left on the counter for me i need to see, but
+  // if its a note, it could be private, so dont read it / but memory wall
+  // wont be private. so maybe ask if it can be shown on the widget before
+  // you show." (ADR 0029)
+  it("puts what's left for her on her widget first, never a friend's note, and only the wall its writers share", async () => {
+    const [a, b, c] = await people();
+    await post("/widget/yes", {}, a.id);
+    const link = (await page("/home-screen", a.id)).querySelector("input.widget-link")?.getAttribute("value") ?? "";
+    const read = async () => (await fetch(new URL(new URL(link).pathname, baseUrl))).json();
+
+    // Asked before it leaves the house: unticked, on both of the wall's forms.
+    const living = await page("/living", b.id);
+    for (const form of ["form[action='/wall']", "form#photo"]) {
+      const box = living.querySelector<HTMLInputElement>(`${form} input[type=checkbox][name=widget][value=yes]`);
+      expect(box, `the wall's ${form} doesn't ask about widgets`).not.toBeNull();
+      expect(box?.hasAttribute("checked"), "it's ticked before anyone says").toBe(false);
+    }
+
+    // b writes two notes on the wall: one she shares, one she doesn't.
+    const shared = unique("you've got this, all of you");
+    const kept = unique("only for in here");
+    expect((await post("/wall", { body: kept }, b.id)).status).toBe(303);
+    expect((await post("/wall", { body: shared, widget: "yes" }, b.id)).status).toBe(303);
+    // b leaves a note on c's desk, and a's: a's widget shows only her own.
+    const forC = unique("for c only");
+    const forA = unique("a little note for a");
+    expect((await post(`/room/${c.id}/leave`, { item: "flower", body: forC }, b.id)).status).toBe(303);
+    expect((await post(`/room/${a.id}/leave`, { item: "flower", body: forA }, b.id)).status).toBe(303);
+
+    let w = await read();
+    const all = JSON.stringify(w);
+    expect(all, "a friend's private desk note is on her widget").not.toContain(forC);
+    expect(all, "a wall note its writer didn't share is on her widget").not.toContain(kept);
+    const wallCard = w.cards.find((k: { kind: string }) => k.kind === "wall");
+    expect(wallCard?.notes.map((n: { text: string }) => n.text), "the wall note b shared isn't on her widget").toContain(shared);
+    // What's newest is marked, so the widget shows it first.
+    const desk = w.cards.find((k: { kind: string }) => k.kind === "desk");
+    expect(desk, "her widget doesn't show the note on her desk").toMatchObject({ by: b.name, text: `“${forA}”` });
+    expect(w.newest, "the newest thing on her widget isn't marked").toBe(desk.at);
+
+    // b changes her mind about the shared note: off friends' widgets, still on the wall.
+    const mine = [...(await page("/living", b.id)).querySelectorAll(".wall .note")].find((n) => n.textContent?.includes(shared));
+    const id = mine?.getAttribute("data-id") ?? "";
+    expect(mine?.querySelector("form.widget-say[action='/wall/widget'] button[aria-pressed='true']"), "the writer can't see it's on widgets, or take it off").not.toBeNull();
+    expect((await post("/wall/widget", { note: id, widget: "yes" }, c.id)).status, "a friend changed where b's note shows").toBe(400);
+    expect((await post("/wall/widget", { note: id, widget: "" }, b.id)).headers.get("location")).toBe(`/living?did=offwidget#note-${id}`);
+    w = await read();
+    expect(JSON.stringify(w), "a note taken off widgets is still on hers").not.toContain(shared);
+    expect(text((await page("/living", a.id)).querySelector("#wall")), "taking it off widgets took it off the wall").toContain(shared);
+    // Housekeeping isn't news: c isn't told b changed a setting.
+    expect(text((await page("/updates", c.id)).querySelector("main")), "a widget setting shows up as news").not.toMatch(/widget/i);
   });
 
   it("only lets the five leave things", async () => {

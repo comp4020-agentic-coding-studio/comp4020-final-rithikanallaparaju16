@@ -112,7 +112,11 @@ export type Kind =
   // A video call planned with the same everyone's-clocks picker as movie
   // night: the place is "calls", the item the moment in milliseconds, and
   // the body what it's for, if anyone said (so the log never shows it).
-  | "call";
+  | "call"
+  // Whether a note or photo on the wall may show on friends' home-screen
+  // widgets (ADR 0029): the place is `note:<id>`, the item "yes" or "" (no).
+  // Only the writer's own say counts, and her newest one.
+  | "onwidget";
 
 export type Thing = {
   id: number;
@@ -201,12 +205,14 @@ export function log(line: string): void {
   console.log(`[${where()}] ${line}`);
 }
 
-export function leave(t: { author: string; kind: Kind; place: string; body?: string; item?: string }): void {
+// Returns the new row's id, so a note can be followed by a word about it.
+export function leave(t: { author: string; kind: Kind; place: string; body?: string; item?: string }): number {
   const r = q().insertThing.run(t.author, t.kind, t.place, t.body ?? "", t.item ?? "", Date.now());
   const item = t.item ? ` item=${t.item}` : "";
   const words = t.body ? ` (${t.body.length} chars written)` : "";
   log(`${who(t.author)} ${t.kind} at ${t.place}${item}${words} #${r.lastInsertRowid}`);
   changed();
+  return Number(r.lastInsertRowid);
 }
 
 // Each friend's home-screen widget key (ADR 0025): "" until she makes one.

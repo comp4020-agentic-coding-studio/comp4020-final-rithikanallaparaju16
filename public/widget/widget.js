@@ -7,7 +7,9 @@
 //
 // Each time the phone draws it, it shows the next card the house gave it:
 // a birthday, what's on her desk, a plate saved for her, the memory wall,
-// her room, everyone, Shinzo. Easy on the battery: one small JSON read at
+// her room, everyone, Shinzo. Something new for her (a note on her desk, a
+// plate, a photo on the wall its friend let onto widgets) skips the queue:
+// the first draw after it arrives shows it (ADR 0029). Easy on the battery: one small JSON read at
 // most every few minutes, and every picture kept on the phone once it's
 // been fetched, so most draws don't touch the network at all for pictures.
 //
@@ -472,7 +474,21 @@ async function build() {
   }
   await update(house);
   const cards = house.cards && house.cards.length ? house.cards : [{ kind: "everyone", title: house.house, open: house.open }];
-  const card = cards[turn(cards.length)];
+  // Something newer than anything it's shown goes first, once, without
+  // taking a turn; then the cards carry on in order.
+  // A widget's very first draw starts from now: what was there before is
+  // in its turn, not news.
+  const said = readKept("newest");
+  const shown = Number(said || 0) || 0;
+  const fresh = said !== undefined && house.newest > shown ? cards.find((c) => ["desk", "plate", "wall"].includes(c.kind) && c.at === house.newest) : undefined;
+  if (fresh || said === undefined) {
+    try {
+      fm.writeString(file("newest"), String(house.newest));
+    } catch {
+      // shown again next time
+    }
+  }
+  const card = fresh || cards[turn(cards.length)];
   w.url = at(card.open || house.open);
   if (size.startsWith("accessory")) accessory(w, card);
   else if (card.kind === "birthday") await birthdayCard(w, card, size);

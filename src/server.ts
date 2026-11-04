@@ -3,7 +3,7 @@ import { readFileSync, statSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { ART, ART_TYPES, isArt } from "./assets.ts";
 import { avatarSvg, parseLook } from "./avatars.ts";
-import { counter, desk, DOG, find, FOOD, gifts, KETTLE_ROOM, MASK_ROOM, monthClock, movies, pastMonths, photoOf, PLANTS, recapFor, resting, roomPlace, savedFor, seats, STICKERS, wall } from "./house.ts";
+import { counter, desk, DOG, find, FOOD, gifts, KETTLE_ROOM, MASK_ROOM, monthClock, movies, onWidget, pastMonths, photoOf, PLANTS, recapFor, resting, roomPlace, savedFor, seats, STICKERS, wall } from "./house.ts";
 import { closeHouses, findHouse, house, inHouse, made, ORIGINAL } from "./houses.ts";
 import * as live from "./live.ts";
 import { make } from "./maker.ts";
@@ -274,6 +274,10 @@ function line(did: string | null, owner?: Person, me?: Person): string | undefin
       return "In the memory box, with every month before it. Nothing's gone; it's all kept here.";
     case "sticker":
       return "Stuck on. Whoever wrote it will know you read it, and how you felt.";
+    case "onwidget":
+      return "It can show on your friends' home-screen widgets now.";
+    case "offwidget":
+      return "It stays on the wall, and off your friends' home screens.";
     case "dish":
       return "Left out on the counter for everyone.";
     case "eat":
@@ -429,7 +433,9 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     const snap = rest.match(/^photo\/(\d+)$/);
     if (snap) {
       const id = Number(snap[1]);
-      const pic = wall(store.things()).some((t) => photoOf(t) === id) ? store.photo(id) : undefined;
+      // Only a photo its writer let onto widgets (ADR 0029).
+      const all = store.things();
+      const pic = wall(all).some((t) => photoOf(t) === id && onWidget(all, t)) ? store.photo(id) : undefined;
       if (!pic) return json(404, { error: "That photo isn't on the wall." });
       res.writeHead(200, { "content-type": pic.type, "content-length": pic.data.length, "cache-control": "private, max-age=86400", "x-content-type-options": "nosniff" });
       return void res.end(pic.data);
@@ -510,7 +516,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
 
   if (method !== "POST") return send(res, 404, messagePage("Nothing here", "There's no room by that name in this house."));
 
-  const writes = ["/wall", "/wall/photo", "/kitchen", "/kitchen/eat", "/garden/water", "/garden/plant", "/garden/dog", "/garden/treat", "/sit", "/here", "/movies", "/movies/watched", "/movies/night", "/plan", "/uno", "/uno/move", "/hug", "/wall/sticker", "/wall/recap"];
+  const writes = ["/wall", "/wall/photo", "/kitchen", "/kitchen/eat", "/garden/water", "/garden/plant", "/garden/dog", "/garden/treat", "/sit", "/here", "/movies", "/movies/watched", "/movies/night", "/plan", "/uno", "/uno/move", "/hug", "/wall/sticker", "/wall/recap", "/wall/widget"];
   if (!writes.includes(pathname) && !roomMatch?.[2]) {
     return send(res, 404, messagePage("Nothing here", "There's no room by that name in this house."));
   }
@@ -527,7 +533,9 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     const caption = (up.fields.get("body") ?? "").replace(/\r\n?/g, "\n").trim();
     if (caption.length > MAX_NOTE) return send(res, 400, messagePage("Too long", `Notes fit up to ${MAX_NOTE} characters.`, "/living#photo"));
     const id = store.keepPhoto(up.file.type, up.file.data);
-    store.leave({ author: me.id, kind: "note", place: "wall", body: caption, item: `photo:${id}` });
+    const note = store.leave({ author: me.id, kind: "note", place: "wall", body: caption, item: `photo:${id}` });
+    // On friends' widgets only if she ticked it (ADR 0029).
+    if (up.fields.get("widget") === "yes") store.leave({ author: me.id, kind: "onwidget", place: `note:${note}`, item: "yes" });
     return redirect(res, "/living?did=photo#wall");
   }
 
@@ -608,8 +616,20 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   if (pathname === "/wall") {
     if (!body) return send(res, 400, messagePage("An empty note", "Write something before pinning it up.", "/living"));
     if (body.length > MAX_NOTE) return send(res, 400, messagePage("Too long", `Notes fit up to ${MAX_NOTE} characters.`, "/living"));
-    store.leave({ author: me.id, kind: "note", place: "wall", body, item: form.get("big") === "1" ? "big" : "" });
+    const note = store.leave({ author: me.id, kind: "note", place: "wall", body, item: form.get("big") === "1" ? "big" : "" });
+    if (form.get("widget") === "yes") store.leave({ author: me.id, kind: "onwidget", place: `note:${note}`, item: "yes" });
     return redirect(res, "/living?did=wall");
+  }
+
+  // The writer changing her mind about her note showing on friends' widgets
+  // (ADR 0029). Only hers; back to the note itself.
+  if (pathname === "/wall/widget") {
+    const note = wall(store.things()).find((t) => String(t.id) === form.get("note"));
+    if (!note) return send(res, 400, messagePage("Which note?", "That note isn't on the wall.", "/living#wall"));
+    if (note.author !== me.id) return send(res, 400, messagePage("That's a friend's note", "Only whoever pinned it can say where it shows.", `/living#note-${note.id}`));
+    const yes = form.get("widget") === "yes";
+    store.leave({ author: me.id, kind: "onwidget", place: `note:${note.id}`, item: yes ? "yes" : "" });
+    return redirect(res, `/living?did=${yes ? "onwidget" : "offwidget"}#note-${note.id}`);
   }
 
   // Putting a month's recap away (ADR 0026): it's in the memory box, as it

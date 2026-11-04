@@ -46,7 +46,10 @@ dim"). Laptop: the house with updates beside it. Phone: the house
 fills the screen, with Home, Updates, Movies and Everyone tabs at the bottom.
 Since 4 November Home asks each browser once whether to put the house on
 the home screen (Yes / Not now); Yes goes to `/home-screen`, and the widget
-shows a different card each time the phone draws it (ADR 0027).
+shows a different card each time the phone draws it (ADR 0027), what's
+new for her first. The wall reaches widgets only when its writer ticks
+"Show it on friends' home-screen widgets" (`onwidget`, ADR 0029); a desk
+note only ever shows on its owner's widget.
 
 Since session 4, two rooms have an activity of their own: face masks in
 Rithanya's (`MASK_ROOM`) and kettle Maggi in Amirdhavarshini's (`KETTLE_ROOM`),

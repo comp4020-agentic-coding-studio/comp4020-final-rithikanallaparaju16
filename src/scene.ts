@@ -338,6 +338,8 @@ function pops(s: Scene, standing: Map<string, Pt>): string {
     kettle: above(MAT_TABLE, 44),
     wall: [l.wallMiddle],
     sticker: [l.wallMiddle],
+    onwidget: [l.wallMiddle],
+    offwidget: [l.wallMiddle],
     dish: above(l.counter[1], 30),
     saved: above(l.counter[1], 30),
     // Over whoever ate it, who's usually standing in front of the counter.

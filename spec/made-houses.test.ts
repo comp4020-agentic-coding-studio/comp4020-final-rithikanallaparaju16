@@ -271,6 +271,7 @@ describe.skipIf(!throwaway)("making a house for any five friends", () => {
     const data = new FormData();
     data.set("photo", new Blob([png], { type: "image/png" }), "us.png");
     data.set("body", "this reminds me of you guys");
+    data.set("widget", "yes");
     const pinned = await fetch(new URL(`${h.base}wall/photo`, baseUrl), { method: "POST", headers: { cookie: await cookieIn(h, "2") }, body: data, redirect: "manual" });
     expect(pinned.headers.get("location")).toBe(`${h.base}living?did=photo#wall`);
     const src = (await inside(h, "living", "3")).querySelector(".note.photo .snap img")?.getAttribute("src") ?? "";

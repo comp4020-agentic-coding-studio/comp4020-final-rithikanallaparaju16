@@ -39,6 +39,7 @@ import {
   STICKERS,
   stickersOn,
   photoOf,
+  onWidget,
   monthClock,
   monthLabel,
   monthOf,
@@ -132,7 +133,8 @@ const NUMBER = ["", "one", "two", "three", "four", "five", "six", "seven"];
 const allOfYou = (): string => (PEOPLE.length === 2 ? "both of you" : `all ${NUMBER[PEOPLE.length] ?? PEOPLE.length} of you`);
 const friendsWord = (): string => `${NUMBER[PEOPLE.length] ?? PEOPLE.length} friends`;
 
-const isNew = (t: Thing, v: Visit): boolean => t.author !== v.me.id && t.createdAt > v.seenUntil;
+// Saying where your own note shows (ADR 0029) is housekeeping, not news.
+const isNew = (t: Thing, v: Visit): boolean => t.author !== v.me.id && t.createdAt > v.seenUntil && t.kind !== "onwidget";
 
 function homeNow(p: Person, v: Visit): boolean {
   if (p.id === v.me.id) return true;
@@ -822,15 +824,18 @@ function everyone(v: Visit, full: boolean): string {
 export type WidgetFriend = { id: string; name: string; color: string; time: string; day: boolean; home: boolean; asleep: boolean; face: string };
 export type WidgetCard =
   | { kind: "birthday"; who: string; name: string; color: string; face: string; when: "today" | "tomorrow"; title: string; line: string; open: string }
-  | { kind: "desk"; by: string; color: string; face: string; gift?: string; emoji?: string; text: string; ago: string; title: string; open: string }
-  | { kind: "plate"; by: string; color: string; face: string; food: string; emoji: string; text: string; ago: string; title: string; open: string }
-  | { kind: "wall"; title: string; photos: { src: string; by: string; caption?: string }[]; notes: { by: string; color: string; text: string }[]; open: string }
+  | { kind: "desk"; by: string; color: string; face: string; gift?: string; emoji?: string; text: string; ago: string; title: string; open: string; at: number }
+  | { kind: "plate"; by: string; color: string; face: string; food: string; emoji: string; text: string; ago: string; title: string; open: string; at: number }
+  | { kind: "wall"; title: string; photos: { src: string; by: string; caption?: string }[]; notes: { by: string; color: string; text: string }[]; open: string; at: number }
   | { kind: "room"; title: string; picture: string; view: number[]; sticker?: { src: string; at: number[] }; dark: boolean; line: string; open: string }
   | { kind: "everyone"; title: string; open: string }
   | { kind: "dog"; title: string; picture: string; view: number[]; dog: string; at?: number[]; napping: boolean; line: string; open: string };
 export type Widget = {
   house: string;
   for: string;
+  // When the newest thing on the cards was left, so the widget can show
+  // what's new the next time it's drawn, before its usual turn (ADR 0029).
+  newest: number;
   latest?: { text: string; by: string; color: string; ago: string; at: number; photo?: string; caption?: string; face: string; open: string };
   friends: WidgetFriend[];
   cards: WidgetCard[];
@@ -852,7 +857,7 @@ export function widget(v: Visit): Widget {
   const thing = pick && fromFriends.find((t) => t.createdAt === pick.at && happening(t, v.me, v.things)?.text === pick.text);
   // A friend's photo on the wall is what a widget is for: it shows over a
   // line of words unless the words are a day newer.
-  const snap = wall(fromFriends).find((t) => photoOf(t));
+  const snap = wall(fromFriends).find((t) => photoOf(t) && onWidget(v.things, t));
   const useSnap = snap && (!thing || snap.createdAt > thing.createdAt - 24 * 60 * 60 * 1000);
   const shown = useSnap ? snap : thing;
   const by = shown && personById(shown.author);
@@ -868,15 +873,17 @@ export function widget(v: Visit): Widget {
       open: useSnap ? `/living#note-${shown.id}` : pick!.href,
     }
     : undefined;
+  const cards = widgetCards(v);
   return {
     house: houseName(),
     for: v.me.name,
+    newest: Math.max(0, ...cards.map((c) => (c.kind === "desk" || c.kind === "plate" || c.kind === "wall" ? c.at : 0))),
     latest,
     friends: PEOPLE.map((p) => {
       const c = clock(p.tz, v.now);
       return { id: p.id, name: p.id === v.me.id ? "You" : p.name, color: p.color, time: c.label, day: !["night", "dusk"].includes(phase(c)), home: homeNow(p, v), asleep: sleeping(p, v), face: faceOf(p) };
     }),
-    cards: widgetCards(v),
+    cards,
     open: "/",
   };
 }
@@ -916,6 +923,7 @@ function widgetCards(v: Visit): WidgetCard[] {
       ago: ago(onDesk.createdAt, v.now),
       title,
       open: `/room/${v.me.id}`,
+      at: onDesk.createdAt,
     });
   }
 
@@ -935,15 +943,21 @@ function widgetCards(v: Visit): WidgetCard[] {
       ago: ago(plate.createdAt, v.now),
       title: `${cook.name} saved you some ${what}`,
       open: "/kitchen",
+      at: plate.createdAt,
     });
   }
 
   // The memory board: this month's photos, or its notes if there are none.
+  // The wall is for everyone in the house, but a home screen is out in the
+  // world, so only what its writer said may go there (ADR 0029; Rithika,
+  // 4 Nov: "maybe ask if it can be shown on the widget before you show").
+  // Her own too: she said it or she didn't.
   const month = monthOf(monthClock(), v.now);
-  const pinned = wallIn(v.things, monthClock(), month);
+  const pinned = wallIn(v.things, monthClock(), month).filter((t) => onWidget(v.things, t));
   const photos = pinned.filter((t) => photoOf(t)).slice(0, 4).map((t) => ({ src: `photo/${photoOf(t)}`, by: nameOf(t.author), ...(t.body ? { caption: short(t.body, 60) } : {}) }));
   const notes = pinned.filter((t) => !photoOf(t)).slice(0, 2).map((t) => ({ by: nameOf(t.author), color: personById(t.author)?.color ?? "#7a6150", text: short(t.body, 70) }));
-  if (photos.length || notes.length) cards.push({ kind: "wall", title: `The memory wall, ${monthLabel(month, v.now)}`, photos, notes, open: "/living#wall" });
+  const shownOn = pinned.filter((t) => photoOf(t)).slice(0, 4).concat(pinned.filter((t) => !photoOf(t)).slice(0, 2));
+  if (photos.length || notes.length) cards.push({ kind: "wall", title: `The memory wall, ${monthLabel(month, v.now)}`, photos, notes, open: "/living#wall", at: Math.max(...shownOn.filter((t) => t.author !== v.me.id).map((t) => t.createdAt), 0) });
 
   // Her room, cut from the house's own picture (the widget does the cutting,
   // from `view`), with her sticker in it, dimmed when it's night where she
@@ -1133,7 +1147,7 @@ ${bar(v, "everyone")}
   <section class="card home-widget" id="widget" aria-labelledby="widget-heading">
     <h2 id="widget-heading">${emoji("widget")} ${name} on your home screen</h2>
     <p class="widget-whose"><img src="${avatarUrl(v.me)}" alt="" width="36" height="48"><span>This is <b>${esc(v.me.name)}'s</b> widget: it shows what friends left for ${esc(v.me.name)}. If you're someone else, go back to the door and come in as yourself first.</span></p>
-    <p>A little window on your home screen that shows something new each time your phone refreshes it (every quarter of an hour or so; your phone decides): a friend's birthday (that day and the day before), a note or a plate someone left you, the memory wall, your room, everyone's faces and clocks, and ${DOG}. Each refresh asks the house one small question, and every picture is kept on your phone once it has it, so it's easy on your battery. It's yours, so keep its link to yourself.</p>
+    <p>A little window on your home screen that shows something new each time your phone refreshes it (every quarter of an hour or so; your phone decides): a friend's birthday (that day and the day before), a note or a plate someone left you, the memory wall, your room, everyone's faces and clocks, and ${DOG}. Something new for you shows first. Only notes left for you show, never a friend's, and only what friends chose to share from the wall. Each refresh asks the house one small question, and every picture is kept on your phone once it has it, so it's easy on your battery. It's yours, so keep its link to yourself.</p>
     ${status}
     ${ways.join("\n    ")}
     <details class="widget-way"${link ? "" : " hidden"}><summary>Its link, and starting again</summary>
@@ -1616,11 +1630,17 @@ function wallNote(t: Thing, v: Visit): string {
   }).join("")}</form></details>`;
   // A photo is pinned up like a polaroid, with what reminded her written
   // underneath. Tapping it opens it whole.
+  // On her own note, whether it shows on friends' home-screen widgets: her
+  // say, which she can change (ADR 0029). Friends see only a quiet 📱.
+  const shared = onWidget(v.things, t);
+  const widgetSay = t.author === v.me.id
+    ? `<form method="post" action="/wall/widget" class="widget-say"><input type="hidden" name="note" value="${t.id}"><input type="hidden" name="widget" value="${shared ? "" : "yes"}"><button aria-pressed="${shared}">${shared ? `${emoji("widget")} On friends' widgets · take it off` : `${emoji("widget")} Show it on friends' widgets`}</button></form>`
+    : shared ? `<p class="widget-said" title="${esc(`${nameOf(t.author)} let this show on home-screen widgets`)}">${emoji("widget")} on widgets</p>` : "";
   const picture = photo
     ? `<a class="snap" href="/photo/${photo}"><img src="/photo/${photo}" alt="${esc(t.body ? `A photo from ${nameOf(t.author)}: ${t.body}` : `A photo from ${nameOf(t.author)}`)}" loading="lazy"></a>`
     : "";
   const words = t.body ? `<p class="body hand">${esc(t.body)}</p>` : "";
-  return `<li class="${cls}" id="note-${t.id}" data-id="${t.id}" style="--paper:${paper}">${isNew(t, v) ? `<span class="tag">new</span>` : ""}${picture}${words}<p class="by">${esc(by(t, v))}, ${esc(ago(t.createdAt, v.now))}</p>${chips ? `<ul class="stickers">${chips}</ul>` : ""}${picker}</li>`;
+  return `<li class="${cls}" id="note-${t.id}" data-id="${t.id}" style="--paper:${paper}">${isNew(t, v) ? `<span class="tag">new</span>` : ""}${picture}${words}<p class="by">${esc(by(t, v))}, ${esc(ago(t.createdAt, v.now))}</p>${chips ? `<ul class="stickers">${chips}</ul>` : ""}${picker}${widgetSay}</li>`;
 }
 
 // The memory box (ADR 0026): this month's oldest notes, if the wall's full,
@@ -1669,6 +1689,11 @@ function insideJoke(id = "inside-joke"): string {
   </figure>`;
 }
 
+// Asked when pinning: may it go on friends' home screens too? Unticked, so
+// nothing leaves the house unless its writer says (ADR 0029).
+const widgetCheck = (): string =>
+  `<label class="check"><input type="checkbox" name="widget" value="yes"> Show it on friends' home-screen widgets too</label>`;
+
 export function livingPage(v: Visit, did?: Done): string {
   const night = movieNight(v.things, v.now);
   const notes = wall(v.things);
@@ -1695,6 +1720,7 @@ export function livingPage(v: Visit, did?: Done): string {
     <label for="body">Write on the wall</label>
     <textarea id="body" name="body" rows="3" maxlength="${MAX_NOTE}" required placeholder="the funniest thing happened today…"></textarea>
     <label class="check"><input type="checkbox" name="big" value="1"> This is big news. Keep it pinned at the top.</label>
+    ${widgetCheck()}
     <button>${emoji("wall")} Pin it to the wall</button>
   </form>
   <form method="post" action="/wall/photo" enctype="multipart/form-data" class="card compose pin-photo" id="photo">
@@ -1702,6 +1728,7 @@ export function livingPage(v: Visit, did?: Done): string {
     <input id="photo-file" name="photo" type="file" accept="image/jpeg,image/png,image/webp" required>
     <label for="photo-body">What about it</label>
     <input id="photo-body" name="body" maxlength="${MAX_NOTE}" value="this reminds me of you guys">
+    ${widgetCheck()}
     <button>${emoji("photo")} Pin the photo</button>
   </form>
   <section class="wall" id="wall" aria-labelledby="wall-heading" data-live="wall">

@@ -1610,6 +1610,34 @@ main.list {
   white-space: nowrap;
 }
 
+/* On her own note, whether it shows on friends' widgets (ADR 0029); on a
+   friend's, a quiet word that it does. Not .widget-ask or .widget-way. */
+.note .widget-say {
+  margin-top: 6px;
+}
+
+.note .widget-say button {
+  border: 1px dashed rgba(122, 97, 80, 0.45);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+
+.note .widget-say button[aria-pressed="true"] {
+  border-style: solid;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.note .widget-said {
+  margin: 4px 0 0;
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
 /* not .stick: that's the thumb stick */
 .note .sticker-pick {
   margin-top: 6px;
