@@ -3851,3 +3851,50 @@ told before being asked to push. Her photo was left uncommitted.
 **Correction:** none.
 
 **Commits:** `b863836`, the PROCESS.md prompt lines, and this entry's commits.
+
+### 91. Sealed birthday cards, Home's line, made houses' clocks; for made houses too; push (5 Nov 2026)
+
+Asked: a paste of the reply's "From this round" and "Highest-scoring ideas
+not built yet" lists (AE's three widget changes; AA, A and D), then "do all
+of these and push the live site". While it was being built: "make all these
+work for "make your own houses" as well".
+
+Read as: build AA, A and D; ship them with the widget previews from entry 90
+(still unpushed on `widget-previews`, which "push the live site" now
+covers); and make every one work in made houses, with a spec there.
+
+- **A.** Home's top line counted only things left; the card beside it also
+  counted visits. Both now ask `visitorsSince()`, so the line says "Kavya
+  came by while you were away" when she left nothing. The skipped test is
+  on again, and a new one checks it in a made house (calling `housePage`
+  inside one, since a visit only ends after 30 minutes away).
+- **D.** The local maker matched places by substring, first in the list.
+  Now `zoneFor()` matches whole words, takes the place written first (the
+  longer if two start together), and knows far more places: Indiana,
+  Western Australia, Dubai, Thrissur, Washington DC and Washington state
+  among them. When Claude writes "UTC", the house uses the place the maker
+  knows. Skipped test on again, with Bloomington, Indiana and Dubai added.
+- **AA** (ADR 0030). A `card` kind: written any time in a friend's room,
+  sealed until her next birthday by her own clock (`nextBirthday()`: today
+  on the day, 28 February for a 29 February birthday in other years). Two of
+  Rithika's calls from RICE, made by the agent and named: before the day she
+  sees who wrote, never the words; nobody else reads a card. Updates tells
+  only her; her widget says cards are waiting, and new ones go first. Past
+  years' cards stay hers in a drawer. Spec in Rithika's house (sealed, and
+  who reads it) and in a made house (sealed for one friend, open for another
+  whose birthday is today, and the widget).
+- **Made houses.** The widget previews' rules (a friend's desk note and an
+  unshared wall note stay off; the newest thing goes first) added to the
+  made-house widget test.
+- RICE, PRFAQ and personas updated: A, D and AA off the table, AE partly
+  done; Arjun's and Priya's gaps closed.
+
+Full check on a fresh `HOUSE_MAKER=fake` server: 124 passed, 19 skipped (two
+fewer skipped). Looked at the card as its writer and as Neha at 390 px, and
+tapped Seal for real (the button is what's under the finger; a blank tap
+stays put, the box being required). `nextBirthday()` tried on Aswathy's
+8 November, today, a birthday just gone and 29 February.
+
+**Correction:** none.
+
+**Commits:** `51511dd`, the PROCESS.md prompt lines, and this entry's commit.
