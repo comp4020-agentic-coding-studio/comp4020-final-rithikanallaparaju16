@@ -48,6 +48,8 @@ import {
   wallIn,
   wander,
   wishes,
+  cardsFor,
+  isOpen,
   YOGA_ROOM,
   type Item,
   type Movie,
@@ -61,7 +63,7 @@ import { PEOPLE, personById, type Person } from "./people.ts";
 import { their, them, they, theyre, verb } from "./words.ts";
 import { dogSpots, houseSvg, HUG_REACH, isPlace, kennel, placeAt, standingSpots, type Doing, type Figure, type Scene, type Spot } from "./scene.ts";
 import type { Thing } from "./store.ts";
-import { ago, asleep, birthday, birthdayLabel, birthdaySoon, clock, dayLabel, hello, localInput, phase, ymd, type Phase } from "./time.ts";
+import { ago, asleep, birthday, birthdayLabel, birthdaySoon, clock, dayLabel, hello, localInput, nextBirthday, phase, todayFor, ymd, type Phase } from "./time.ts";
 import {
   canPlay,
   cardName,
@@ -650,6 +652,13 @@ function happening(t: Thing, me: Person, all: Thing[]): Happening | undefined {
       const who = names(others.map(nameOf));
       return { text: one ? `${by} hugged ${who}` : `${by} pulled ${who} into a group hug`, href, forYou: false, at };
     }
+    // A birthday card: she hears there's one waiting, never what's in it,
+    // and nobody else hears at all, so it stays a surprise (ADR 0030).
+    case "card": {
+      const owner = ownerOf(t.place);
+      if (!owner || owner.id !== me.id || mine) return undefined;
+      return { text: `${by} left you a birthday card, sealed until your birthday`, href: `/room/${me.id}#card`, forYou: true, at };
+    }
     case "wish": {
       const owner = ownerOf(t.place);
       if (!owner) return undefined;
@@ -729,11 +738,18 @@ function recap(v: Visit, short: boolean): string {
   </section>`);
 }
 
+// Who came by since you were last here: anyone home since, or who left
+// something. Home's line and "While you were away" both ask this, so they
+// never say different things (RICE A).
+function visitorsSince(v: Visit): string[] {
+  const authors = new Set(v.things.filter((t) => isNew(t, v)).map((t) => t.author));
+  return PEOPLE.filter((p) => p.id !== v.me.id && ((v.seen.get(p.id) ?? 0) > v.seenUntil || authors.has(p.id))).map((p) => p.name);
+}
+
 function away(v: Visit, limit: number): string {
   const firstVisit = v.seenUntil === 0;
   const list = newSince(v);
-  const authors = new Set(v.things.filter((t) => isNew(t, v)).map((t) => t.author));
-  const visitors = PEOPLE.filter((p) => p.id !== v.me.id && ((v.seen.get(p.id) ?? 0) > v.seenUntil || authors.has(p.id))).map((p) => p.name);
+  const visitors = visitorsSince(v);
   const intro = firstVisit
     ? "Welcome home. Your room has your name on it; everyone else's is just down the hall."
     : visitors.length
@@ -766,7 +782,9 @@ function news(v: Visit): string {
       ? `The wall started fresh: here's ${monthLabel(v.recap, v.now)}`
     : list.length
       ? `${list[0].text}${list.length > 1 ? ", and more" : ""}`
-      : "Nobody's been by since you were last here. Tap a room to go in.";
+      : visitorsSince(v).length
+        ? `${names(visitorsSince(v))} came by while you were away. Tap a room to go in.`
+        : "Nobody's been by since you were last here. Tap a room to go in.";
   return `<a class="news" href="${v.recap && v.seenUntil ? "/updates#recap" : "/updates"}" data-live="news"><svg viewBox="-11 -11 22 22" aria-hidden="true"><path d="M0 -10L2.6 -2.6L10 0L2.6 2.6L0 10L-2.6 2.6L-10 0L-2.6 -2.6Z"/></svg><span>${esc(text)}</span></a>`;
 }
 
@@ -824,6 +842,7 @@ function everyone(v: Visit, full: boolean): string {
 export type WidgetFriend = { id: string; name: string; color: string; time: string; day: boolean; home: boolean; asleep: boolean; face: string };
 export type WidgetCard =
   | { kind: "birthday"; who: string; name: string; color: string; face: string; when: "today" | "tomorrow"; title: string; line: string; open: string }
+  | { kind: "cards"; title: string; line: string; from: { name: string; color: string; face: string }[]; open: string; at: number }
   | { kind: "desk"; by: string; color: string; face: string; gift?: string; emoji?: string; text: string; ago: string; title: string; open: string; at: number }
   | { kind: "plate"; by: string; color: string; face: string; food: string; emoji: string; text: string; ago: string; title: string; open: string; at: number }
   | { kind: "wall"; title: string; photos: { src: string; by: string; caption?: string }[]; notes: { by: string; color: string; text: string }[]; open: string; at: number }
@@ -877,7 +896,7 @@ export function widget(v: Visit): Widget {
   return {
     house: houseName(),
     for: v.me.name,
-    newest: Math.max(0, ...cards.map((c) => (c.kind === "desk" || c.kind === "plate" || c.kind === "wall" ? c.at : 0))),
+    newest: Math.max(0, ...cards.map((c) => (c.kind === "desk" || c.kind === "plate" || c.kind === "wall" || c.kind === "cards" ? c.at : 0))),
     latest,
     friends: PEOPLE.map((p) => {
       const c = clock(p.tz, v.now);
@@ -903,6 +922,27 @@ function widgetCards(v: Visit): WidgetCard[] {
     const title = mine ? (when === "today" ? "Happy birthday to you!" : "Your birthday's tomorrow!") : when === "today" ? `It's ${p.name}'s birthday!` : `${p.name}'s birthday is tomorrow`;
     const line = mine ? (when === "today" ? "Everyone's thinking of you today." : "The house is getting the balloons ready.") : when === "today" ? `Go and wish ${them(p)} in ${their(p)} room.` : `Get ready to wish ${them(p)}.`;
     cards.push({ kind: "birthday", who: p.id, name: p.name, color: p.color, face: faceOf(p), when, title, line, open: `/room/${p.id}` });
+  }
+
+  // Birthday cards for her (ADR 0030): who's written, never the words, until
+  // the day; on the day, that they're open. Sealed ones show all year.
+  const today = todayFor(v.me, v.now);
+  const waiting = cardsFor(v.things, v.me.id).filter((t) => t.author !== v.me.id && t.item >= today);
+  if (waiting.length) {
+    const open = waiting.some((t) => t.item === today);
+    const writers = [...new Set(waiting.map((t) => t.author))].flatMap((id) => {
+      const p = personById(id);
+      return p ? [{ name: p.name, color: p.color, face: faceOf(p) }] : [];
+    });
+    const n = waiting.length;
+    cards.push({
+      kind: "cards",
+      title: open ? "Your birthday cards are open" : `${n === 1 ? "A birthday card" : `${n} birthday cards`} waiting`,
+      line: open ? `From ${names(writers.map((w) => w.name))}. Go and read them in your room.` : `From ${names(writers.map((w) => w.name))}, sealed until your birthday.`,
+      from: writers,
+      open: `/room/${v.me.id}#card`,
+      at: Math.max(...waiting.map((t) => t.createdAt)),
+    });
   }
 
   // The newest thing on her desk from a friend, with the note's words.
@@ -1521,6 +1561,52 @@ function birthdayCard(owner: Person, v: Visit): string {
   </section>`;
 }
 
+// Birthday cards (RICE AA, ADR 0030): written any time, sealed until her
+// birthday by her own clock, and only ever read by her and whoever wrote
+// it. In a friend's room, a card to write and the ones you've sealed for
+// her; in yours, who's written, and on your birthday, what they wrote.
+// Rithika's two calls, made without asking: before the day she sees who's
+// written but not the words, and nobody reads anyone else's card.
+function cardsCard(owner: Person, v: Visit): string {
+  const opens = nextBirthday(owner, v.now);
+  if (!opens) return "";
+  const mine = owner.id === v.me.id;
+  const today = todayFor(owner, v.now);
+  const all = cardsFor(v.things, owner.id);
+  // Her next birthday, from the day it falls on (this year's or next).
+  const [y, m, d] = opens.split("-").map(Number);
+  const day = dayLabel("UTC", Date.UTC(y, m - 1, d, 12));
+  const paper = (t: Thing): string => personById(t.author)?.paper ?? "#fff8e6";
+  if (mine) {
+    // Today's cards opened, then the ones sealed for a birthday still to
+    // come; cards from birthdays gone by stay hers to read, in a drawer.
+    const open = all.filter((t) => t.item === today);
+    const sealed = all.filter((t) => !isOpen(t, today));
+    const before = all.filter((t) => t.item < today);
+    if (!open.length && !sealed.length && !before.length) return "";
+    const from = names([...new Set(sealed.map((t) => nameOf(t.author)))]);
+    return `<section class="card birthday-cards" id="card" aria-labelledby="cards-heading" style="--accent:${owner.color}">
+      <h2 id="cards-heading">${emoji("card")} ${open.length || !sealed.length ? "Your birthday cards" : "Birthday cards, sealed"}</h2>
+      ${open.length ? `<ul class="cards-open">${open.map((t) => `<li class="bday-card" style="--paper:${paper(t)}"><p class="body hand">${esc(t.body)}</p><p class="by">from ${esc(nameOf(t.author))}</p></li>`).join("")}</ul>` : ""}
+      ${sealed.length ? `<p class="sealed">${esc(`${sealed.length === 1 ? "A card" : `${sealed.length} cards`} from ${from}, waiting for your birthday (${day}). No peeking: ${sealed.length === 1 ? "it opens" : "they open"} on the day.`)}</p>` : ""}
+      ${before.length ? `<details class="cards-kept"><summary>Cards from birthdays before</summary><ul class="cards-open">${before.map((t) => `<li class="bday-card" style="--paper:${paper(t)}"><p class="body hand">${esc(t.body)}</p><p class="by">from ${esc(nameOf(t.author))}, ${esc(t.item.slice(0, 4))}</p></li>`).join("")}</ul></details>` : ""}
+    </section>`;
+  }
+  const yours = all.filter((t) => t.author === v.me.id && !isOpen(t, today));
+  const opened = all.filter((t) => t.author === v.me.id && t.item === today);
+  return `<section class="card birthday-cards" id="card" aria-labelledby="cards-heading" style="--accent:${owner.color}">
+    <h2 id="cards-heading">${emoji("card")} A birthday card for ${esc(owner.name)}</h2>
+    <p class="small">${esc(`Write it whenever you think of it. It stays sealed until ${their(owner)} birthday (${day}, by ${their(owner)} own clock), and only ${they(owner)} will read it.`)}</p>
+    ${opened.length ? `<p class="small">${esc(`${owner.name} can read your card today.`)}</p>` : ""}
+    ${yours.length ? `<ul class="cards-mine">${yours.map((t) => `<li class="bday-card sealed-card" style="--paper:${paper(t)}"><p class="body hand">${esc(t.body)}</p><p class="by">sealed by you, ${esc(ago(t.createdAt, v.now))}</p></li>`).join("")}</ul>` : ""}
+    <form method="post" action="/room/${esc(owner.id)}/card" class="compose">
+      <label for="card-body">${yours.length ? "Another card" : "Inside the card"}</label>
+      <textarea id="card-body" name="body" rows="3" maxlength="${MAX_NOTE}" required placeholder="happy birthday, I remember when…"></textarea>
+      <button>${emoji("card")} Seal it for ${esc(their(owner))} birthday</button>
+    </form>
+  </section>`;
+}
+
 export function bedroomPage(owner: Person, v: Visit, did?: Done): string {
   const mine = owner.id === v.me.id;
   const c = clock(owner.tz, v.now);
@@ -1586,6 +1672,7 @@ export function bedroomPage(owner: Person, v: Visit, did?: Done): string {
   ${slot("head", roomHead(title, line, owner.about, owner.color))}
   ${done(did)}
   ${slot("birthday", birthdayCard(owner, v))}
+  ${slot("cards", cardsCard(owner, v))}
   <p class="status" data-live="mess">${esc(messLine)} ${esc(tidyLine)}</p>
   ${slot("resting", restingIn(roomPlace(owner.id), v))}
   ${slot("hugs", hugButtons(v))}

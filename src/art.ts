@@ -251,6 +251,7 @@ export const EMOJI: Record<string, string> = {
   call: "📞",
   hug: "🤗",
   wish: "🎂",
+  card: "💝",
   uno: "🃏",
   sticker: "🌟",
   joke: "😂",
@@ -301,6 +302,7 @@ export const POP: Record<string, string[]> = {
   uno: ["🃏"],
   sticker: ["💛", "✨"],
   onwidget: ["📱", "💛"],
+  card: ["💝", "✨"],
   offwidget: ["📌"],
 };
 

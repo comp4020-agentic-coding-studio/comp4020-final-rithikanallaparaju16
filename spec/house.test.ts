@@ -568,6 +568,28 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect(text((await page("/updates", c.id)).querySelector("main")), "a widget setting shows up as news").not.toMatch(/widget/i);
   });
 
+  // RICE AA (ADR 0030): a card written any time stays sealed until her
+  // birthday. Nobody but her and its writer ever reads it; before the day
+  // she sees who it's from. (It opening on the day is checked in a made
+  // house, where a birthday can be today.)
+  it("seals a birthday card until her birthday, and only she and its writer read it", async () => {
+    const five = await people();
+    const [writer, other] = [five[2], five[3]];
+    const her = five[1];
+    const words = unique("happy birthday, I remember");
+    expect((await post(`/room/${her.id}/card`, { body: words }, writer.id)).headers.get("location")).toBe(`/room/${her.id}?did=card#card`);
+    expect((await post(`/room/${writer.id}/card`, { body: "me" }, writer.id)).status, "a card to yourself was sealed").toBe(400);
+    expect((await post(`/room/${her.id}/card`, { body: "" }, writer.id)).status, "a blank card was sealed").toBe(400);
+
+    const room = await page(`/room/${her.id}`, her.id);
+    const card = text(room.querySelector("#card"));
+    // Unless today is her birthday, it's sealed: she sees who, not what.
+    if (!card.includes(words)) expect(card, "she doesn't see a card is waiting").toContain(`from ${writer.name}, waiting for your birthday`);
+    expect(text((await page(`/room/${her.id}`, writer.id)).querySelector("#card")), "the writer can't see the card she sealed").toContain(words);
+    expect(text((await page(`/room/${her.id}`, other.id)).querySelector("main")), "another friend read the card").not.toContain(words);
+    expect(text((await page("/updates", other.id)).querySelector("main")), "another friend heard about the surprise").not.toContain("birthday card");
+  });
+
   it("only lets the five leave things", async () => {
     const note = unique("from a stranger");
     expect((await post("/wall", { body: note })).status).toBe(403);

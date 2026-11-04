@@ -228,6 +228,44 @@ describe.skipIf(!throwaway)("making a house for any five friends", () => {
   const post = async (h: Made, path: string, fields: Record<string, string>, who: string): Promise<Response> =>
     fetch(new URL(`${h.base}${path}`, baseUrl), { method: "POST", headers: { ...FORM, cookie: await cookieIn(h, who) }, body: new URLSearchParams(fields), redirect: "manual" });
 
+  // RICE AA, ADR 0030; and Rithika, 5 Nov: "make all these work for "make
+  // your own houses" as well". Ivy's birthday is today where she lives, Rae's
+  // is months away: Rae's card waits, Ivy's opens, and nobody else reads either.
+  it("seals a made house's birthday cards until the day, for her eyes only", async () => {
+    const parts = (at: number) => Object.fromEntries(new Intl.DateTimeFormat("en-AU", { timeZone: "Europe/London", month: "numeric", day: "numeric" }).formatToParts(at).map((x) => [x.type, x.value]));
+    const today = parts(Date.now());
+    const later = parts(Date.now() + 120 * 24 * 60 * 60 * 1000);
+    const h = await makeHouse({
+      friends: "4", ...named(FOUR), "city-1": "London", "city-2": "London",
+      "month-1": today.month, "day-1": today.day, "month-2": later.month, "day-2": later.day,
+    });
+    const forIvy = unique("happy birthday ivy");
+    const forRae = unique("happy birthday rae");
+    expect((await post(h, "room/1/card", { body: forIvy }, "3")).headers.get("location")).toBe(`${h.base}room/1?did=card#card`);
+    expect((await post(h, "room/2/card", { body: forRae }, "3")).headers.get("location")).toBe(`${h.base}room/2?did=card#card`);
+    expect((await post(h, "room/3/card", { body: "to me" }, "3")).status, "Kit sealed a card for herself").toBe(400);
+
+    // Rae's waits: she sees who, not what; Kit sees her own; Bo sees nothing of it.
+    const rae = await inside(h, "room/2", "2");
+    expect(text(rae.querySelector("#card")), "Rae doesn't see a card's waiting").toContain("A card from Kit, waiting for your birthday");
+    expect(text(rae.querySelector("main")), "Rae read her card before her birthday").not.toContain(forRae);
+    expect(text((await inside(h, "room/2", "3")).querySelector("#card")), "Kit can't see the card she sealed").toContain(forRae);
+    expect(text((await inside(h, "room/2", "4")).querySelector("main")), "Bo read Kit's card for Rae").not.toContain(forRae);
+    expect(text((await inside(h, "updates", "2")).querySelector("main")), "Updates doesn't tell Rae a card's waiting").toContain("Kit left you a birthday card, sealed until your birthday");
+    expect(text((await inside(h, "updates", "4")).querySelector("main")), "Bo heard about Rae's surprise").not.toContain("birthday card");
+
+    // Ivy's birthday is today: hers is open, for her.
+    expect(text((await inside(h, "room/1", "1")).querySelector("#card")), "Ivy can't read her card on her birthday").toContain(forIvy);
+    expect(text((await inside(h, "room/1", "2")).querySelector("main")), "Rae read Kit's card for Ivy").not.toContain(forIvy);
+
+    // Rae's widget says a card is waiting, and who from, never the words.
+    expect((await post(h, "widget/yes", {}, "2")).status).toBe(303);
+    const link = (await inside(h, "home-screen", "2")).querySelector("#widget input.widget-link")?.getAttribute("value") ?? "";
+    const w = await (await fetch(new URL(new URL(link).pathname, baseUrl))).json();
+    expect(w.cards.find((c: { kind: string }) => c.kind === "cards"), "Rae's widget doesn't say a card's waiting").toMatchObject({ title: "A birthday card waiting", from: [{ name: "Kit" }] });
+    expect(JSON.stringify(w), "Rae's widget reads her sealed card").not.toContain(forRae);
+  });
+
   it("lets a made house's friends save a plate for each other and write back to notes", async () => {
     const h = await makeHouse({ friends: "4", ...named(FOUR), "city-1": "London", "city-2": "Toronto" });
     const note = unique("saved you some");
@@ -278,6 +316,13 @@ describe.skipIf(!throwaway)("making a house for any five friends", () => {
     expect(src, "the photo isn't served from the made house").toMatch(new RegExp(`^${h.base}photo/\\d+$`));
     const forIvy = unique("for ivy only");
     expect((await post(h, "room/1/leave", { item: "flower", body: forIvy }, "2")).status).toBe(303);
+    // ADR 0029 here too: a wall note Rae didn't share, and a note on Kit's desk, stay off Ivy's widget.
+    const unshared = unique("just for in here");
+    const forKit = unique("for kit only");
+    expect((await post(h, "wall", { body: unshared }, "2")).status).toBe(303);
+    expect((await post(h, "room/3/leave", { item: "flower", body: forKit }, "2")).status).toBe(303);
+    // Ivy's note is the newest thing for her, so her widget shows it first.
+    expect((await post(h, "room/1/leave", { item: "flower", body: forIvy }, "2")).status).toBe(303);
 
     const w = await (await fetch(new URL(new URL(link).pathname, baseUrl))).json();
     expect(w.house).not.toBe("Five Windows");
@@ -287,6 +332,9 @@ describe.skipIf(!throwaway)("making a house for any five friends", () => {
     expect(w.open, "tapping it doesn't open the made house").toMatch(new RegExp(`^${h.base}`));
     expect(w.cards.map((c: { kind: string }) => c.kind).filter((k: string) => k !== "birthday"), "a made house's widget cards").toEqual(["desk", "wall", "room", "everyone", "dog"]);
     expect(w.cards.find((c: { kind: string }) => c.kind === "desk"), "Ivy's widget doesn't show Rae's note").toMatchObject({ by: "Rae", text: `“${forIvy}”` });
+    expect(JSON.stringify(w), "a wall note Rae didn't share is on Ivy's widget").not.toContain(unshared);
+    expect(JSON.stringify(w), "a note on Kit's desk is on Ivy's widget").not.toContain(forKit);
+    expect(w.newest, "the newest thing for Ivy isn't marked to show first").toBe(w.cards.find((c: { kind: string }) => c.kind === "desk").at);
     for (const c of w.cards) expect(c.open, `the ${c.kind} card doesn't open the made house`).toMatch(new RegExp(`^${h.base}`));
     expect(w.cards.find((c: { kind: string }) => c.kind === "everyone")?.title, "a made house's widget says all five").not.toMatch(/five/);
     // A made house's friends are drawn in SVG: the widget is handed it (and
@@ -380,17 +428,17 @@ describe.skipIf(!throwaway)("making a house for any five friends", () => {
     expect(text((await inside(a, "living", "1")).querySelector("main")), "house A lost its note").toContain(note);
   });
 
-  // BUG: the local maker (how every live house is made) matches places by
-  // substring, in list order (src/maker.ts:260-274): "Indiana" contains
-  // "india", Washington state hits New York before Seattle, "Western
-  // Australia" hits Sydney before Perth, "New South Wales" hits London.
-  it.skip("keeps each friend's clock where she lives", async () => {
+  // Fixed 5 Nov (RICE D): the local maker matched places by substring, in
+  // list order: "Indiana" contained "india", Washington state hit New York
+  // before Seattle, "Western Australia" hit Sydney before Perth, "New South
+  // Wales" hit London, and Dubai was UTC.
+  it("keeps each friend's clock where she lives", async () => {
     const places: [string, string[]][] = [
-      ["Indianapolis", ["America/Indiana/Indianapolis", "America/Indianapolis", "America/New_York", "UTC"]],
+      ["Bloomington, Indiana", ["America/Indiana/Indianapolis"]],
       ["Perth, Western Australia", ["Australia/Perth"]],
       ["Seattle, Washington", ["America/Los_Angeles"]],
-      ["Newcastle, New South Wales", ["Australia/Sydney", "UTC"]],
-      ["Brisbane, Australia", ["Australia/Brisbane"]],
+      ["Newcastle, New South Wales", ["Australia/Sydney"]],
+      ["Dubai", ["Asia/Dubai"]],
     ];
     const h = await makeHouse({ ...named(), ...Object.fromEntries(places.map(([city], i) => [`city-${i + 1}`, city])) });
     const door = parse(await (await fetch(new URL(h.base, baseUrl))).text());

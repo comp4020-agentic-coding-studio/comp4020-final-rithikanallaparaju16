@@ -122,14 +122,30 @@ async function nehaBack(things: { id: number; author: string; kind: "note" | "st
   return { src, visit: { me: src.personById("2")!, things, seen: new Map(seen), where: new Map(), arrived: new Map(), spots: new Map(), seenUntil: now - 60 * MINUTE, now } };
 }
 
-// BUG: news() counts only things left, while the card beside it counts visits, so they contradict each other
-it.skip("tells you the same thing at the top of Home as in while you were away", async () => {
+// Fixed 5 Nov (RICE A): Home's line counted only things left, while the card
+// beside it counted visits, so they contradicted each other.
+it("tells you the same thing at the top of Home as in while you were away", async () => {
   const now = Date.now();
   // Rithika came by five minutes ago and left nothing.
   const { src, visit } = await nehaBack([], [["1", now - 5 * MINUTE], ["2", now - 60 * MINUTE]]);
   const home = parse(src.housePage(visit));
   expect(text(home.querySelector(".away")), "the card should say Rithika came by").toContain("Rithika came by");
   expect(text(home.querySelector(".news")), "the line at the top says nobody came by").not.toContain("Nobody's been by");
+});
+
+// The same in a made house (Rithika, 5 Nov: "make all these work for "make
+// your own houses" as well"): Home's line is drawn the same way there.
+it("tells you the same thing at the top of a made house's Home as in while you were away", async () => {
+  const { src } = await nehaBack([], []);
+  const { inHouse } = await import("../src/houses.ts");
+  const friend = (id: string, name: string) => ({ id, name, city: "London", tz: "Europe/London", sleep: [23, 7] as [number, number], birthday: [0, 0] as [number, number], color: "#e07a5f", paper: "#ffe4d9", about: "", things: [], qualities: "" });
+  const spec = { code: "spechome01", title: "Ivy's house", friends: [friend("1", "Ivy"), friend("2", "Rae"), friend("3", "Kit")], memories: [], createdAt: 0 };
+  const now = Date.now();
+  const html = inHouse({ code: spec.code, base: `/h/${spec.code}`, spec }, () =>
+    src.housePage({ me: src.personById("1")!, things: [], seen: new Map([["2", now - 5 * MINUTE], ["1", now - 60 * MINUTE]]), where: new Map(), arrived: new Map(), spots: new Map(), seenUntil: now - 60 * MINUTE, now }));
+  const home = parse(html);
+  expect(text(home.querySelector(".away")), "the card should say Rae came by").toContain("Rae came by");
+  expect(text(home.querySelector(".news")), "a made house's line says nobody came by").toContain("Rae came by");
 });
 
 // BUG: the Updates dot counts any new row, but a sticker on someone else's note lists nothing

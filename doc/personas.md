@@ -18,9 +18,9 @@ verdicts changed.
 | Persona | Where | Comes by | On | House | Works for them? | Biggest gap (RICE) | Was (1 Nov) |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Kavya | Toronto | daily, 5 minutes | laptop, iPhone | five friends | yes | Updates stops at 40 (M) | nothing brings her back (C) |
-| Arjun | Thrissur, Kerala | weekly | Android phone | five friends | mostly | the widget costs him money (AF) | Home says nobody came by (A) |
+| Arjun | Thrissur, Kerala | weekly | Android phone | five friends | mostly | the widget costs him money (AF) | Home says nobody came by (A, fixed 5 Nov) |
 | Meera | Bangalore | most evenings, live | laptop and phone | five friends | mostly | UNO deals to someone who left (H) | the same |
-| Priya | Melbourne | makes the house | laptop | six friends | first visit falls short | three wrong clocks (D) | wrong clocks, no house name |
+| Priya | Melbourne | makes the house | laptop | six friends | mostly | Rithika's README at her door (E) | wrong clocks (D, fixed 5 Nov), no house name |
 | Lea | Berlin | most days | iPhone | two | yes, but not private | anyone can read her notes and photos (G) | the same |
 
 ---
@@ -98,11 +98,10 @@ The monthly recap means a month of exams doesn't leave him lost.
 
 **What doesn't.**
 
-- **Home's line on a phone (A).** The top of Home is all he sees of "While you
-  were away", because the card that names who came by is hidden below 700 px.
-  That line counts only things left, so when Kavya came by and left nothing,
-  it says "Nobody's been by since you were last here". The Updates tab has it
-  right, if he looks.
+- **Home's line on a phone (A, fixed 5 November).** The top of Home is all he
+  sees of "While you were away" on a phone. It used to count only things
+  left, so when Kavya came by and left nothing it said "Nobody's been by".
+  Now it says "Kavya came by while you were away", as the card does.
 - **The widget costs him.** On Android it takes KWGT and its Pro key. That's a
   few dollars he won't spend, and building the widget in KWGT by hand from
   JSON paths is beyond what he'd do (AF). On an iPhone it's free and
@@ -112,7 +111,7 @@ The monthly recap means a month of exams doesn't leave him lost.
   year by its fingerprint, which his data can take.
 
 **Verdict.** It works, and he's the person the wordless interactions serve
-best. Fix A for him, and find a free way onto an Android home screen (AF).
+best. A is fixed; find him a free way onto an Android home screen (AF).
 
 ---
 
@@ -188,24 +187,20 @@ room each. The time strip is the thing she's wanted for every reunion.
 
 **What doesn't.** Her first visit still has the most bugs of anyone's:
 
-- **Three of six clocks are wrong (D).**
-  - "Indiana" contains "india", so that room runs on India time.
-  - "Western Australia" matches Australia before Perth, so it gets Sydney's
-    time.
-  - Dubai isn't a city the maker knows, so it gets UTC.
-
-  Those friends sleep and dim at the wrong hours, and now the time strip
-  shows their wrong days too, in the one feature she came for.
+- **Three of six clocks were wrong (D, fixed 5 November).** "Indiana"
+  contained "india", "Western Australia" matched Australia before Perth, and
+  Dubai wasn't known. Now places match as whole words, the one written first
+  wins, and Dubai is known, so all six rooms, the planner and the time strip
+  keep the right time.
 - **"What is this place?"** at her door shows Rithika's README, with Rithika's
   friends' names and birthdays (E).
 - **The dog** is Shinzo, Rithika's dog's name (O).
 - **No fixing a city.** She can't change one after making the house; she has
   to make a new one at a new address and send it again (W).
 
-**Verdict.** She'll love the maker and the planner, then find the wrong
-clocks right where she was planning. D is now the most damaging bug in the
-app for made houses: it breaks the time strip and the planner as well as the
-rooms.
+**Verdict.** She'll love the maker and the planner, and since D was fixed
+the clocks are right where she plans. Her friends can seal birthday cards
+for each other too (AA). What's left is E: Rithika's README at her door.
 
 ---
 
@@ -262,9 +257,8 @@ there's a front door key (G), and photos raised the stakes.
   the widget, for iPhones. Now the risks are that the widget is fiddly to set
   up, mostly unseen on real phones (AE; its first card worked on Rithika's
   iPhone), and costs Android users money (AF).
-- Made houses work, and B is fixed, but a maker's first visit still has the
-  most bugs (D, E, I). D got worse: the planner and time strip show the wrong
-  clocks too.
+- Made houses work, and B and D are fixed (D on 5 November), but a maker's
+  first visit still has E and I.
 - Privacy is fine for old friends and not enough for a couple (G); photos make
   it matter more.
 - Live play is the least polished part, and the bugs land on the most engaged

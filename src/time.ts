@@ -117,6 +117,25 @@ export function birthday(p: Person, now: number): 0 | 1 | 2 {
   return day === p.birthday[1] ? 2 : 1;
 }
 
+// The day her next birthday falls on, in her own calendar, as "YYYY-MM-DD":
+// today if it's today. A card written for her waits for it (ADR 0030). A
+// 29 February birthday opens on 28 February in other years.
+export function nextBirthday(p: Person, now: number): string | undefined {
+  if (!p.birthday[0]) return undefined;
+  const [year, month, day] = ymd(p.tz, now);
+  const [bm, bd] = p.birthday;
+  const fits = (y: number): number => Math.min(bd, new Date(Date.UTC(y, bm, 0)).getUTCDate());
+  const passed = month > bm || (month === bm && day > fits(year));
+  const y = passed ? year + 1 : year;
+  return `${y}-${String(bm).padStart(2, "0")}-${String(fits(y)).padStart(2, "0")}`;
+}
+
+// Today in her own calendar, as "YYYY-MM-DD".
+export function todayFor(p: Person, now: number): string {
+  const [year, month, day] = ymd(p.tz, now);
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
 // Whether her birthday is today or tomorrow, by her own clock, for the
 // home-screen widget (ADR 0027), which shows her on both days.
 export function birthdaySoon(p: Person, now: number): "today" | "tomorrow" | undefined {

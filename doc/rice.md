@@ -16,6 +16,16 @@ Done, and off the table:
 - **B.** A made house's name is on its door and on every page (1 Nov).
 - **T.** An open Movies page's planner keeps up with friends' suggestions (3 Nov).
 - **Q.** Photos on the memory wall (ADR 0024, 3 Nov).
+- **A.** Home's line on a phone names who came by, even if they left
+  nothing, in Rithika's house and made houses (5 Nov).
+- **D.** A made house's clocks: whole words only, the place written first
+  wins, and more places known, so Indiana, Western Australia and Dubai keep
+  the right time (5 Nov).
+- **AA.** Birthday cards, sealed until her day (ADR 0030, 5 Nov).
+- **AE**, in part: each widget says whose it is, made houses get faces and
+  rooms on theirs, what's new for you shows first, and the wall reaches
+  widgets only when its writer says (ADR 0028, 0029; 4 and 5 Nov). Still
+  open: the other cards and sizes on real phones.
 - **R** is replaced by the widget, which does its job (bringing friends back)
   without email, a schedule or a new dependency (ADR 0025, 0027).
 - From the feature lists in log 66 and 70, and not rows here: saved plates
@@ -54,12 +64,9 @@ skipped test is mostly done once that test passes.
 | ID | Change | Kind | Reach | Impact | Conf. | Effort | Score |
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
 | AE | Try the widget on the five's real phones, and fix what breaks | check | 45 | 2 | 80% | 0.5 | **144** |
-| AA | A birthday card: words that stay sealed until her day | idea | 45 | 2 | 80% | 0.5 | **144** |
-| A | Home's line on a phone says "Nobody's been by" when someone came and left nothing | bug | 25 | 1 | 100% | 0.25 | **100** |
 | AC | Light a lamp in a friend's window: a hug that waits for her | idea | 45 | 1 | 50% | 0.5 | **45** |
 | AD | The writer hears her desk note was found, once, without a time | idea | 45 | 0.5 | 50% | 0.5 | **22.5** |
 | C | "Tell them I was here": a ready message you send the group yourself | idea | 45 | 0.5 | 50% | 0.5 | **22.5** |
-| D | Made houses give friends the wrong clock ("Indiana" is India, Dubai is UTC) | bug | 13 | 2 | 80% | 1 | **20.8** |
 | E | A made house's "What is this place?" shows Rithika's README | bug | 10 | 1 | 100% | 0.5 | **20** |
 | F | The Updates dot shows when there's nothing new to read there | bug | 20 | 0.25 | 100% | 0.25 | **20** |
 | G | A front door key for each house, so desk notes and photos are private | idea | 45 | 1 | 80% | 2 | **18** |
@@ -84,8 +91,8 @@ skipped test is mostly done once that test passes.
 | Y | Invisible names and notes (zero-width spaces) and 31 February are accepted | bug | 1 | 0.25 | 100% | 0.25 | **1** |
 | Z | Houses asked for at the same moment all get past the cap | bug | 1 | 0.25 | 100% | 0.5 | **0.5** |
 
-Sorted by score. Ties are broken by confidence, then impact. AE and AA tie
-on everything; AE goes first because Rithika is testing the widget right now.
+Sorted by score. Ties are broken by confidence, then impact. A, D and AA
+were done on 5 November and are off the table (above).
 
 ## Why each one scores what it does
 
@@ -166,13 +173,14 @@ scored the same as on 1 November for the same reasons.
 
 1. **AE now.** Rithika is testing the widget on her iPhone and Mac; fix
    what she finds, the same day. It's the answer to the house's biggest risk.
-2. **AA by 8 November**, if Rithika wants it for Aswathy's birthday. Ask
-   her first: whether a card shows who it's from before it opens, and
-   whether friends can read each other's cards.
-3. **A, F, K, L and N together.** Five bugs, each a quarter of a day, each
-   with a skipped test ready to turn back on.
-4. **D, then E.** A made house's first visit, which decides whether its maker
-   shares it.
+2. **AA is built** (5 Nov), in time for Aswathy's birthday on 8 November.
+   Built with the agent's calls on Rithika's two questions: she sees who
+   wrote before it opens, never the words, and nobody reads anyone else's
+   card. She can redirect either.
+3. **F, K, L and N together.** Four bugs, each a quarter of a day, each
+   with a skipped test ready to turn back on. (A was done on 5 Nov.)
+4. **E.** A made house's first visit, which decides whether its maker
+   shares it. (D was done on 5 Nov.)
 5. **Ask Rithika about AD, AG and I.** AD is a line about privacy; AG needs
    her to say whether the five celebrate Diwali; I is one command on her
    secret.

@@ -293,22 +293,71 @@ async function writeWithClaude(a: Answers): Promise<Written> {
 
 /* ---------- writing the house: without Claude ---------- */
 
-// A few places the local maker knows the time zone of; anywhere else is UTC.
+// Places the local maker knows the time zone of; anywhere else is UTC.
+// Whole words only, so "Indiana" isn't India; and where a place names more
+// than one ("Perth, Western Australia", "Seattle, Washington"), the one
+// written first wins, which is nearly always the city (RICE D, zoneFor()).
 const ZONES: [RegExp, string][] = [
-  [/canberra|sydney|melbourne|australia/i, "Australia/Sydney"],
-  [/perth/i, "Australia/Perth"],
-  [/brisbane/i, "Australia/Brisbane"],
-  [/auckland|new zealand/i, "Pacific/Auckland"],
-  [/india|bangalore|bengaluru|chennai|mumbai|delhi|tamil|kerala|hyderabad|kolkata|pune|ahmedabad|jaipur|goa|kochi|coimbatore|madurai|mysore|mysuru|lucknow|chandigarh/i, "Asia/Kolkata"],
-  [/singapore/i, "Asia/Singapore"],
-  [/tokyo|japan/i, "Asia/Tokyo"],
-  [/london|england|\buk\b|united kingdom|scotland|wales/i, "Europe/London"],
-  [/paris|france/i, "Europe/Paris"],
-  [/berlin|germany/i, "Europe/Berlin"],
-  [/new york|new jersey|boston|toronto|montreal|washington|philadelphia/i, "America/New_York"],
-  [/chicago|texas|houston|dallas/i, "America/Chicago"],
-  [/san francisco|los angeles|seattle|california|vancouver/i, "America/Los_Angeles"],
+  [/\b(perth|western australia|wa, australia)\b/i, "Australia/Perth"],
+  [/\b(brisbane|queensland|gold coast)\b/i, "Australia/Brisbane"],
+  [/\b(adelaide|south australia)\b/i, "Australia/Adelaide"],
+  [/\b(darwin|northern territory)\b/i, "Australia/Darwin"],
+  [/\b(hobart|tasmania)\b/i, "Australia/Hobart"],
+  [/\b(canberra|sydney|melbourne|newcastle, nsw|new south wales|victoria, australia|australia)\b/i, "Australia/Sydney"],
+  [/\b(auckland|wellington|christchurch|new zealand)\b/i, "Pacific/Auckland"],
+  [/\b(india|bangalore|bengaluru|chennai|mumbai|bombay|delhi|new delhi|tamil nadu|tamil|kerala|karnataka|hyderabad|telangana|kolkata|calcutta|pune|ahmedabad|gujarat|jaipur|goa|kochi|cochin|thrissur|trivandrum|thiruvananthapuram|coimbatore|madurai|mysore|mysuru|lucknow|chandigarh|noida|gurgaon|gurugram|vizag|visakhapatnam|vijayawada|nagpur|indore|bhopal|patna|bhubaneswar|maharashtra|andhra pradesh|punjab)\b/i, "Asia/Kolkata"],
+  [/\b(sri lanka|colombo)\b/i, "Asia/Colombo"],
+  [/\b(nepal|kathmandu)\b/i, "Asia/Kathmandu"],
+  [/\b(bangladesh|dhaka)\b/i, "Asia/Dhaka"],
+  [/\b(pakistan|karachi|lahore|islamabad)\b/i, "Asia/Karachi"],
+  [/\b(dubai|abu dhabi|sharjah|uae|united arab emirates)\b/i, "Asia/Dubai"],
+  [/\b(qatar|doha)\b/i, "Asia/Qatar"],
+  [/\b(saudi arabia|riyadh|jeddah)\b/i, "Asia/Riyadh"],
+  [/\b(singapore)\b/i, "Asia/Singapore"],
+  [/\b(malaysia|kuala lumpur)\b/i, "Asia/Kuala_Lumpur"],
+  [/\b(hong kong)\b/i, "Asia/Hong_Kong"],
+  [/\b(china|shanghai|beijing|shenzhen)\b/i, "Asia/Shanghai"],
+  [/\b(philippines|manila)\b/i, "Asia/Manila"],
+  [/\b(indonesia|jakarta)\b/i, "Asia/Jakarta"],
+  [/\b(bali)\b/i, "Asia/Makassar"],
+  [/\b(thailand|bangkok)\b/i, "Asia/Bangkok"],
+  [/\b(seoul|korea)\b/i, "Asia/Seoul"],
+  [/\b(tokyo|osaka|japan)\b/i, "Asia/Tokyo"],
+  [/\b(london|manchester|birmingham, uk|edinburgh|glasgow|cardiff|england|uk|united kingdom|scotland|wales)\b/i, "Europe/London"],
+  [/\b(dublin|ireland)\b/i, "Europe/Dublin"],
+  [/\b(lisbon|portugal)\b/i, "Europe/Lisbon"],
+  [/\b(paris|france)\b/i, "Europe/Paris"],
+  [/\b(amsterdam|netherlands)\b/i, "Europe/Amsterdam"],
+  [/\b(berlin|munich|hamburg|frankfurt|germany)\b/i, "Europe/Berlin"],
+  [/\b(madrid|barcelona|spain)\b/i, "Europe/Madrid"],
+  [/\b(rome|milan|italy)\b/i, "Europe/Rome"],
+  [/\b(zurich|geneva|switzerland)\b/i, "Europe/Zurich"],
+  [/\b(stockholm|sweden)\b/i, "Europe/Stockholm"],
+  [/\b(cairo|egypt)\b/i, "Africa/Cairo"],
+  [/\b(nairobi|kenya)\b/i, "Africa/Nairobi"],
+  [/\b(lagos|nigeria)\b/i, "Africa/Lagos"],
+  [/\b(johannesburg|cape town|south africa)\b/i, "Africa/Johannesburg"],
+  [/\b(indianapolis|indiana)\b/i, "America/Indiana/Indianapolis"],
+  [/\b(new york|nyc|new jersey|boston|massachusetts|toronto|ontario|montreal|ottawa|washington,? d\.?c\.?|washington|philadelphia|pennsylvania|atlanta|georgia, usa|miami|florida|virginia|north carolina|michigan|detroit|ohio)\b/i, "America/New_York"],
+  [/\b(chicago|illinois|texas|houston|dallas|austin|minneapolis|minnesota|wisconsin)\b/i, "America/Chicago"],
+  [/\b(denver|colorado|utah|calgary|alberta)\b/i, "America/Denver"],
+  [/\b(phoenix|arizona)\b/i, "America/Phoenix"],
+  [/\b(seattle|washington state|portland|oregon|san francisco|bay area|san jose|los angeles|san diego|california|vancouver|british columbia)\b/i, "America/Los_Angeles"],
+  [/\b(mexico city|mexico)\b/i, "America/Mexico_City"],
+  [/\b(sao paulo|são paulo|rio de janeiro|brazil)\b/i, "America/Sao_Paulo"],
 ];
+
+// The zone for a friend's place: of every place named in it, the one
+// written first (the longer name if two start together, so "Washington
+// state" beats "Washington"); UTC if the maker knows none of them.
+export function zoneFor(place: string): string {
+  let best: { at: number; length: number; tz: string } | undefined;
+  for (const [re, tz] of ZONES) {
+    const m = re.exec(place);
+    if (m && (!best || m.index < best.at || (m.index === best.at && m[0].length > best.length))) best = { at: m.index, length: m[0].length, tz };
+  }
+  return best?.tz ?? "UTC";
+}
 
 const PALETTE: [string, string][] = [
   ["#e07a5f", "#ffe4d9"],
@@ -339,7 +388,7 @@ export function writeOffline(a: Answers): Written {
       return {
         name: f.name,
         city: f.city,
-        tz: ZONES.find(([re]) => re.test(f.city))?.[1] ?? "UTC",
+        tz: zoneFor(f.city),
         sleep_from: 23,
         sleep_to: 7,
         color: PALETTE[i % PALETTE.length][0],
@@ -384,7 +433,9 @@ export function tidy(w: Written, a: Answers, code: string): HouseSpec {
       id: String(i + 1),
       name: given.name,
       city: given.city || clip(f?.city, MAX_CITY),
-      tz: tz && validTz(tz) ? tz : "UTC",
+      // Claude's zone if it gave a real one; if it said UTC or nothing, the
+      // place the maker knows (RICE D).
+      tz: tz && validTz(tz) && tz !== "UTC" ? tz : zoneFor(given.city || clip(f?.city, MAX_CITY)),
       sleep: [hour(f?.sleep_from, 23), hour(f?.sleep_to, 7)],
       birthday: given.birthday,
       color: HEX.test(String(f?.color)) ? String(f!.color) : color,

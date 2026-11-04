@@ -293,6 +293,26 @@ async function left(w, card, size) {
   say(w, card.ago, Font.systemFont(10), soft, 1);
 }
 
+// Birthday cards waiting for her (ADR 0030): who wrote them, never what.
+async function cardsCard(w, card, size) {
+  warm(w, "#ffe3ee", "#fff4d6");
+  say(w, "💝", Font.systemFont(size === "small" ? 22 : 26), ink, 1);
+  w.addSpacer(4);
+  say(w, card.title, Font.boldSystemFont(size === "small" ? 13 : 16), ink, 2);
+  w.addSpacer(6);
+  const row = w.addStack();
+  row.centerAlignContent();
+  for (const f of card.from.slice(0, size === "small" ? 3 : 6)) {
+    await faceIn(row, f.face, size === "small" ? 24 : 30, f.color, f.name);
+    row.addSpacer(4);
+  }
+  if (size !== "small") {
+    w.addSpacer(6);
+    say(w, card.line, Font.mediumSystemFont(12), soft, 2);
+  }
+  w.addSpacer();
+}
+
 async function birthdayCard(w, card, size) {
   warm(w, "#ffe3ee", "#fff4d6");
   const face = await picture(card.face);
@@ -444,6 +464,7 @@ async function everyoneCard(w, card, house, size) {
 function accessory(w, card) {
   const words = {
     birthday: `🎂 ${card.title}`,
+    cards: `💝 ${card.title}`,
     desk: `💌 ${card.title}`,
     plate: `🍱 ${card.title}`,
     wall: `📌 ${card.title}`,
@@ -480,7 +501,7 @@ async function build() {
   // in its turn, not news.
   const said = readKept("newest");
   const shown = Number(said || 0) || 0;
-  const fresh = said !== undefined && house.newest > shown ? cards.find((c) => ["desk", "plate", "wall"].includes(c.kind) && c.at === house.newest) : undefined;
+  const fresh = said !== undefined && house.newest > shown ? cards.find((c) => ["desk", "plate", "wall", "cards"].includes(c.kind) && c.at === house.newest) : undefined;
   if (fresh || said === undefined) {
     try {
       fm.writeString(file("newest"), String(house.newest));
@@ -492,6 +513,7 @@ async function build() {
   w.url = at(card.open || house.open);
   if (size.startsWith("accessory")) accessory(w, card);
   else if (card.kind === "birthday") await birthdayCard(w, card, size);
+  else if (card.kind === "cards") await cardsCard(w, card, size);
   else if (card.kind === "desk" || card.kind === "plate") await left(w, card, size);
   else if (card.kind === "wall") await wallCard(w, card, size);
   else if (card.kind === "room" || card.kind === "dog") await pictureCard(w, card, size);

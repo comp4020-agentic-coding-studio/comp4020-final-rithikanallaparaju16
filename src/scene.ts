@@ -334,6 +334,7 @@ function pops(s: Scene, standing: Map<string, Pt>): string {
     plant: above(l.gardenBed, -10),
     tidy: room?.mess ?? [],
     desk: above(room?.desk?.[0], 28),
+    card: above(room?.desk?.[0], 28),
     reply: above(room?.desk?.[0], 28),
     kettle: above(MAT_TABLE, 44),
     wall: [l.wallMiddle],

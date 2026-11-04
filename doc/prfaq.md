@@ -43,6 +43,7 @@ where it belongs:
 - a plate of biryani saved for one friend, covered, waiting however long she's away
 - a photo on the memory wall of something that reminded you of them
 - a seedling in the garden, a tidy room, a birthday wish
+- a birthday card written whenever you think of it, sealed until her day
 
 It stays there. When you come back, "While you were away" says who came by and
 what's new, starting with what was left for you. On the 1st of each month the
@@ -139,6 +140,12 @@ the house, photos included. There are no passwords, though. Anyone with the
 address can pick a window that's free, so a private desk note is a courtesy,
 not a lock. That's on purpose for now: Rithika's tutor needs to walk in and
 mark it. A front door key is the likely next step.
+
+**Can I write a birthday card ahead?**
+Yes. In a friend's room, write it whenever you think of it, and it's sealed
+until her birthday by her own clock. Before then she sees who's written,
+never what; on the day, they open in her room. Nobody else ever reads it,
+and she keeps every card from birthdays before.
 
 **What happens to the wall each month?**
 On the 1st (by Canberra's clock in Rithika's house, the first friend's clock in
@@ -237,12 +244,12 @@ under today's page.
 
 **What's known to be broken?**
 On 21 October, a test sweep left tests that fail because of bugs. Each is
-skipped by its title until its bug is fixed, so CI can deploy. Two have been
-fixed since (the house's name at its door, and the movie planner keeping up),
-and 17 are still skipped. They're scored alongside new ideas
-in [rice.md](rice.md). The two that matter most: on a phone, Home's top line
-can say nobody came by when someone did, and in a made house a friend's city
-can be matched to the wrong clock ("Indiana" contains "india").
+skipped by its title until its bug is fixed, so CI can deploy. Four have been
+fixed since (the house's name at its door, the movie planner keeping up,
+Home's top line on a phone, and made houses' clocks), and 15 are still
+skipped. They're scored alongside new ideas in [rice.md](rice.md). The one
+that matters most now: a made house's "What is this place?" shows Rithika's
+README (E).
 
 **What is it deliberately not?**
 A chat app, a feed, a forum or a dashboard. It has no likes, counts,

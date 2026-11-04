@@ -39,8 +39,8 @@ import { MAX_PHOTO, readUpload } from "./photos.ts";
 import { layout, matWords } from "./layouts.ts";
 import { isPlace, placeAt } from "./scene.ts";
 import * as store from "./store.ts";
-import { birthday, fromLocal } from "./time.ts";
-import { cap, their, them } from "./words.ts";
+import { birthday, fromLocal, nextBirthday } from "./time.ts";
+import { cap, their, them, they } from "./words.ts";
 import { dealFor, gameOf, isWild, play, replay, stillIn } from "./uno.ts";
 
 const MAX_FORM = 8 * 1024;
@@ -274,6 +274,9 @@ function line(did: string | null, owner?: Person, me?: Person): string | undefin
       return "In the memory box, with every month before it. Nothing's gone; it's all kept here.";
     case "sticker":
       return "Stuck on. Whoever wrote it will know you read it, and how you felt.";
+    case "card":
+      if (!owner) return undefined;
+      return `Sealed. It opens on ${their(owner)} birthday, and only ${they(owner)}'ll read it.`;
     case "onwidget":
       return "It can show on your friends' home-screen widgets now.";
     case "offwidget":
@@ -491,7 +494,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     return send(res, 200, pathname === "/updates" ? updatesPage(v) : pathname === "/everyone" ? everyonePage(v, confirmation(did)) : moviesPage(v, confirmation(did)));
   }
 
-  const roomMatch = pathname.match(/^\/room\/([^/]+)(\/leave|\/tidy|\/mask|\/kettle|\/nap|\/wish|\/reply)?$/);
+  const roomMatch = pathname.match(/^\/room\/([^/]+)(\/leave|\/tidy|\/mask|\/kettle|\/nap|\/wish|\/reply|\/card)?$/);
   const owner = roomMatch ? personById(roomMatch[1]) : undefined;
   if (roomMatch && !owner) return send(res, 404, messagePage("No such room", `There are ${PEOPLE.length} rooms in this house, and that isn't one of them.`));
   // The face mask powder is in Rithanya's room, and the kettle in Amirdhavarshini's.
@@ -581,6 +584,19 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     }
     store.leave({ author: me.id, kind: "wish", place: roomPlace(owner.id) });
     return redirect(res, `/room/${owner.id}?did=wish`);
+  }
+
+  // A birthday card, sealed until her next birthday by her own clock (RICE
+  // AA, ADR 0030). Any time of year; not to yourself; one line of words.
+  if (owner && roomMatch?.[2] === "/card") {
+    const back = `/room/${owner.id}`;
+    const opens = nextBirthday(owner, Date.now());
+    if (!opens) return send(res, 400, messagePage("No birthday to wait for", `The house doesn't know ${their(owner)} birthday, so a card would never open.`, back));
+    if (owner.id === me.id) return send(res, 400, messagePage("That's your own room", "Birthday cards are for friends. Yours are waiting for you here.", back));
+    if (!body) return send(res, 400, messagePage("A blank card?", "Write something inside before sealing it.", `${back}#card`));
+    if (body.length > MAX_NOTE) return send(res, 400, messagePage("Too long", `Cards fit up to ${MAX_NOTE} characters.`, `${back}#card`));
+    store.leave({ author: me.id, kind: "card", place: roomPlace(owner.id), body, item: opens });
+    return redirect(res, `${back}?did=card#card`);
   }
 
   if (owner && roomMatch?.[2] === "/kettle") {

@@ -60,7 +60,8 @@ replayed from `uno`/`unomove` rows by `src/uno.ts` (ADR 0013). Each turn
 lasts twenty seconds (it was ten until 9 Oct), worked out from timestamps: whoever runs out, or leaves
 the house (a `quit` move), is out, and the rest play on (ADR 0016). Each friend's birthday is in `src/people.ts`: all
 through her birthday month (her own clock) her room has bunting and balloons
-and she wears a crown; friends can wish her (`wish`). Neha sleeps 10 pm to
+and she wears a crown; friends can wish her (`wish`), and seal her a card any time of year
+(`card`, ADR 0030), which only she and its writer read, opened on her day. Neha sleeps 10 pm to
 8 am ("make nehas sleeping hours to be 10", read as both bedtime and length;
 she can redirect it). Friends can stick one sticker each on a friend's note
 on the wall (`sticker`, placed `note:<id>`, from `STICKERS` in

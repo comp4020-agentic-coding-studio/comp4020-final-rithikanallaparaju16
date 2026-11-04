@@ -333,6 +333,12 @@ export function partyHats(things: Thing[], now: number): Set<string> {
 export const wishes = (things: Thing[], id: string): Thing[] =>
   things.filter((t) => t.kind === "wish" && t.place === roomPlace(id));
 
+// Birthday cards for her (ADR 0030), newest first. Each opens on the day in
+// its item, by her own calendar; `today` is hers. Sealed ones are waiting.
+export const cardsFor = (things: Thing[], id: string): Thing[] =>
+  things.filter((t) => t.kind === "card" && t.place === roomPlace(id));
+export const isOpen = (card: Thing, today: string): boolean => card.item <= today;
+
 // Shinzo goes with whoever last petted him (a "play") or gave him a treat,
 // awake, for half an hour: wherever she goes, and wherever she last stood
 // once she's gone, or the foot of her bed while she's asleep. Then he goes

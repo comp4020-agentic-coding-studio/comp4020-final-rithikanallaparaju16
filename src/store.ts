@@ -116,7 +116,11 @@ export type Kind =
   // Whether a note or photo on the wall may show on friends' home-screen
   // widgets (ADR 0029): the place is `note:<id>`, the item "yes" or "" (no).
   // Only the writer's own say counts, and her newest one.
-  | "onwidget";
+  | "onwidget"
+  // A birthday card, sealed until her day (RICE AA, ADR 0030): the place is
+  // her room, the body the words, and the item the birthday it opens on, as
+  // "YYYY-MM-DD" in her own calendar. Only she and its writer ever read it.
+  | "card";
 
 export type Thing = {
   id: number;
