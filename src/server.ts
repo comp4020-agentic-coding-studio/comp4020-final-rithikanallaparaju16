@@ -185,15 +185,21 @@ function device(req: IncomingMessage): Device {
   if (/iPad/.test(ua)) return "ipad";
   if (/Android/.test(ua)) return "android";
   if (/Macintosh/.test(ua)) return "mac";
+  if (/Windows/.test(ua)) return "windows";
   return "other";
 }
 
 // Home asks each browser about the widget once a fortnight at most (ADR
 // 0027): "Not now" is kept in this browser only, since it's about this
 // screen, not about anything friends see.
+// Since 5 November it's only this browser's answer that stops it (ADR 0032):
+// a widget seen somewhere else, on another phone or under her name on a
+// friend's, used to stop every device asking, and Amirdhavarshini's laptop
+// and Android never asked. Yes is kept a year; not now a fortnight.
 const ASK_AGAIN = 14 * 24 * 60 * 60;
-const askCookie = (req: IncomingMessage): string =>
-  `widget-ask=later; Path=${house().base || "/"}; Max-Age=${ASK_AGAIN}; SameSite=Lax${req.headers["x-forwarded-proto"] === "https" ? "; Secure" : ""}`;
+const ANSWERED = 365 * 24 * 60 * 60;
+const askCookie = (req: IncomingMessage, answer: "later" | "yes" = "later"): string =>
+  `widget-ask=${answer}; Path=${house().base || "/"}; Max-Age=${answer === "yes" ? ANSWERED : ASK_AGAIN}; SameSite=Lax${req.headers["x-forwarded-proto"] === "https" ? "; Secure" : ""}`;
 
 // Her widget's link and its script, for the Everyone tab, once she's made one.
 function widgetFor(req: IncomingMessage, me: Person): [string?, string?] {
@@ -343,7 +349,8 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   if (route === "GET /") {
     if (!me) return send(res, 200, doorPage(store.lastSeen(), Date.now(), taken()));
     const v = visit(me);
-    return send(res, 200, housePage({ ...v, widget: v.widget && { ...v.widget, later: cookie(req, "widget-ask") === "later" } }));
+    const answer = cookie(req, "widget-ask");
+    return send(res, 200, housePage({ ...v, widget: v.widget && { ...v.widget, later: answer === "later", answered: answer === "yes" || answer === "later" } }));
   }
 
   // Coming in as one of the five, if nobody else is in the house as her right
@@ -469,7 +476,8 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   if (route === "POST /widget/yes") {
     if (!me) return send(res, 403, messagePage("Knock first", "Pick who you are at the door first."));
     if (!store.widgetKey(me.id)) store.setWidgetKey(me.id, randomBytes(18).toString("base64url"));
-    return redirect(res, "/home-screen#widget");
+    store.log(`${me.id}:${me.name} said yes to the home-screen widget on this browser`);
+    return redirect(res, "/home-screen#widget", { "set-cookie": askCookie(req, "yes") });
   }
   if (route === "POST /widget/later") {
     if (!me) return send(res, 403, messagePage("Knock first", "Pick who you are at the door first."));

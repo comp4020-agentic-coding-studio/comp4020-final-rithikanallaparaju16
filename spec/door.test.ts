@@ -146,6 +146,25 @@ it("serves the house's own stylesheet, scripts and pictures", async () => {
   }
 });
 
+// ADR 0032: "make the toggle visibile no matter where i am. The toggle
+// should be there on the bottom corners of my screen not the page". A phone
+// on its side gets the house filling the screen and the walking corners on
+// the screen's own corners; held upright, the house's pages ask to be
+// turned. The layout is CSS, so this checks what the page and stylesheet
+// promise; the screenshots in the log show it.
+it("turns a phone sideways for the house, with its walking corners on the screen", async () => {
+  const css = await (await get("/style.css")).text();
+  const sideways = css.split("@media (pointer: coarse) and (orientation: landscape) and (max-height: 500px)")[1]?.split("\n}\n")[0] ?? "";
+  expect(sideways, "there's no layout for a phone on its side").not.toBe("");
+  expect(sideways, "on its side, the walking corners aren't on the screen").toMatch(/\.pad\.touch \.walk-corner \{[^}]*position: fixed/);
+  expect(sideways, "on its side, the walking corners still step aside").toMatch(/\.pad\.touch\.away \.walk-corner \{[^}]*visibility: visible/);
+  expect(css, "an upright phone isn't asked to turn").toMatch(/@media \(pointer: coarse\) and \(orientation: portrait\)[^{]*\{[^@]*\.turn-phone/);
+  // The door and plain pages are read upright; the house's pages carry the ask.
+  const door = parse(await (await get("/")).text());
+  expect(door.body.classList.contains("page-door"), "the door would ask to be turned").toBe(true);
+  expect(door.querySelector(".turn-phone"), "the page has no turn-sideways notice to show").not.toBeNull();
+});
+
 it("can be added to a phone's home screen, Android or iPhone, with the house as its icon", async () => {
   const d = parse(await (await get("/")).text());
   const linked = d.querySelector("link[rel=manifest]")?.getAttribute("href");
@@ -157,6 +176,9 @@ it("can be added to a phone's home screen, Android or iPhone, with the house as 
   expect(manifest.name).toBe("Five Windows");
   expect(manifest.start_url, "the icon doesn't open the house").toBe("/");
   expect(manifest.display, "the icon opens a browser tab, not the house on its own").toBe("standalone");
+  // Rithika, 5 Nov: "force only landscpae for phone because you can see the
+  // house only then" (ADR 0032). Android keeps to it from the home screen.
+  expect(manifest.orientation, "the house doesn't open sideways from the home screen").toBe("landscape");
   const sizes = (manifest.icons as { sizes: string }[]).map((i) => i.sizes);
   expect(sizes).toContain("192x192");
   expect(sizes).toContain("512x512");

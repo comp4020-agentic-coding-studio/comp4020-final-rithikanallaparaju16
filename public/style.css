@@ -4460,3 +4460,307 @@ g.light circle.left-on {
   font: inherit;
   font-size: 0.8rem;
 }
+
+/* ---------- a phone on its side (ADR 0032) ----------
+   A phone held sideways is wide enough for the laptop's layout but only
+   about 400px tall, so the house was a card half off the screen and the
+   walking corners, on the picture, out of sight. Held sideways, a phone
+   gets the house filling the screen under a slim bar, and the walking
+   corners on the screen's own bottom corners, wherever you are. Held
+   upright, the house's pages ask you to turn it (`.turn-phone`). */
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 500px) {
+  :root {
+    --bar-h: 44px;
+  }
+
+  .bar {
+    min-height: var(--bar-h);
+    padding: 4px max(12px, env(safe-area-inset-right)) 4px max(12px, env(safe-area-inset-left));
+    gap: 8px;
+  }
+
+  .brand {
+    font-size: 1rem;
+  }
+
+  .bar .greeting {
+    display: none;
+  }
+
+  .tabs {
+    gap: 2px;
+    margin-left: auto;
+  }
+
+  .tabs a {
+    padding: 4px 10px;
+    font-size: 0.82rem;
+  }
+
+  .tabs svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .switch img {
+    width: 30px;
+    height: 30px;
+  }
+
+  /* Home: the house is the page. What's around it sits below, a scroll
+     away; only the widget's question stays above it, one slim line, until
+     this phone answers it (ADR 0032). */
+  .page-home .news,
+  .page-home .to-widget.in-news {
+    display: none;
+  }
+
+  .page-home .widget-ask {
+    height: 40px;
+    margin: 0;
+    padding: 4px max(12px, env(safe-area-inset-left));
+    border-radius: 0;
+    box-shadow: none;
+    flex-wrap: nowrap;
+    gap: 8px;
+    overflow: hidden;
+  }
+
+  .page-home .widget-ask p {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .page-home .widget-ask-why,
+  .page-home .widget-ask-more {
+    display: none;
+  }
+
+  .page-home .widget-ask button {
+    min-height: 32px;
+    padding: 2px 12px;
+    font-size: 0.82rem;
+  }
+
+  .page-home main:has(> .widget-ask) .map {
+    height: calc(100svh - var(--bar-h) - 40px);
+  }
+
+  .page-home .home-grid {
+    display: block;
+    max-width: none;
+    padding: 0;
+  }
+
+  .page-home .side {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 14px max(14px, env(safe-area-inset-left)) 24px;
+  }
+
+  .page-home .map,
+  .room-grid .map {
+    height: calc(100svh - var(--bar-h));
+    border-radius: 0;
+    box-shadow: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+  }
+
+  .page-home .house-svg {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    object-fit: cover;
+  }
+
+  /* A room: its picture fills the screen too, the cards a scroll below. */
+  .room-grid {
+    display: block;
+    max-width: none;
+    padding: 0;
+  }
+
+  .room-grid .map {
+    position: relative;
+    top: 0;
+  }
+
+  .map.zoom .house-svg {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+  }
+
+  .room-side {
+    padding: 14px max(16px, env(safe-area-inset-left)) 24px;
+  }
+
+  /* The walking corners are the screen's, like a game's, on every page with
+     the house, and never step aside: you can walk from anywhere. */
+  .pad.touch {
+    --corner-w: 30vw;
+    --corner-h: 46svh;
+  }
+
+  .pad.touch .walk-corner {
+    position: fixed;
+    z-index: 25;
+    bottom: 0;
+    border-radius: 0;
+    background: none;
+  }
+
+  .pad.touch.away .walk-corner {
+    visibility: visible;
+  }
+
+  .pad.touch .walk-corner.left {
+    left: 0;
+  }
+
+  .pad.touch .walk-corner.right {
+    right: 0;
+  }
+
+  .pad.touch .walk-corner::before {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    width: 150px;
+    height: 120px;
+    pointer-events: none;
+  }
+
+  .pad.touch .walk-corner.left::before {
+    left: 0;
+    border-top-right-radius: 100% 100%;
+    background: radial-gradient(farthest-side at 0 100%, rgba(59, 42, 32, 0.34), rgba(59, 42, 32, 0.16) 70%, rgba(59, 42, 32, 0));
+  }
+
+  .pad.touch .walk-corner.right::before {
+    right: 0;
+    border-top-left-radius: 100% 100%;
+    background: radial-gradient(farthest-side at 100% 100%, rgba(59, 42, 32, 0.34), rgba(59, 42, 32, 0.16) 70%, rgba(59, 42, 32, 0));
+  }
+
+  .pad.touch .walk-corner::after {
+    bottom: max(24px, env(safe-area-inset-bottom));
+  }
+
+  .pad.touch .walk-corner.left::after {
+    left: max(24px, env(safe-area-inset-left));
+  }
+
+  .pad.touch .walk-corner.right::after {
+    right: max(24px, env(safe-area-inset-right));
+  }
+
+  .pad.touch .walk-corner.held::before {
+    opacity: 0.55;
+  }
+
+  /* The buttons: on the screen too, at the bottom between the corners. */
+  .page-home .pad,
+  .page-room .pad {
+    position: fixed;
+    right: 30vw;
+    bottom: 10px;
+    left: 30vw;
+    z-index: 26;
+    justify-content: center;
+  }
+
+  /* above the hint, which sits at the very bottom until you've walked */
+  .pad.touch .moves {
+    margin: 0 auto 46px;
+    align-items: center;
+  }
+
+  .pad.touch .go,
+  .pad.touch .do {
+    min-height: 40px;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+  }
+
+  .pad.touch .keys-hint {
+    position: fixed;
+    bottom: 12px;
+    z-index: 26;
+  }
+
+  .stick {
+    width: 96px;
+    height: 96px;
+    margin: -48px 0 0 -48px;
+  }
+}
+
+/* Held upright, a phone is asked to turn sideways on the house's pages: the
+   house is only really there in landscape. The door, the make form and
+   plain pages stay readable either way. */
+.turn-phone {
+  display: none;
+}
+
+@media (pointer: coarse) and (orientation: portrait) and (max-width: 600px) {
+  body.page-home .turn-phone,
+  body.page-room .turn-phone,
+  body.page-list:not(.page-home-screen) .turn-phone {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 24px;
+    background: var(--bar-bg, #2f2740);
+    color: #fff8ec;
+    text-align: center;
+  }
+
+  .turn-phone .turn-icon {
+    font-size: 3rem;
+    animation: turn-phone 2.4s ease-in-out infinite;
+  }
+
+  .turn-phone p {
+    margin: 0;
+    max-width: 22em;
+    font-size: 1.05rem;
+    line-height: 1.4;
+  }
+
+  .turn-phone .small {
+    color: #fff8ec;
+    font-size: 0.85rem;
+    opacity: 0.75;
+  }
+}
+
+@keyframes turn-phone {
+  0%, 30% { transform: rotate(0deg); }
+  60%, 100% { transform: rotate(-90deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .turn-phone .turn-icon { animation: none; }
+}
+
+/* On Windows: the widget lives on a phone (ADR 0032). */
+.widget-on-phone {
+  margin: 12px 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #fff1d6;
+  border-left: 4px solid var(--accent);
+}

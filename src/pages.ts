@@ -113,12 +113,12 @@ export type Visit = {
   // Her home-screen widget (ADR 0025, 0027): whether she's made its link,
   // when it last read the house (0 for never), and whether this browser said
   // "not now" to Home's question.
-  widget?: { made: boolean; seen: number; later?: boolean };
+  widget?: { made: boolean; seen: number; later?: boolean; answered?: boolean };
 };
 
 // Which steps the widget's page opens first (src/server.ts reads it from the
 // browser).
-export type Device = "iphone" | "ipad" | "mac" | "android" | "other";
+export type Device = "iphone" | "ipad" | "mac" | "android" | "windows" | "other";
 
 const HOME_NOW = 10 * 60 * 1000;
 const WEEK = 7 * 24 * 60 * 60 * 1000;
@@ -277,6 +277,9 @@ export function manifest(): string {
     start_url: `${base}/`,
     scope: `${base}/`,
     display: "standalone",
+    // On the home screen, the house opens sideways (ADR 0032). Android keeps
+    // to it; an iPhone ignores it, so the page asks to be turned instead.
+    orientation: "landscape",
     background_color: "#f3e6cf",
     theme_color: "#a8d8f0",
     icons: [
@@ -313,6 +316,7 @@ export function shell(title: string, body: string, light: Phase, kind: string): 
 <script src="${own("live.js")}" defer></script>
 </head>
 <body class="light-${light} ${kind}" data-base="${esc(house().base)}">
+<div class="turn-phone" role="alert"><span class="turn-icon" aria-hidden="true">📱</span><p><b>Turn your phone sideways</b></p><p>The house is only all there in landscape: the whole house fills the screen, and you walk from its bottom corners.</p><p class="small">If it doesn't turn, check that rotation lock is off.</p></div>
 ${body}
 </body>
 </html>`;
@@ -1235,10 +1239,16 @@ ${bar(v, "everyone")}
 // the home through laptop,phone or ipad, there should be an option asking if
 // i want the widget on my homescreen, if i say yes, it has to work". Once
 // her widget has read the house, it stops asking anywhere.
+// Asked on every browser until that browser answers (ADR 0032): her widget
+// working on another phone doesn't stop this one asking, it only changes
+// the words. `answered` is this browser's yes or not now.
 function widgetAsk(v: Visit): string {
-  if (!v.widget || v.widget.seen || v.widget.later) return "";
+  if (!v.widget || v.widget.answered === true || v.widget.later) return "";
+  // Hand-built visits (the spec) have no browser: there, a working widget stops it, as before.
+  if (v.widget.answered === undefined && v.widget.seen) return "";
+  const elsewhere = v.widget.seen > 0;
   return `<section class="widget-ask" aria-labelledby="widget-ask-heading" data-live="widget-ask">
-    <p id="widget-ask-heading"><span class="emoji" aria-hidden="true">📱</span> <b>Put ${esc(houseName())} on your home screen?</b> <span class="widget-ask-why">A little window that keeps changing: birthdays, what friends left you, the memory wall, your room, everyone, and ${dogName()}.</span></p>
+    <p id="widget-ask-heading"><span class="emoji" aria-hidden="true">📱</span> <b>${elsewhere ? `Put ${esc(houseName())} on this screen too?` : `Put ${esc(houseName())} on your home screen?`}</b> <span class="widget-ask-why">${elsewhere ? "Your widget's already working on another phone. This one can have it too." : `A little window that keeps changing: birthdays, what friends left you, the memory wall, your room, everyone, and ${dogName()}.`}</span></p>
     <div class="widget-ask-answers">
       <form method="post" action="/widget/yes" class="inline"><button class="widget-yes">Yes<span class="widget-ask-more">, show me how</span></button></form>
       <form method="post" action="/widget/later" class="inline"><button class="soft">Not now</button></form>
@@ -1294,7 +1304,7 @@ export function homeScreenPage(v: Visit, did: Done | undefined, on: Device, link
         <li>Hold the new widget, tap <b>Edit Widget</b>, and for <b>Script</b> pick the one you pasted. That's it.</li>
       </ol>`;
   const way = (key: Device, title: string, body: string): string =>
-    `<details class="widget-way" id="on-${key}" data-device="${key}"${key === on || (on === "other" && key === "iphone") ? " open" : ""}><summary>${title}</summary>${body}</details>`;
+    `<details class="widget-way" id="on-${key}" data-device="${key}"${key === on || (on === "other" && key === "iphone") || (on === "windows" && key === "android") ? " open" : ""}><summary>${title}</summary>${body}</details>`;
   const ways = [
     way("iphone", "On an iPhone", iphone("an iPhone")),
     way("ipad", "On an iPad", iphone("an iPad")),
@@ -1315,7 +1325,9 @@ export function homeScreenPage(v: Visit, did: Done | undefined, on: Device, link
   ];
   // The steps for where she is come first.
   const order = ["iphone", "ipad", "mac", "android"];
-  const first = on === "other" ? "iphone" : on;
+  // A Windows laptop can't hold the widget (ADR 0032): Android's steps
+  // first, since that's what a Windows friend most likely carries.
+  const first = on === "other" ? "iphone" : on === "windows" ? "android" : on;
   ways.sort((a, b) => (a.includes(`data-device="${first}"`) ? -1 : b.includes(`data-device="${first}"`) ? 1 : order.indexOf(a) - order.indexOf(b)));
   return shell(`Your home screen · ${houseName()}`, `
 ${bar(v, "everyone")}
@@ -1326,6 +1338,7 @@ ${bar(v, "everyone")}
     <p class="widget-whose"><img src="${avatarUrl(v.me)}" alt="" width="36" height="48"><span>This is <b>${esc(v.me.name)}'s</b> widget: it shows what friends left for ${esc(v.me.name)}. If you're someone else, go back to the door and come in as yourself first.</span></p>
     <p>A little window on your home screen that shows something new each time your phone refreshes it (every quarter of an hour or so; your phone decides): a friend's birthday (that day and the day before), a note or a plate someone left you, the memory wall, your room, everyone's faces and clocks, and ${dogName()}. Something new for you shows first. Only notes left for you show, never a friend's, and only what friends chose to share from the wall. Each refresh asks the house one small question, and every picture is kept on your phone once it has it, so it's easy on your battery. It's yours, so keep its link to yourself.</p>
     ${status}
+    ${on === "windows" ? `<p class="widget-on-phone">${emoji("widget")} <b>The widget lives on your phone.</b> Windows can't hold it, so open ${name} on your phone, come in as ${esc(v.me.name)}, and say <b>Yes</b> when Home asks. The steps for each phone are below.</p>` : ""}
     ${ways.join("\n    ")}
     <details class="widget-way"${link ? "" : " hidden"}><summary>Its link, and starting again</summary>
       <p class="small">Your widget's own link, if an app asks for it: <input class="widget-link" readonly value="${esc(link ?? "")}" aria-label="Your widget's link" onfocus="this.select()"></p>

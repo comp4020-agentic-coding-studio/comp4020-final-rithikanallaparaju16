@@ -100,7 +100,14 @@ const cdp = (method: string, params: object = {}): Promise<Record<string, any>> 
 await cdp("Network.enable");
 await cdp("Network.clearBrowserCookies");
 if (session) await cdp("Network.setCookie", { name: "who", value: session, url: `${door}/`, path: new URL(`${door}/`).pathname.replace(/\/$/, "") || "/" });
-await cdp("Emulation.setDeviceMetricsOverride", { width: Number(width), height: 844, deviceScaleFactor: 2, mobile: Number(width) < 600 });
+// SHOT_HEIGHT sets the screen's height: a phone on its side is about
+// 932 x 430 (with TOUCH=1), and is told it's in landscape (ADR 0032).
+const screenH = Number(process.env.SHOT_HEIGHT || 844);
+const sideways = Number(width) > screenH;
+await cdp("Emulation.setDeviceMetricsOverride", {
+  width: Number(width), height: screenH, deviceScaleFactor: 2, mobile: Number(width) < 600 || (sideways && screenH < 500),
+  screenOrientation: sideways ? { type: "landscapePrimary", angle: 90 } : { type: "portraitPrimary", angle: 0 },
+});
 // Phone widths are touch screens, which get the thumb stick. TOUCH=1 makes a
 // wider screen one too (an iPad), and TOUCH=0 turns it off.
 const touch = process.env.TOUCH ? process.env.TOUCH === "1" : Number(width) < 600;

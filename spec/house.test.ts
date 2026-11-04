@@ -472,9 +472,12 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect(bw.friends.find((f: { name: string }) => f.name === "You")?.id, "b's widget thinks she's someone else").toBe(b.id);
     expect(JSON.stringify(bw.cards), "a's private note is on b's widget").not.toContain(note);
 
-    // Her widget looked in: her page says it's working, and Home stops asking.
+    // Her widget looked in: her page says it's working. The browser that said
+    // yes stops asking; another browser is asked to put it there too (ADR 0032).
     expect((await page("/home-screen", a.id)).querySelector(".widget-status.working"), "the page doesn't say her widget's working").not.toBeNull();
-    expect((await page("/", a.id)).querySelector(".widget-ask"), "Home still asks once her widget's working").toBeNull();
+    const saidYes = parse(await (await fetch(new URL("/", baseUrl), { headers: { cookie: `${await cookieFor(a.id)}; widget-ask=yes` } })).text());
+    expect(saidYes.querySelector(".widget-ask"), "the browser that said yes is still asked").toBeNull();
+    expect(text((await page("/", a.id)).querySelector(".widget-ask")), "another browser isn't asked to put it there too").toContain("too");
 
     // A widget reading the house isn't coming by: her window stays as it was.
     await signOut(a.id);
@@ -638,6 +641,31 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect(message, "the message doesn't say what you did").toContain(`left ${b.name} something on`);
     expect(message).toContain("watered the garden");
     expect(message, "the message quotes what you wrote").not.toContain(secret);
+  });
+
+  // Rithika, 5 Nov: "amirdha tried from her laptop and her phone, she uses
+  // windows and android she says she didnt get the pop up thingee" (ADR
+  // 0032). Her widget had looked in from another phone, which stopped every
+  // device asking. Now each browser is asked until it answers.
+  it("asks each browser about the widget until that browser answers, even if her widget works elsewhere", async () => {
+    const [, , c] = await people();
+    await post("/widget/yes", {}, c.id);
+    const link = (await page("/home-screen", c.id)).querySelector("input.widget-link")?.getAttribute("value") ?? "";
+    await fetch(new URL(new URL(link).pathname, baseUrl)); // her widget looks in, from somewhere
+    const windows = { cookie: await cookieFor(c.id), "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36" };
+    const home = parse(await (await fetch(new URL("/", baseUrl), { headers: windows })).text());
+    expect(home.querySelector(".widget-ask form[action='/widget/yes']"), "a new browser isn't asked because her widget works elsewhere").not.toBeNull();
+    expect(text(home.querySelector(".widget-ask")), "it doesn't say her widget's already working").toContain("too");
+    // On Windows, the steps say it lives on a phone, and Android's come first.
+    const steps = parse(await (await fetch(new URL("/home-screen", baseUrl), { headers: windows })).text());
+    expect(text(steps.querySelector(".widget-on-phone")), "Windows isn't told the widget lives on a phone").toContain("lives on your phone");
+    expect(steps.querySelector("details.widget-way[open]")?.id, "Windows isn't shown Android's steps first").toBe("on-android");
+    // This browser says yes: it stops asking here.
+    const yes = await fetch(new URL("/widget/yes", baseUrl), { method: "POST", headers: { ...windows, "content-type": "application/x-www-form-urlencoded" }, redirect: "manual" });
+    const answered = yes.headers.getSetCookie().find((x) => x.startsWith("widget-ask=yes"));
+    expect(answered, "saying yes isn't kept in this browser").toBeTruthy();
+    const after = parse(await (await fetch(new URL("/", baseUrl), { headers: { ...windows, cookie: `${windows.cookie}; widget-ask=yes` } })).text());
+    expect(after.querySelector(".widget-ask"), "the browser that said yes is still asked").toBeNull();
   });
 
   it("only lets the five leave things", async () => {
