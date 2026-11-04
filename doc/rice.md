@@ -92,12 +92,15 @@ on everything; AE goes first because Rithika is testing the widget right now.
 New rows first, then the old ones that changed. Rows with no note here
 scored the same as on 1 November for the same reasons.
 
-- **AE.** The widget is the answer to the house's biggest risk, and nobody
-  has run it on a real phone. The spec runs it in a sandbox built to be as
-  bare as Scriptable, which caught one bug that would have broken it on every
-  iPhone, but a sandbox isn't a phone: picture sizes, how iOS crops a large
-  widget, how the room cut-out looks at a phone's scale. Rithika is testing
-  on her iPhone and Mac now. Half a day to fix what turns up. The widget
+- **AE.** The widget is the answer to the house's biggest risk. Its first
+  run on a real phone was Rithika's iPhone on 4 November at 8:28 pm: the
+  small widget showed "All five of you" with every face and clock, Neha
+  asleep. The other cards (a note, a plate, the wall, her room, Shinzo), the
+  medium and large sizes and the Mac haven't been seen on a real screen yet,
+  and a sandbox isn't a phone: picture sizes, how iOS crops a large widget,
+  how the room cut-out looks at a phone's scale. One thing the photo shows:
+  in the small size, the second row's two faces sit at the edges with a gap
+  between them. Half a day to fix what turns up. The widget
   updates itself, so fixes reach every phone without anyone pasting again.
   Not 100% because what turns up is unknown.
 - **AA.** On her birthday, each friend finds the words her friends wrote her
