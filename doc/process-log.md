@@ -3841,6 +3841,13 @@ bare sandbox: in turn, the new note out of turn, then back in turn.
 
 On the branch `widget-previews`, not pushed: waiting for her go-ahead.
 
+While this was being written, a second photo of Rithika's iPhone appeared in
+`doc/screenshots/` (11:58 pm): the small widget showing the memory wall
+card, a photo of her laptop with "i think this works now" under it. The
+second card seen on a real phone (AE). Under ADR 0029 that photo goes off
+widgets once this is pushed, until whoever pinned it turns it on; she was
+told before being asked to push. Her photo was left uncommitted.
+
 **Correction:** none.
 
-**Commits:** `b863836`, the PROCESS.md prompt lines, and this entry's commit.
+**Commits:** `b863836`, the PROCESS.md prompt lines, and this entry's commits.
