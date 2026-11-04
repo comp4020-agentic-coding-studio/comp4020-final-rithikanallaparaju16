@@ -3895,6 +3895,12 @@ tapped Seal for real (the button is what's under the finger; a blank tap
 stays put, the box being required). `nextBirthday()` tried on Aswathy's
 8 November, today, a birthday just gone and 29 February.
 
+Pushed: `main` fast-forwarded to `b1a42fb`; CI's check and deploy passed.
+Live: the door and `/readme/` answer 200, the README has the cards, the page
+asks for the new `style.css` fingerprint, and the read-only spec passes (21).
+Houses made before this keep the clocks they were made with; the fix is for
+houses made from now on.
+
 **Correction:** none.
 
-**Commits:** `51511dd`, the PROCESS.md prompt lines, and this entry's commit.
+**Commits:** `51511dd`, the PROCESS.md prompt lines, and this entry's commits.
