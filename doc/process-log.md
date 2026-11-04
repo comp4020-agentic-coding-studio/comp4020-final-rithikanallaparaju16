@@ -4026,3 +4026,37 @@ The empty `keepsakes` branch was deleted; nothing was written for either.
 off before any code: the website only, done well.
 
 **Commits:** this entry's commit; the live site is at `d6976a7`.
+
+### 95. The house as an app on a phone (5 Nov 2026)
+
+Asked: "buid a webapp of this that renders like a mobile app in phone,so
+even distribution becaomes easy / same applies for make your owb house as
+well" (after the TestFlight app and keepsake box were called off, entry 94).
+
+Read as: no store app; make the website install and spread like one, for
+every house. Built (ADR 0033):
+
+- `/app` for each house, open to anyone with the address: icon, name and
+  who it's for; Install, shown only when the browser offers it
+  (`beforeinstallprompt`); Share and Copy; a QR code of the house's
+  address, hidden on phones; steps for iPhone, iPad, Android, Windows and
+  Mac, the one you're on first. Linked from the door and every footer.
+- `src/qr.ts`, a QR encoder written here (byte mode, level M, versions
+  1-10) so the house keeps one runtime dependency. Four codes from 21 to 53
+  modules read back exactly with OpenCV, and so did the one on the rendered
+  app page.
+- `public/sw.js`, served at each house's `/sw.js` with its base written in,
+  `no-cache`: keeps art and fonts, never a page; offline, `/offline`. Checked
+  in headless Chrome: registered at the house's scope, controlling the page,
+  the house drawing all five.
+- The manifest gains an `id` and shortcuts; the installed app reaches under
+  the notch and doesn't bounce.
+- A made house's ready page: Share, Copy, a QR code and its app page.
+
+Looked at `/app` on a laptop and at 390 px (the Install button first had no
+style of its own; fixed). Full check on a fresh server: 135 passed, 18
+skipped; two specs added (Rithika's house, a made house).
+
+**Correction:** none.
+
+**Commits:** `2e3c9d2`, the PROCESS.md prompt line, and this entry's commit.
