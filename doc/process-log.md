@@ -3586,3 +3586,21 @@ wall, the one you just left").
 **Correction:** none.
 
 **Commits:** this entry's commit.
+
+### 86. Push it all live (4 Nov 2026)
+
+**Asked:** "pls push all this to live now queen".
+
+**Agent:** fast-forwarded `main` to `phone-corners-widget` and pushed
+`f9494f3`: walking from the screen's corners on a phone (log 83), the
+widget's way in from Home, its one-tap copy and the fixed iPhone script
+(log 83), and the view leading the way you walk (log 85). CI's `check`
+and `deploy` passed. On the live site the door and `/readme/` load, the
+served `house.js`, `style.css` and `live.js` carry the new code, and the
+read-only spec passes (18 passed, 119 skipped by the throwaway gate). No
+crit cutoff is coming, so no tag was moved. GitHub still reports the
+same 10 Dependabot alerts, untouched.
+
+**Correction:** none.
+
+**Commits:** `f9494f3` (what went live), and this entry's commit.

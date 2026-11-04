@@ -305,3 +305,4 @@ Every prompt I gave the agent from 8 October, word for word, with the commit it 
 - "queen, what happened to the widget thing i told you": answered, no code change: it was built and committed, but its push to the live site was blocked waiting for a go-ahead.
 - "in my phone, the toggle is still not fixed
   i cant see the kicthen when im trying to move an avatar": the toggle fix wasn't live yet; on a phone the view now leads the way you walk, so the kitchen comes into sight ahead of you, [`81d76a0`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/81d76a0)
+- "pls push all this to live now queen": the screen's corners for walking, the widget and the leading view shipped, [`f9494f3`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/f9494f3)
