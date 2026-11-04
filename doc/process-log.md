@@ -3604,3 +3604,80 @@ same 10 Dependabot alerts, untouched.
 **Correction:** none.
 
 **Commits:** `f9494f3` (what went live), and this entry's commit.
+
+### 87. The download, the widget asked for on Home, and a widget that keeps changing (4 Nov 2026)
+
+**Asked:** first a paste of the live Home page's HTML source, signed in
+as Amirdhavarshini, with no words of her own. Then, mid-turn: "this is
+what downloaded on my phone as soon i clicked on the link, why did that
+happen? fix it / i want the widget thing to work. when i enter the home
+through laptop,phone or ipad, there should be an option asking if i want
+the widget on my homescreen, if i say yes, it has to work / the widget
+can show memory board, their room, show food or the note preview if
+somebody left food for them, it could also be the memory board, pictures
+of all the avatars / anything wholesome, it can keep chnaging. it can
+show the birthday persons avatar on their birday, prev day aslo. sumn
+like this." Asked which phones the five have, she answered "We have
+both" (iPhone and Android). Then: "widget can rotatae every time the user
+uses their phone, i dont want a lot of battery to be consumed. after this
+push the live chnages so i can test on my iphone and mac, later i will
+test on android as well".
+
+**Agent:**
+- The paste was the new Home page, so the server was current, but the
+  walking corners are drawn by `house.js`, which (with `style.css` and
+  `live.js`) had no fingerprint and no cache header: a phone was free to
+  keep yesterday's copies under today's page. They're now asked for as
+  `?v=<fingerprint>` (`own()` in `src/assets.ts`) and kept for good,
+  and asked for bare they're `no-cache`.
+- The download: the paste is Home saved as a file. Every link on that
+  page is an ordinary page link, none marked to download, so the agent
+  couldn't find which tap did it from the code. The likeliest cause, an
+  iPhone's long-press menu on a link (offering Download Linked File), is
+  closer than ever to a thumb now that the bottom corners walk you: the
+  tabs sit just under them. Held tabs no longer show that menu; a tap
+  still goes. Asked Rithika which link she pressed.
+- Home asks (ADR 0027): "Put Five Windows on your home screen?" Yes / Not
+  now, a slim band on a phone, a card on an iPad or laptop. Not now is a
+  cookie in that browser for a fortnight. Yes makes her link (or keeps
+  hers) and opens `/home-screen`: steps for the device she's on first
+  (iPhone, iPad, Mac, Android), and "It's working" as soon as her widget
+  first reads the house (`visits.widget_seen`). The Everyone tab's card
+  now points there.
+- The widget's JSON gained `cards`, shown one each time the phone draws
+  it: a birthday (that day and the day before, by her clock), the newest
+  note or gift on her desk with its words, a plate saved for her, this
+  month's wall photos, her room cut from the house's picture with her
+  sticker in it (dimmed at night), everyone's faces and clocks, and
+  Shinzo. What's pasted is now a few lines that fetch the widget itself
+  from the house and keep it, so a fixed widget reaches phones on its own.
+- Battery: the house is asked at most every four minutes; every picture
+  is fetched once and kept. In the sandbox, the first draw made 3
+  requests, the next five 0–3 each (a picture the first time it's shown),
+  and the seventh none.
+- Checked: phone (390, touch), iPad (820, touch) and laptop (1280)
+  screenshots; real taps on Yes, Not now and the Everyone tab at 390.
+  `pnpm check` on a fresh throwaway server: 118 passed, 21 skipped.
+
+Corrections the agent made to itself: it first told Rithika Chrome on
+Android could add a widget with no app, then checked and said it can't
+(only Edge on Windows supports web-app widgets). And it first wrote that
+the widget changes "each time your phone shows it", which iOS doesn't
+promise; the page now says each time the phone refreshes it, about every
+quarter of an hour, as the phone decides.
+
+Product calls, named for Rithika to redirect: not now lasts a fortnight
+per browser; the widget stops being offered once it has read the house;
+the order of cards is what's for her first, then the wall, her room,
+everyone, Shinzo; her own birthday gets a card wishing her; a Mac is
+told to put it on the iPhone first, since a Mac shows the iPhone's
+widgets.
+
+Not tried on a real phone yet: Rithika is testing on her iPhone and Mac.
+Two screenshots she took (the kitchen, the wall's polaroids) appeared in
+`doc/screenshots/` and were left as they are, uncommitted.
+
+**Correction:** none from Rithika.
+
+**Commits:** `8323d30`, `c11618f` (PROCESS.md prompts), and this entry's
+commit.
