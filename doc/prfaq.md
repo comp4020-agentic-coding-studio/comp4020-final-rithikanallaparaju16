@@ -1,22 +1,29 @@
 # Five Windows: PRFAQ
 
 A press release written as if the house were launching, then the questions
-people would ask about it. It describes the app as it is on 1 November 2026,
+people would ask about it. It describes the app as it is on 4 November 2026,
 gaps included. Who it's for is tested in [personas.md](personas.md), and what
 to build next is ranked in [rice.md](rice.md).
+
+The first version was written on 1 November. In the three days since, the
+house gained photos on the memory wall, a home-screen widget, a wall that
+starts fresh each month with a recap, saved plates, writing back, a planner
+for video calls, a time strip, walking from a phone's corners and house names
+at the door. This version is rewritten for all of that.
 
 ---
 
 ## Five Windows opens: a house for friends who are never awake at the same time
 
-*Drop in for thirty seconds, leave a note on a friend's desk or dinner on the
-counter, and go. Whoever comes by next finds it, an hour or a week later.
-Anyone can now make one for two to seven friends.*
+*Drop in for thirty seconds, leave a note on a friend's desk, a plate in the
+kitchen or a photo on the wall, and go. Whoever comes by next finds it, an
+hour or a week later, and her phone's home screen shows it before she even
+opens the house. Anyone can make one for two to seven friends.*
 
 **Canberra, November 2026.** Rithika Nallaparaju has opened Five Windows, a
 little illustrated house shared by five friends who live in Canberra, New
 Jersey, Tamil Nadu and Bangalore. Each friend has a bedroom that runs on her
-own clock, and they share a living room with a wall of notes, a kitchen, a
+own clock, and they share a living room with a memory wall, a kitchen, a
 garden and a dog called Shinzo. Nobody has to be online at the same time.
 Anyone can make a house like it for their own friends at `/make`.
 
@@ -28,46 +35,65 @@ that with notifications, unread counts and likes, which turn keeping in touch
 into keeping up.
 
 **The solution.** Five Windows is a place, not a feed. You pick your window at
-the door and walk your sticker around the house with the arrow keys or a
-thumb stick. You leave something where it belongs: a note and a masala chai
-on a friend's desk, a dish on the kitchen counter, a good-luck note on the
-wall, a seedling in the garden, a tidy room. It stays there. When you come
-back, "While you were away" says who came by and what's new, starting with
-what was left for you. Rooms dim by their owner's clock, so you can see that
-Neha's room is dark because it's 3 am in New Jersey. If friends happen to be
-in at the same time, the house is live: you see each other walk, hug and sit
-down on the mat for a game of UNO. Being there together is a bonus, never a
-requirement.
+the door and walk your sticker around the house, with the arrow keys on a
+laptop or by holding a bottom corner of a phone's screen. You leave something
+where it belongs:
+
+- a note and a masala chai on a friend's desk, which she can write back to
+- a plate of biryani saved for one friend, covered, waiting however long she's away
+- a photo on the memory wall of something that reminded you of them
+- a seedling in the garden, a tidy room, a birthday wish
+
+It stays there. When you come back, "While you were away" says who came by and
+what's new, starting with what was left for you. On the 1st of each month the
+wall starts fresh, and anyone who was away finds last month waiting as a
+recap until she's read it. Rooms dim by their owner's clock, so you can see
+that Neha's room is dark because it's 3 am in New Jersey. A strip of
+everyone's day lets you drag through time to find an hour for a call or a
+movie night that works for all of you.
+
+If friends happen to be in at the same time, the house is live: you see each
+other walk, hug and sit down on the mat for a game of UNO. Being there
+together is a bonus, never a requirement.
 
 > "we are a group of 5 friends who live in different parts of the world. So i
 > wanted to make something that is personal to us and make us feel like we
 > are together." Rithika Nallaparaju
+
+**On your home screen.** Home asks once on each phone, iPad or laptop whether
+you'd like the house on your home screen. Say yes and a little window shows
+something different every time your phone refreshes it: a friend's birthday
+(that day and the day before), a note or plate someone left you, this month's
+photos on the wall, your room, everyone's faces and clocks, or Shinzo. It
+asks the house one small question at a time and keeps every picture, so it's
+easy on the battery, and it never sends a notification.
 
 **How it works.**
 
 1. Open the house and pick your window. Only one person can be each friend at
    a time.
 2. Walk somewhere. Whatever you can use lights up: a bed, a desk, the stove,
-   the garden, Shinzo.
+   the wall, the garden, Shinzo.
 3. Leave something, or just do something: sleep in a friend's bed, water the
-   plants, pet the dog.
+   plants, pet the dog, hug whoever's there.
 4. Go. Everything you left survives a refresh, a restart and a redeploy.
-5. Come back whenever. The house shows who was here and what they left, and
-   nothing punished you for being away: plants get thirsty but never die,
-   rooms get lived-in but never gross, and Shinzo naps but is never sad.
+5. Come back whenever, or glance at your home screen. The house shows who was
+   here and what they left, and nothing punished you for being away: plants
+   get thirsty but never die, rooms get lived-in but never gross, Shinzo naps
+   but is never sad, and a saved plate never goes off.
 
 > "By the time I wake up, the joke's over, and I'm not scrolling back for it.
-> Now I come in with my coffee and see who was by in the night, and there's
-> usually something on my desk." Kavya, Toronto (a persona)
+> Now there's a photo from Meera on my home screen when I pick up my phone,
+> and a note on my desk when I go in." Kavya, Toronto (a persona)
 
 **A house for your own friends.** At `/make`, anyone can describe two to seven
 friends: their names, where they live, a few things about them, and what's in
 their room, picked from a set of 42 pictures. Add the memories you'd pin on
 the wall and, if you like, the inside joke from something you all did
-together, which is framed word for word by the living room door. The house
-gets its own private address, a picture with a bedroom for each friend, and
-everyone's own clock. Walking, hugs, the wall, UNO and Shinzo all come with
-it.
+together, framed word for word at the door and on the living room wall. The
+house gets its name on its door, its own private address, a picture with a
+bedroom for each friend, and everyone's own clock. Walking, hugs, the wall,
+photos, the widget, UNO and Shinzo all come with it.
 
 > "its challenging to make the website personal for all the users, but worth
 > a try" Rithika Nallaparaju
@@ -92,31 +118,57 @@ to twenty after her friends tried it: "10 sec was too less".
 
 **Will it notify me when something's left for me?**
 No, on purpose. There are no notifications, unread counts, likes or
-followers. The house tells you what's new when you come in. Until a nudge
-exists (see [rice.md](rice.md)), the group chat you already have is how
-anyone knows to come by.
+followers. The house tells you what's new when you come in, and the widget,
+if you add it, shows it on your home screen when your phone refreshes it.
+Neither ever buzzes. The group chat you already have is how anyone knows to
+come by now.
+
+**How do I get the widget?**
+Say yes when Home asks. On an iPhone or iPad it's a widget in the free
+Scriptable app: copy, paste, add, about a minute, and the page tells you
+"It's working" as soon as it is. A Mac with macOS Sonoma or newer shows your
+iPhone's widget on its desktop. On Android it takes the KWGT app and its Pro
+key (a few dollars), because Android doesn't let a website be a widget on its
+own. You paste it once; it updates itself after that.
 
 **Who can read what I leave?**
-A desk note is shown only to the friend it's for; everyone else sees that
-something's been left. The wall, the kitchen and the garden are for everyone.
-There are no passwords, though. Anyone with the address can pick a window
-that's free, so a private desk note is a courtesy, not a lock. A shared front
-door key is the likely next step.
+A desk note, and a reply to one, is shown only to the friend it's for;
+everyone else sees that something's been left. A plate saved for someone can
+only be eaten by her. The wall, the kitchen and the garden are for everyone in
+the house, photos included. There are no passwords, though. Anyone with the
+address can pick a window that's free, so a private desk note is a courtesy,
+not a lock. That's on purpose for now: Rithika's tutor needs to walk in and
+mark it. A front door key is the likely next step.
+
+**What happens to the wall each month?**
+On the 1st (by Canberra's clock in Rithika's house, the first friend's clock in
+a made one), the wall starts fresh. Last month goes into the memory box as an
+envelope, stickers and all, and anyone who comes back after the 1st gets a
+recap of it until she puts it away. Nothing is ever deleted.
 
 **What if I don't come by for a month?**
 Nothing dies and nothing scolds you. Your plants look thirsty until someone
-waters them, your room looks lived-in until someone tidies it, and "While you
-were away" lists what happened. Long absences have one known gap: Updates
-shows the first 40 things and can't show the rest.
+waters them, your room looks lived-in until someone tidies it, a plate saved
+for you is still covered on the counter, and the monthly recap waits for you.
+Long absences have one known gap: Updates shows the first 40 things and can't
+show the rest (rice.md, M).
+
+**How many photos can the wall hold?**
+There's no limit on how many; they're kept for good. The wall shows the
+newest 24 notes and photos, the cork board in the picture shows the newest
+three, and older ones are in the memory box. The page shrinks a photo before
+sending it, so it's usually a few hundred KB, and the house's 1 GB volume
+holds a few thousand.
 
 **Does it work on my phone?**
-Yes. On a phone the house fills the screen and you walk with a thumb stick,
-with Home, Updates, Movies and Everyone tabs at the bottom. Tapping a room
-walks you there and takes you in. Every action also works as a plain link or
-form without JavaScript.
+Yes. On a phone the house fills the screen; hold either bottom corner and
+slide to walk, like a game's stick, and the view leads the way you're going.
+Home, Updates, Movies and Everyone are tabs at the bottom. Tapping a room walks
+you there and takes you in. Every action also works as a plain link or form
+without JavaScript.
 
 **Can I delete or edit something I left?**
-Not yet, on purpose. Editing, deleting, photos and drawings each have to
+Not yet, on purpose. Writing back exists; editing and deleting each have to
 show they'd make friends feel closer first.
 
 **How many friends can share a house?**
@@ -135,7 +187,7 @@ joke, so the joke is framed exactly as you typed it. When Claude can't be
 reached, the house is built from your own words instead.
 
 **Can I change my house after making it?**
-Not yet. A typo or a wrong city means making it again.
+Not yet. A typo or a wrong city means making it again (rice.md, W).
 
 ---
 
@@ -148,17 +200,21 @@ same idea works for other groups of two to seven. [personas.md](personas.md)
 tests both.
 
 **What's the biggest risk?**
-That nobody comes back. Without notifications, a return depends on habit and
-on someone mentioning the house in the group chat. That's the deliberate
-trade, and it's still the weakest link in the loop. [rice.md](rice.md) scores
-two ways to soften it: a nudge you send yourself, and an email you ask for.
+It was "nothing brings anyone back". The widget changes that: what a friend
+left now reaches her home screen, without the house sending anything. The
+risk now is that the widget is fiddly to set up (an extra app on every phone,
+a paid one on Android) and hasn't been tried on a real phone yet. If friends
+don't add it, the house is back to depending on habit and the group chat.
+[rice.md](rice.md) scores the follow-ups: a nudge you send yourself (C), and
+a check that the widget works on the five's real phones (AE).
 
 **How will we know it works, with no metrics?**
-The house counts nothing, by design. Two signals need no dashboard. The logs
+The house counts nothing, by design. Three signals need no dashboard. The logs
 record who came in and what kind of thing they left (never what anyone
-wrote), which shows whether friends come back at different times. And the
-five can be asked, as Rithika did with UNO: "i asked my friends to try it and
-10 sec was too less so i chnaged it to 20sec."
+wrote), which shows whether friends come back at different times. The
+widget's page says whether a friend's widget has ever checked in, to her and
+no one else. And the five can be asked, as Rithika did with UNO: "i asked my
+friends to try it and 10 sec was too less so i chnaged it to 20sec."
 
 **Why doesn't the live house maker use Claude?**
 Rithika's course key is a Fly secret, but it goes through the course's proxy,
@@ -169,21 +225,26 @@ that calls Anthropic directly makes Claude work live, paid from Rithika's own
 account.
 
 **What does it run on?**
-One small Fly machine (shared CPU, 256 MB) that stops when nobody's using
-it, Node 24 with no build step, SQLite on the Fly volume, and one runtime
+One small Fly machine (shared CPU, 256 MB) that stops when nobody's using it,
+Node 24 with no build step, SQLite on a 1 GB Fly volume, and one runtime
 dependency, the Anthropic SDK, for making houses. Every write is a row in an
 append-only table, and the house's state (mess, thirst, Shinzo's day, UNO
-hands) is worked out from timestamps, so no timer runs while you're away.
+hands, which month the wall is in) is worked out from timestamps, so no timer
+runs while you're away. Photos are kept in the house's own database. The
+page's scripts carry a fingerprint, so a phone can't run yesterday's code
+under today's page.
 
 **What's known to be broken?**
-On 21 October, a test sweep left 21 tests that fail because of bugs (a few
-bugs fail more than one). Each is skipped by its title until the bug is
-fixed, so CI can deploy. They're scored alongside new ideas
+On 21 October, a test sweep left tests that fail because of bugs. Each is
+skipped by its title until its bug is fixed, so CI can deploy. Two have been
+fixed since (the house's name at its door, and the movie planner keeping up),
+and 17 are still skipped. They're scored alongside new ideas
 in [rice.md](rice.md). The two that matter most: on a phone, Home's top line
-can say nobody came by when someone did, and in a made house, a friend's
-city can be matched to the wrong clock ("Indiana" contains "india").
+can say nobody came by when someone did, and in a made house a friend's city
+can be matched to the wrong clock ("Indiana" contains "india").
 
 **What is it deliberately not?**
 A chat app, a feed, a forum or a dashboard. It has no likes, counts,
 algorithmic ordering, public profiles, infinite scroll or unrequested
-notifications. Photos, drawings and prompts are possibilities, not a backlog.
+notifications. Photos are in, but only as something pinned on a wall, never a
+feed. Drawings, voice and prompts are possibilities, not a backlog.

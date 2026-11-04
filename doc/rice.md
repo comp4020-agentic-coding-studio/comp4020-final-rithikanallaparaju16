@@ -1,11 +1,29 @@
 # Five Windows: RICE
 
 What to build next, ranked by **(Reach × Impact × Confidence) ÷ Effort**.
-The candidates are the bugs from the 21 October test sweep (each has a
-skipped test in `spec/` that passes once it's fixed) and the ideas raised in
-[prfaq.md](prfaq.md) and [personas.md](personas.md). Scored on 1 November
-2026. Letters are fixed IDs that the personas refer to, so they stay put if
-the scores change.
+The candidates are the bugs from the 21 October test sweep that are still open
+(each has a skipped test in `spec/` that passes once it's fixed), the ideas
+raised in [prfaq.md](prfaq.md) and [personas.md](personas.md), and new ideas
+from what's been built since. Scored on 4 November 2026, five days before the
+final project is due (9 November, noon). Letters are fixed IDs that the
+personas refer to, so they stay put if the scores change; new rows start at
+AA.
+
+## What changed since 1 November
+
+Done, and off the table:
+
+- **B.** A made house's name is on its door and on every page (1 Nov).
+- **T.** An open Movies page's planner keeps up with friends' suggestions (3 Nov).
+- **Q.** Photos on the memory wall (ADR 0024, 3 Nov).
+- **R** is replaced by the widget, which does its job (bringing friends back)
+  without email, a schedule or a new dependency (ADR 0025, 0027).
+- From the feature lists in log 66 and 70, and not rows here: saved plates
+  (ADR 0022), writing back, the home-screen icon, the planner for video calls
+  (ADR 0023), the time strip, and the monthly wall with its recap (ADR 0026).
+
+C dropped because the widget does most of its job. D rose because the
+planner and time strip now show the wrong clocks as well.
 
 ## How each number is scored
 
@@ -16,7 +34,8 @@ counts and re-sort:
 - Rithika's five, plus about ten made houses in use with about four friends
   each: **about 45 people**.
 - **About 10 people a month** make a house.
-- **About 25** of the 45 come in on a phone.
+- **About 25** of the 45 come in on a phone; guessing half are iPhones, **about
+  12 on Android**.
 
 **Impact**: how much it moves the test in `CLAUDE.md` (friends feel closer,
 the core loop holds, coming back is worth it): 3 massive, 2 high, 1 medium,
@@ -24,8 +43,7 @@ the core loop holds, coming back is worth it): 3 massive, 2 high, 1 medium,
 
 **Confidence**: how sure the reach and impact are. 100% for a bug a failing
 test shows, when how often it happens is clear; 80% for a known problem
-whose size is a guess (a rare timing bug, a share of cities); 50% for an
-idea nobody has tried.
+whose size is a guess; 50% for an idea nobody has tried.
 
 **Effort**: days of work with the agent, including the spec test and looking
 at it at phone, iPad and laptop widths. 0.25 is the smallest. A bug with a
@@ -35,26 +53,30 @@ skipped test is mostly done once that test passes.
 
 | ID | Change | Kind | Reach | Impact | Conf. | Effort | Score |
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
+| AE | Try the widget on the five's real phones, and fix what breaks | check | 45 | 2 | 80% | 0.5 | **144** |
+| AA | A birthday card: words that stay sealed until her day | idea | 45 | 2 | 80% | 0.5 | **144** |
 | A | Home's line on a phone says "Nobody's been by" when someone came and left nothing | bug | 25 | 1 | 100% | 0.25 | **100** |
-| B | Show a made house's name at its door and on its pages | bug | 40 | 0.5 | 100% | 0.25 | **80** |
-| C | "Tell them I was here": a ready message you send the group yourself | idea | 45 | 1 | 50% | 0.5 | **45** |
-| D | Made houses give friends the wrong clock ("Indiana" is India, Dubai is UTC) | bug | 13 | 2 | 80% | 1 | **21** |
+| AC | Light a lamp in a friend's window: a hug that waits for her | idea | 45 | 1 | 50% | 0.5 | **45** |
+| AD | The writer hears her desk note was found, once, without a time | idea | 45 | 0.5 | 50% | 0.5 | **22.5** |
+| C | "Tell them I was here": a ready message you send the group yourself | idea | 45 | 0.5 | 50% | 0.5 | **22.5** |
+| D | Made houses give friends the wrong clock ("Indiana" is India, Dubai is UTC) | bug | 13 | 2 | 80% | 1 | **20.8** |
 | E | A made house's "What is this place?" shows Rithika's README | bug | 10 | 1 | 100% | 0.5 | **20** |
 | F | The Updates dot shows when there's nothing new to read there | bug | 20 | 0.25 | 100% | 0.25 | **20** |
-| G | A front door key for each house, so desk notes are private | idea | 45 | 1 | 80% | 2 | **18** |
+| G | A front door key for each house, so desk notes and photos are private | idea | 45 | 1 | 80% | 2 | **18** |
 | H | UNO deals a friend in after she's left the house | bug | 8 | 1 | 100% | 0.5 | **16** |
 | I | The live house maker waits up to about 40 s on a Claude it can't reach | ops | 10 | 0.5 | 80% | 0.25 | **16** |
-| J | A question on the wall now and then, for anyone to answer | idea | 45 | 0.5 | 50% | 1 | **11** |
+| AF | A free widget for Android: the house's own picture, refreshed | idea | 12 | 1 | 50% | 0.5 | **12** |
+| AB | Write a line under a friend's photo on the wall | idea | 45 | 0.5 | 50% | 1 | **11.25** |
+| J | A question on the wall now and then, for anyone to answer | idea | 45 | 0.5 | 50% | 1 | **11.25** |
 | K | The Everyone tab offers "Come in as" a friend who's already home | bug | 5 | 0.5 | 100% | 0.25 | **10** |
 | L | A second batch of kettle Maggi takes the first one's note with it | bug | 5 | 0.5 | 100% | 0.25 | **10** |
 | M | Updates stops at 40 lines, and its "more" link leads back to itself | bug | 10 | 0.5 | 100% | 0.5 | **10** |
 | N | A garden planted just now looks thirsty | bug | 10 | 0.25 | 100% | 0.25 | **10** |
 | O | Name the dog in a made house (it's always Shinzo) | idea | 40 | 0.25 | 50% | 0.5 | **10** |
 | P | Claude writes made houses on the live site (a key that calls Anthropic directly) | idea | 40 | 0.25 | 50% | 0.5 | **10** |
-| Q | Photos | idea | 45 | 2 | 50% | 5 | **9** |
-| R | A "while you were away" email you ask for | idea | 45 | 1 | 50% | 3 | **7.5** |
+| AH | A song left playing in the living room | idea | 45 | 0.5 | 50% | 1.5 | **7.5** |
 | S | A sticker's note to the writer cuts an emoji in half | bug | 5 | 0.25 | 100% | 0.25 | **5** |
-| T | An open Movies page's movie-night planner misses friends' suggestions | bug | 5 | 0.25 | 100% | 0.25 | **5** |
+| AG | A festival in the house (Diwali lights on 8 November) | idea | 5 | 1 | 50% | 0.5 | **5** |
 | U | An UNO card played in the first half second of a turn is silently dropped | bug | 3 | 1 | 80% | 0.5 | **4.8** |
 | V | An open door doesn't light a window back up when her two minutes run out | bug | 5 | 0.5 | 80% | 0.5 | **4** |
 | W | Change a made house after making it | idea | 10 | 0.5 | 80% | 2 | **2** |
@@ -62,144 +84,105 @@ skipped test is mostly done once that test passes.
 | Y | Invisible names and notes (zero-width spaces) and 31 February are accepted | bug | 1 | 0.25 | 100% | 0.25 | **1** |
 | Z | Houses asked for at the same moment all get past the cap | bug | 1 | 0.25 | 100% | 0.5 | **0.5** |
 
-Ties are broken by confidence, then impact.
+Sorted by score. Ties are broken by confidence, then impact. AE and AA tie
+on everything; AE goes first because Rithika is testing the widget right now.
 
 ## Why each one scores what it does
 
-- **A.** On a phone, Home's top line is all of "While you were away" you see,
-  because the card that names visitors is hidden below 700 px. The line counts
-  only things left, so a friend who came and left nothing doesn't count, and it
-  says the opposite of the house's main promise. Test:
-  `spec/activities.test.ts`, "tells you the same thing at the top of Home…".
-- **B.** Every made house has a name, either the one typed or "<first
-  friend>'s house", and only the page after making it shows it. Inside, the
-  door says "Five Windows". Small, but it's what makes the house theirs.
-  Test: `spec/made-houses.test.ts`, "shows the name you gave your house at
-  its door". Done on 1 November: the name is on the door, in the top bar and
-  in every page's title, and the test passes.
-- **C.** Nothing brings anyone back; that's the biggest risk in the PRFAQ.
-  A button after leaving something, such as "Tell Kavya there's something
-  on her desk", would open the phone's share sheet or copy a link and a line
-  for the group chat. The house sends nothing; a friend does, so it isn't an
-  unrequested notification. Untested, hence 50%. **Rithika's call**, since it
-  touches how people come back.
-- **D.** The local maker builds every live house, and it finds a time zone by
-  matching parts of words in list order: "Bloomington, Indiana" contains
-  "india", "Western Australia" matches before Perth, "New South Wales" matches
-  Wales. Anywhere it doesn't know (Dubai, Thrissur, most of the world) gets UTC.
-  A room on the wrong clock dims and sleeps at the wrong hours, the opposite of
-  ADR 0006. A third of made-house friends is a guess, hence 80%. Matching
-  whole words, most specific first, against the cities in the time zones
-  Node knows (`Intl.supportedValuesOf("timeZone")` has `Asia/Dubai` and
-  `Australia/Perth`), and showing the guessed clock on the form so it can be
-  corrected, is about a day. Test: "keeps each friend's clock where she
-  lives".
-- **E.** A made house's "What is this place?" and "About this place" links
-  show README.md, which describes Rithika's five by name, with their cities,
-  birthdays and sleep hours. The README is public on GitHub, so it's
-  confusing more than a leak. A short about page for made houses fixes it.
-  Test: "keeps Rithika's five's own details out of a made house's about page".
-- **F.** The dot on Updates counts any new row, including a sticker on someone
-  else's note, which Updates doesn't list. A dot that leads nowhere teaches
-  people to ignore it. Test: "only puts the dot on Updates when there's
-  something new to read there".
-- **G.** Anyone with the address can be anyone whose window is free, so a
-  desk note is a courtesy, not a lock. It matters most to a couple (Lea) and
-  to anyone a link gets forwarded to. It changes the door, so it needs an
-  ADR. **Do it after the final project is marked (9 November)**: markers and
-  crit visitors walk in through those windows. Rithika confirmed on 3
-  November: no passwords for now, so her tutor can check it, and PROCESS.md
-  says it's on purpose.
-- **H.** Leaving takes a friend out of her game (ADR 0016), but she still
-  counts as sitting on the mat, so the next deal includes her and everyone
-  waits out her twenty seconds. People often close the tab while sitting.
-  Test: `spec/multiuser.test.ts`, "deals UNO only to friends who are still in
-  the house".
-- **I.** The course key on Fly goes through a proxy only the ANU network can
-  reach, so every live house waits for Claude to fail before it's built from
-  the form. Taking the key off Fly (`flyctl secrets unset`) removes the wait,
-  and the house comes out the same. **Rithika's call**: it's her key and her
-  secret. The alternative is P.
-- **J.** A question pinned on the wall, such as "what did you eat today?",
-  gives a quiet friend (Arjun) something easy to say. The wall already holds
-  notes; this is one more kind. Untested.
-- **K.** Pressing "Come in as" for a friend who's home is a 409 dead end; the
-  door already shows her window shut. Test: "never offers to come in as a
-  friend who's already home".
-- **L.** The kettle shows only the newest batch, so a friend's note with the
-  first batch is gone before Amirdhavarshini reads it. Rithika's house only.
-  Test: "keeps a friend's kettle Maggi note in the room after someone else
-  makes more".
-- **M.** After a busy stretch away, Updates lists the first 40 things, and
-  "There's more since you were last here" links back to the same page. What
-  was left for you is listed first, so what's cut is the rest of the house.
-  Test: "lets you reach everything that happened while you were away from
-  Updates".
-- **N.** The garden looks thirsty when the last watering was over two days ago,
-  even if the only plant went in a moment ago. Test: "never shows a
-  just-planted garden as thirsty".
-- **O.** Every made house's dog is called Shinzo, Rithika's dog. A field on the
-  form would let a group name theirs. His code and pictures stay `laddoo`.
-- **P.** Claude writes each room's description from what was said about each
-  friend. Without it, rooms are built from the words as typed, which is
-  already personal, so the gain is small. It needs a paid key that calls
-  Anthropic directly, from Rithika's own account, and then Z starts to matter.
-- **Q.** Photos are the biggest change a friend would feel, and the
-  biggest effort: resizing on a machine with 256 MB of memory, storage on
-  one small volume, what happens to old ones, an ADR. A possibility, not a backlog
-  (`CLAUDE.md`). Still out.
-- **R.** An email you ask for, with what's new since you were last here. It
-  would bring people back, but it needs an email service (another runtime
-  dependency) and something that runs on a schedule, which ADR 0005 avoids.
-  C does most of the job for a tenth of the effort.
-- **S.** The writer's line quoting her note cuts it at 40 code units, which
-  can split an emoji into "�". Test: "quotes your note intact when a friend
-  stickers it, emoji and all".
-- **T.** The planner isn't one of the Movies page's live parts, so a suggestion
-  made while it's open only shows in it after a reload. Test: "keeps an open
-  Movies page's movie-night planner up to date…". Done on 3 November, with
-  the planner's clock for each friend: the test passes.
-- **U.** The server checks a move against when it arrives, but the replay
-  plays stored moves half a second early, so a card played in that half
-  second after the turn before ran out is accepted, then dropped. It's
-  rare, but a lost card feels broken. Test: "keeps an UNO move the house took
-  right after the turn before ran out".
-- **V.** When a friend's two minutes run out, nothing tells open pages, so the
-  door shows her window shut until something else happens. It matters mostly
-  at crits, where strangers are waiting for a window. Test: "lights a window
-  back up on an open door once she's been gone two minutes".
-- **W.** A wrong city or a typo means making a new house at a new address and
-  sending it round again. Fixing D removes most of the need.
-- **X, Y, Z.** Nobody meets these by accident. X: `new URL` throws on an empty
-  first segment, and `HEAD /live` opens a stream. Y: `trim()` keeps zero-width
-  spaces, and any day goes with any month. Z: the cap is checked before
-  Claude is awaited and counted after, which only costs anything once P is
-  done. Tests: "never stumbles over an extra slash…", "answers an address
-  with no house at it…", "answers odd addresses inside a made house…",
-  "answers a HEAD for the live line…", "won't pin up a note with nothing you
-  can see on it", "turns
-  down a name nobody can see", "only takes a birthday that's on the
-  calendar", "makes only three houses for a visitor who asks for several at
-  once".
+New rows first, then the old ones that changed. Rows with no note here
+scored the same as on 1 November for the same reasons.
+
+- **AE.** The widget is the answer to the house's biggest risk, and nobody
+  has run it on a real phone. The spec runs it in a sandbox built to be as
+  bare as Scriptable, which caught one bug that would have broken it on every
+  iPhone, but a sandbox isn't a phone: picture sizes, how iOS crops a large
+  widget, how the room cut-out looks at a phone's scale. Rithika is testing
+  on her iPhone and Mac now. Half a day to fix what turns up. The widget
+  updates itself, so fixes reach every phone without anyone pasting again.
+  Not 100% because what turns up is unknown.
+- **AA.** On her birthday, each friend finds the words her friends wrote her
+  weeks ago, sealed until the day. A wish today is a row with no words
+  (`wish` carries no body). Sealing is the most "made for being apart" thing
+  the house could do: written whenever you think of it, opened on her day in
+  her clock, however far apart you are. The widget already shows her picture
+  on the day and the day before, and could show "3 cards waiting". **Aswathy's
+  birthday is 8 November**, in four days, so it has a deadline. 80% because
+  birthdays are proven in the house already (bunting, crowns, wishes); only
+  the sealing is new. Rithika's call on the words (does a card say who it's
+  from before it opens?).
+- **AC.** Leave a lamp lit in a friend's window, and it stays lit until she
+  next comes home and sees it: a hug that doesn't need both of you there.
+  Hugs today need both friends near each other at once (`HUG_REACH`), which
+  Lea and Kavya rarely manage. The house already draws lamps (`lamp` in
+  `src/pages.ts`), so it's mostly a new `kind`. Untested, so 50%.
+- **AD.** The writer of a desk note hears, once, "Kavya found your note",
+  with no time. Saved plates already do this ("found the plate of dosa you
+  saved her"), and it's what Kavya wanted. Without a time it isn't a read
+  receipt: it says it landed, not when or that she's ignoring you. Rithika's
+  call, since it's the line between warm and watched.
+- **AB.** One line under a friend's photo, from anyone, shown under it on the
+  wall, the way you'd write on the back of a print. Stickers say how you felt;
+  this says what it reminded you of. It must stay one line each, never a
+  thread, or the wall turns into comments (CLAUDE.md: never a forum).
+- **AF.** On Android, the widget needs KWGT and a paid key, which leaves out
+  Arjun, the friend it would help most. A free way: Android home-screen
+  photo widgets (most phones have one) can show a picture from a folder, and
+  apps like "Web Widget" show a page. The house could serve a small daily
+  postcard image at the widget's link, and the page would show how to set it.
+  Half a day to try; 50% because it depends on what each Android phone has.
+- **AG.** On a festival, the house dresses up for everyone: diyas along the
+  windows for Diwali, which is Sunday 8 November this year, the same day as
+  Aswathy's birthday. Reach is Rithika's five only (a made house's friends
+  may not celebrate it), and **only Rithika can say whether the five
+  celebrate it** (CLAUDE.md: ask her before inventing details for the
+  friends). Low reach, so low score, but it's the kind of detail that makes
+  the house theirs.
+- **AH.** Leave a song playing in the living room: a title and a link that
+  stays until someone changes it. The house says who chose it. Movies
+  already works this way for films. 1.5 days because of what a song link
+  can open on each phone. A possibility, not a commitment.
+- **A** still scores 100. On a phone, Home's top line is all of "While you
+  were away" you see, and it can say the opposite of the house's main
+  promise. The widget makes it matter a little less, but the phone's
+  Home is still where most friends come in.
+- **C** drops from 45 to 22.5: the widget now does most of what a nudge was
+  for (something reaching a friend without the house pinging her), so its
+  impact halves. Still useful for Android friends without the widget.
+- **D** stays about 21 by the numbers, but understates it more than before. A wrong
+  clock now shows in the planner's row for that friend and in her lane on
+  the time strip, so planning a call in a made house gives the wrong hours,
+  which is the first thing Priya came for.
+- **G.** Photos raised the stakes: a couple's photos are as private as
+  their notes. Still **after the final project is marked (9 November)**:
+  markers and crit visitors walk in through those windows. Rithika confirmed
+  on 3 November: no passwords for now, so her tutor can check it.
+- **M.** The monthly recap shows all of last month, so this bites less across
+  months, but a busy week away still hits the 40-line limit.
 
 ## What to build next
 
-1. **A, B, F, K, L and N together.** Six bugs, each a quarter of a day, each
-   with a skipped test ready to turn back on. That's about a day and a half
-   for the top two scores and four small ones.
-2. **D, then E.** A made house's first visit, which decides whether its maker
-   shares it (Priya). RICE understates D: one wrong clock is the first thing a
-   group notices, and its reach is a guess.
-3. **H.** The worst live bug, and it hits whoever is most engaged (Meera).
-4. **Ask Rithika about C and I.** C is the best idea on the list, but it
-   touches how people come back. I is one command on her secret.
-5. **G after 9 November.**
+1. **AE now.** Rithika is testing the widget on her iPhone and Mac; fix
+   what she finds, the same day. It's the answer to the house's biggest risk.
+2. **AA by 8 November**, if Rithika wants it for Aswathy's birthday. Ask
+   her first: whether a card shows who it's from before it opens, and
+   whether friends can read each other's cards.
+3. **A, F, K, L and N together.** Five bugs, each a quarter of a day, each
+   with a skipped test ready to turn back on.
+4. **D, then E.** A made house's first visit, which decides whether its maker
+   shares it.
+5. **Ask Rithika about AD, AG and I.** AD is a line about privacy; AG needs
+   her to say whether the five celebrate Diwali; I is one command on her
+   secret.
+6. **G after 9 November.**
 
 ## Not scored
 
 - **More than seven friends.** Each size needs a new picture and layout
   (ADR 0021). Nobody has asked.
 - **Likes, counts, feeds, profiles, notifications the house sends.** Ruled
-  out by the brief, whatever they'd score.
-- **Drawings and real-time chat.** Possibilities in `CLAUDE.md`, not
-  candidates until someone shows they'd make five people feel closer.
+  out by the brief, whatever they'd score. The widget shows; it never
+  buzzes.
+- **Streaks, "you haven't been here in a week".** They punish absence, which
+  the house never does.
+- **Drawings, voice notes and real-time chat.** Possibilities in `CLAUDE.md`,
+  not candidates until someone shows they'd make five people feel closer.
