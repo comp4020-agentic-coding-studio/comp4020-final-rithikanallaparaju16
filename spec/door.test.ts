@@ -185,7 +185,7 @@ it("answers a wrong turn with a page of its own and a way back", async () => {
     expect(res.status, `GET ${path}`).toBe(404);
     expect(res.headers.get("content-type"), `GET ${path}`).toMatch(/^text\/html/);
     const d = parse(await res.text());
-    expect(d.querySelector("link[href='/style.css']"), `GET ${path} isn't in the house's own look`).not.toBeNull();
+    expect(d.querySelector("link[href^='/style.css?v=']"), `GET ${path} isn't in the house's own look`).not.toBeNull();
     expect([...d.querySelectorAll("a")].some((a) => text(a) === "Go back"), `GET ${path} has no way back`).toBe(true);
   }
 });
@@ -197,6 +197,20 @@ it.skip("never stumbles over an extra slash in the address", async () => {
     const res = await fetch(root + path, { redirect: "manual" });
     expect(res.status, `GET ${path}`).toBeLessThan(500);
   }
+});
+
+// A phone kept yesterday's walking under today's page (4 November): the
+// page asks for its stylesheet and scripts by a fingerprint, so a changed
+// file is a new address, and one asked for without it is checked every time.
+it("never leaves a browser running yesterday's scripts under today's page", async () => {
+  const door = parse(await (await get("/")).text());
+  const own = [door.querySelector("link[rel=stylesheet][href^='/style.css']")?.getAttribute("href"), ...[...door.querySelectorAll("script[src]")].map((s) => s.getAttribute("src"))];
+  expect(own.filter((src) => /^\/(style\.css|house\.js|live\.js)/.test(src ?? "")).length, "the page's own files are missing").toBe(3);
+  for (const src of own) {
+    expect(src, `${src} has no fingerprint`).toMatch(/\?v=[0-9a-f]{10}$/);
+    expect((await get(src!)).headers.get("cache-control"), `${src} isn't kept`).toContain("immutable");
+  }
+  for (const path of ["/style.css", "/house.js", "/live.js"]) expect((await get(path)).headers.get("cache-control"), `${path} on its own is kept stale`).toBe("no-cache");
 });
 
 it("answers a HEAD like a GET, without a body", async () => {

@@ -44,6 +44,9 @@ bedrooms dim, each by its owner's clock; the living room, kitchen, garden and
 halls are always in daylight (ADR 0015, Rithika: "no common area should be
 dim"). Laptop: the house with updates beside it. Phone: the house
 fills the screen, with Home, Updates, Movies and Everyone tabs at the bottom.
+Since 4 November Home asks each browser once whether to put the house on
+the home screen (Yes / Not now); Yes goes to `/home-screen`, and the widget
+shows a different card each time the phone draws it (ADR 0027).
 
 Since session 4, two rooms have an activity of their own: face masks in
 Rithanya's (`MASK_ROOM`) and kettle Maggi in Amirdhavarshini's (`KETTLE_ROOM`),
@@ -316,12 +319,20 @@ accepted record.
   `.who` is the drawing's name labels. Grep `public/style.css` before naming
   a new class. Modifiers too: `.side` is Home's side column, and a link
   given `side` as a modifier turned into a grid.
-- `public/widget/scriptable.js` runs in Scriptable on an iPhone: plain
-  JavaScriptCore, with no browser's `URL`, `fetch`, `setTimeout` or
+- `public/widget/scriptable.js` (the few lines a friend pastes) and
+  `public/widget/widget.js` (the widget itself, which those lines fetch
+  from the house and keep, ADR 0027) run in Scriptable on an iPhone:
+  plain JavaScriptCore, with no browser's `URL`, `fetch`, `setTimeout` or
   `document`. Its first version used `new URL` and would never have
-  loaded. The widget spec runs it in a bare `node:vm` sandbox with
-  Scriptable's objects stood in, which catches that; keep it to what
-  Scriptable has.
+  loaded. The widget spec runs both in a bare `node:vm` sandbox with
+  Scriptable's objects stood in (FileManager on a real temp folder),
+  which catches that and counts what each draw fetches; keep it to what
+  Scriptable has. A change to `widget.js` reaches phones by itself (the
+  JSON's `code` is its fingerprint), so don't make friends paste again.
+- The page's own `style.css`, `house.js` and `live.js` are asked for by
+  fingerprint (`own()` in `src/assets.ts`) and kept for good; until 4
+  November they weren't, and a phone ran yesterday's walking under
+  today's page. A new file the page loads goes through `own()` too.
 
 ## Deploying
 

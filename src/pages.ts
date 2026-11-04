@@ -1,5 +1,5 @@
-import { crownSvg, emoji, EMOJI, iconSvg, patchesSvg, plantSvg, POP } from "./art.ts";
-import { art } from "./assets.ts";
+import { crownSvg, emoji, EMOJI, GIFT_EMOJI, iconSvg, patchesSvg, plantSvg, POP } from "./art.ts";
+import { art, own } from "./assets.ts";
 import { avatarUrl } from "./avatars.ts";
 import { belonging, belongingArt } from "./belongings.ts";
 import { drawingSvg, type Drawing } from "./drawings.ts";
@@ -60,7 +60,7 @@ import { PEOPLE, personById, type Person } from "./people.ts";
 import { their, them, they, theyre, verb } from "./words.ts";
 import { dogSpots, houseSvg, HUG_REACH, isPlace, kennel, placeAt, standingSpots, type Doing, type Figure, type Scene, type Spot } from "./scene.ts";
 import type { Thing } from "./store.ts";
-import { ago, asleep, birthday, birthdayLabel, clock, dayLabel, hello, localInput, phase, ymd, type Phase } from "./time.ts";
+import { ago, asleep, birthday, birthdayLabel, birthdaySoon, clock, dayLabel, hello, localInput, phase, ymd, type Phase } from "./time.ts";
 import {
   canPlay,
   cardName,
@@ -101,10 +101,15 @@ export type Visit = {
   // The month whose wall a recap is waiting for her, until she puts it away
   // (ADR 0026).
   recap?: string;
-  // Whether she's made a home-screen widget (ADR 0025); until she has, Home
-  // shows the way to one.
-  widget?: boolean;
+  // Her home-screen widget (ADR 0025, 0027): whether she's made its link,
+  // when it last read the house (0 for never), and whether this browser said
+  // "not now" to Home's question.
+  widget?: { made: boolean; seen: number; later?: boolean };
 };
+
+// Which steps the widget's page opens first (src/server.ts reads it from the
+// browser).
+export type Device = "iphone" | "ipad" | "mac" | "android" | "other";
 
 const HOME_NOW = 10 * 60 * 1000;
 const WEEK = 7 * 24 * 60 * 60 * 1000;
@@ -279,10 +284,10 @@ export function shell(title: string, body: string, light: Phase, kind: string): 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&display=swap">
-<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="${own("style.css")}">
 <style>:root { --house: url("${art(layout().picture)}"); }</style>
-<script src="/house.js" defer></script>
-<script src="/live.js" defer></script>
+<script src="${own("house.js")}" defer></script>
+<script src="${own("live.js")}" defer></script>
 </head>
 <body class="light-${light} ${kind}" data-base="${esc(house().base)}">
 ${body}
@@ -797,25 +802,49 @@ function everyone(v: Visit, full: boolean): string {
   </section>`;
 }
 
-/* ---------- the home-screen widget (ADR 0025) ---------- */
+/* ---------- the home-screen widget (ADR 0025, ADR 0027) ---------- */
 
 // What a friend's home-screen widget shows, like Locket: the newest thing a
 // friend left for her (a photo on the wall first, if one's newer than a day
 // since anything else), and the others' faces and clocks, glowing if they're
 // home now. The words are Updates' own, so the widget and the house agree.
 // Pictures are named relative to the widget's own address, which carries
-// its key: `photo/<id>` and `face/<id>` (src/server.ts).
+// its key: `photo/<id>`, `face/<id>`, `room/<id>` and `dog` (src/server.ts).
+//
+// Since ADR 0027 it also has `cards`, which the widget takes turns showing,
+// one each time the phone draws it: a birthday (that day and the one
+// before), what's on her desk for her, a plate saved for her, the memory
+// board, her room, everyone, and Shinzo. Asked for: "the widget can show
+// memory board, their room, show food or the note preview if somebody left
+// food for them, it could also be the memory board, pictures of all the
+// avatars / anything wholesome, it can keep chnaging. it can show the
+// birthday persons avatar on their birday, prev day aslo."
 export type WidgetFriend = { id: string; name: string; color: string; time: string; day: boolean; home: boolean; asleep: boolean; face: string };
+export type WidgetCard =
+  | { kind: "birthday"; who: string; name: string; color: string; face: string; when: "today" | "tomorrow"; title: string; line: string; open: string }
+  | { kind: "desk"; by: string; color: string; face: string; gift?: string; emoji?: string; text: string; ago: string; title: string; open: string }
+  | { kind: "plate"; by: string; color: string; face: string; food: string; emoji: string; text: string; ago: string; title: string; open: string }
+  | { kind: "wall"; title: string; photos: { src: string; by: string; caption?: string }[]; notes: { by: string; color: string; text: string }[]; open: string }
+  | { kind: "room"; title: string; picture: string; view: number[]; sticker?: { src: string; at: number[] }; dark: boolean; line: string; open: string }
+  | { kind: "everyone"; title: string; open: string }
+  | { kind: "dog"; title: string; picture: string; view: number[]; dog: string; at?: number[]; napping: boolean; line: string; open: string };
 export type Widget = {
   house: string;
   for: string;
   latest?: { text: string; by: string; color: string; ago: string; at: number; photo?: string; caption?: string; face: string; open: string };
   friends: WidgetFriend[];
+  cards: WidgetCard[];
   open: string;
 };
 
+const WIDGET_WORDS = 90;
+const short = (s: string, n = WIDGET_WORDS): string => (s.length > n ? `${s.slice(0, n).trimEnd()}…` : s);
+
+// A friend's face for the widget, by her own address under the widget's
+// link, with the picture's fingerprint so the phone keeps it until it changes.
+const faceOf = (p: Person): string => `face/${p.id}?v=${avatarUrl(p).split("?v=")[1] ?? ""}`;
+
 export function widget(v: Visit): Widget {
-  const faceOf = (p: Person): string => `face/${p.id}`;
   const fromFriends = v.things.filter((t) => t.author !== v.me.id);
   const list = happenings(fromFriends, v.me, v.things);
   // What was left for you comes first, then the rest, newest first in each.
@@ -847,9 +876,116 @@ export function widget(v: Visit): Widget {
       const c = clock(p.tz, v.now);
       return { id: p.id, name: p.id === v.me.id ? "You" : p.name, color: p.color, time: c.label, day: !["night", "dusk"].includes(phase(c)), home: homeNow(p, v), asleep: sleeping(p, v), face: faceOf(p) };
     }),
+    cards: widgetCards(v),
     open: "/",
   };
 }
+
+// The widget's cards, in the order it takes them: what's for her first.
+// Only cards with something in them are there; everyone and Shinzo always
+// are, so the widget always has something warm to show.
+function widgetCards(v: Visit): WidgetCard[] {
+  const cards: WidgetCard[] = [];
+
+  // A friend's birthday, that day and the day before, by her own clock. Her
+  // own birthday too: the widget wishes her.
+  for (const p of PEOPLE) {
+    const when = birthdaySoon(p, v.now);
+    if (!when) continue;
+    const mine = p.id === v.me.id;
+    const title = mine ? (when === "today" ? "Happy birthday to you!" : "Your birthday's tomorrow!") : when === "today" ? `It's ${p.name}'s birthday!` : `${p.name}'s birthday is tomorrow`;
+    const line = mine ? (when === "today" ? "Everyone's thinking of you today." : "The house is getting the balloons ready.") : when === "today" ? `Go and wish ${them(p)} in ${their(p)} room.` : `Get ready to wish ${them(p)}.`;
+    cards.push({ kind: "birthday", who: p.id, name: p.name, color: p.color, face: faceOf(p), when, title, line, open: `/room/${p.id}` });
+  }
+
+  // The newest thing on her desk from a friend, with the note's words.
+  const onDesk = desk(v.things, v.me.id).find((t) => t.author !== v.me.id);
+  const giver = onDesk && personById(onDesk.author);
+  if (onDesk && giver) {
+    const gift = onDesk.kind === "desk" ? find(GIFTS, onDesk.item) : undefined;
+    const title = onDesk.kind === "reply" ? `${giver.name} wrote back` : gift ? `${giver.name} left you ${gift.short.replace(/^an? /, "")}` : `${giver.name} left you a note`;
+    cards.push({
+      kind: "desk",
+      by: giver.name,
+      color: giver.color,
+      face: faceOf(giver),
+      ...(gift ? { gift: gift.key, emoji: GIFT_EMOJI[gift.key] ?? "🎁" } : {}),
+      text: onDesk.body ? `“${short(onDesk.body)}”` : `It's on your desk${gift ? ` with ${gift.label}` : ""}.`,
+      ago: ago(onDesk.createdAt, v.now),
+      title,
+      open: `/room/${v.me.id}`,
+    });
+  }
+
+  // A plate in the kitchen saved for her, still waiting.
+  const plate = counter(v.things, v.now).find((t) => savedFor(t) === v.me.id && t.author !== v.me.id);
+  const cook = plate && personById(plate.author);
+  if (plate && cook) {
+    const what = dishName(plate);
+    cards.push({
+      kind: "plate",
+      by: cook.name,
+      color: cook.color,
+      face: faceOf(cook),
+      food: food(plate),
+      emoji: GIFT_EMOJI[food(plate)] ?? "🍽️",
+      text: plate.body ? `“${short(plate.body)}”` : "It's covered and waiting for you on the counter.",
+      ago: ago(plate.createdAt, v.now),
+      title: `${cook.name} saved you some ${what}`,
+      open: "/kitchen",
+    });
+  }
+
+  // The memory board: this month's photos, or its notes if there are none.
+  const month = monthOf(monthClock(), v.now);
+  const pinned = wallIn(v.things, monthClock(), month);
+  const photos = pinned.filter((t) => photoOf(t)).slice(0, 4).map((t) => ({ src: `photo/${photoOf(t)}`, by: nameOf(t.author), ...(t.body ? { caption: short(t.body, 60) } : {}) }));
+  const notes = pinned.filter((t) => !photoOf(t)).slice(0, 2).map((t) => ({ by: nameOf(t.author), color: personById(t.author)?.color ?? "#7a6150", text: short(t.body, 70) }));
+  if (photos.length || notes.length) cards.push({ kind: "wall", title: `The memory wall, ${monthLabel(month, v.now)}`, photos, notes, open: "/living#wall" });
+
+  // Her room, cut from the house's own picture (the widget does the cutting,
+  // from `view`), with her sticker in it, dimmed when it's night where she
+  // lives, as the house dims it.
+  const c = clock(v.me.tz, v.now);
+  const room = layout().rooms[roomPlace(v.me.id)];
+  const wished = wishes(v.things, v.me.id).length > 0 && birthday(v.me, v.now) > 0;
+  if (room) {
+    cards.push({
+      kind: "room",
+      title: "Your room",
+      picture: art(layout().picture),
+      view: room.view,
+      ...(v.me.look ? {} : { sticker: { src: faceOf(v.me), at: room.walk[0] } }),
+      dark: ["night", "dusk"].includes(phase(c)),
+      line: `${c.label} in ${v.me.city}${wished ? ", with birthday wishes waiting" : ""}.`,
+      open: `/room/${v.me.id}`,
+    });
+  }
+
+  cards.push({ kind: "everyone", title: made() ? houseName() : "All five of you", open: "/everyone" });
+
+  // Shinzo, where his own day has him (the same for everyone), napping on
+  // the picture if he's napping; with a friend, wherever she is.
+  const d = laddooAt(v);
+  const withFriend = d.with ? (d.with.id === v.me.id ? "with you" : `with ${d.with.name}`) : "";
+  const where = layout().rooms[d.place] ?? layout().rooms.garden;
+  if (where) {
+    cards.push({
+      kind: "dog",
+      title: DOG,
+      picture: art(layout().picture),
+      view: where.view,
+      dog: art("laddoo.png"),
+      ...(!d.with && d.pose === "nap" ? { at: d.at } : {}),
+      napping: !d.with && d.pose === "nap",
+      line: withFriend ? `${cap(withFriend)}, ${placeName(d.place, v.me)}.` : `${cap(upTo(d, v))}.`,
+      open: pageFor(d.place),
+    });
+  }
+  return cards;
+}
+
+const pageFor = (place: string): string => (place.startsWith("room:") ? `/room/${place.slice("room:".length)}` : `/${place}`);
 
 /* ---------- the tabs ---------- */
 
@@ -859,6 +995,7 @@ export function housePage(v: Visit): string {
 ${bar(v, "home")}
 <main class="home">
   ${news(v)}
+  ${widgetAsk(v)}
   ${toWidget(v, "in-news")}
   <div class="home-grid">
     <section class="map" aria-label="The house">${houseSvg(scene(v))}</section>
@@ -885,7 +1022,7 @@ ${bar(v, "updates")}
 
 // Everyone's clock right now, then the next video call and the planner to
 // find a time that works for all of you.
-export function everyonePage(v: Visit, did?: Done, widgetLink?: string, widgetScript?: string): string {
+export function everyonePage(v: Visit, did?: Done): string {
   return shell(`Everyone · ${houseName()}`, `
 ${bar(v, "everyone")}
 <main class="list">
@@ -893,60 +1030,111 @@ ${bar(v, "everyone")}
   ${everyone(v, true)}
   ${callCard(v)}
   ${planner(v, "everyone")}
-  ${widgetCard(widgetLink, widgetScript)}
+  ${widgetCard(v)}
   ${footer(v.me)}
 </main>`, phase(clock(v.me.tz, v.now)), "page-list");
 }
 
-// The way to the widget from Home, until she's made one: a line under the
-// news on a phone, at the foot of the side column on a laptop. Asked for:
-// "please do the widget thing, how can i even ask the app to do that, where
-// is the option".
-function toWidget(v: Visit, where: "in-news" | "in-side"): string {
-  if (v.widget) return "";
-  return `<a class="to-widget ${where}" href="/everyone#widget">${emoji("widget")} Put the house on your home screen, like Locket ›</a>`;
+// Home asks, on a phone, an iPad or a laptop: does she want the house on her
+// home screen? Yes goes to the steps for whatever she's on; not now stops
+// this browser asking for a fortnight (ADR 0027). Asked for: "when i enter
+// the home through laptop,phone or ipad, there should be an option asking if
+// i want the widget on my homescreen, if i say yes, it has to work". Once
+// her widget has read the house, it stops asking anywhere.
+function widgetAsk(v: Visit): string {
+  if (!v.widget || v.widget.seen || v.widget.later) return "";
+  return `<section class="widget-ask" aria-labelledby="widget-ask-heading" data-live="widget-ask">
+    <p id="widget-ask-heading"><span class="emoji" aria-hidden="true">📱</span> <b>Put ${esc(houseName())} on your home screen?</b> <span class="widget-ask-why">A little window that keeps changing: birthdays, what friends left you, the memory wall, your room, everyone, and ${DOG}.</span></p>
+    <div class="widget-ask-answers">
+      <form method="post" action="/widget/yes" class="inline"><button class="widget-yes">Yes<span class="widget-ask-more">, show me how</span></button></form>
+      <form method="post" action="/widget/later" class="inline"><button class="soft">Not now</button></form>
+    </div>
+  </section>`;
 }
 
-// Getting the house onto your home screen as a widget, like Locket (ADR
-// 0025): your own link, and how to use it on an iPhone or an Android. The
-// link is only on your own Everyone tab, and making a new one turns the old
-// one off. `link` is the full address, from src/server.ts. The script for
-// an iPhone is right here to copy, with the link already in it, so getting
-// the widget is: get Scriptable, copy, paste, add it.
-function widgetCard(link?: string, script?: string): string {
-  const make = `<form method="post" action="/widget" class="inline"><button class="${link ? "soft" : ""}">${emoji("widget")} ${link ? "Make a new link (the old one stops)" : "Put it on my home screen"}</button></form>`;
-  if (!link) {
-    return `<section class="card home-widget" id="widget" aria-labelledby="widget-heading">
+// After "not now", a quiet way back to the widget's page instead of the
+// question: a line under the news on a phone, at the foot of the side column
+// on a laptop. Gone once her widget's working.
+function toWidget(v: Visit, where: "in-news" | "in-side"): string {
+  if (!v.widget?.later || v.widget.seen) return "";
+  return `<a class="to-widget ${where}" href="/home-screen#widget">${emoji("widget")} Put the house on your home screen ›</a>`;
+}
+
+// On the Everyone tab: the way to the widget's page, and whether it's
+// working.
+function widgetCard(v: Visit): string {
+  const w = v.widget;
+  const status = w?.seen
+    ? `Your widget's working: it last looked in ${esc(ago(w.seen, v.now))}.`
+    : w?.made ? "Your widget's link is ready, but it hasn't looked in yet." : "A little window on your home screen that keeps changing.";
+  return `<section class="card home-widget" id="widget" aria-labelledby="widget-heading" data-live="widget-card">
     <h2 id="widget-heading">${emoji("widget")} The house on your home screen</h2>
-    <p>Like Locket: a widget on your phone's home screen with the newest photo or note a friend left you, and everyone's faces and clocks. It's your own, so keep it to yourself.</p>
-    ${make}
+    <p>${status}</p>
+    <a class="button soft" href="/home-screen#widget">${w?.seen ? "Put it on another phone" : "Show me how"} ›</a>
   </section>`;
-  }
-  return `<section class="card home-widget" id="widget" aria-labelledby="widget-heading">
-    <h2 id="widget-heading">${emoji("widget")} The house on your home screen</h2>
-    <p>Your widget is ready. It shows what friends left for you, so keep it to yourself.</p>
-    <details id="widget-iphone" open><summary>On an iPhone</summary>
-      <ol>
-        <li>Get <a href="https://apps.apple.com/app/scriptable/id1405459188"><b>Scriptable</b></a> from the App Store (it's free).</li>
-        <li><button type="button" class="soft widget-copy" data-copy="widget-script" hidden>Copy your widget's script</button><span class="widget-copy-by-hand">Copy your widget's script: tap in the box below, Select All, then Copy.</span>
-          <textarea id="widget-script" class="widget-script" readonly rows="3" aria-label="Your widget's script">${esc(script ?? "")}</textarea></li>
-        <li><a class="button soft" href="scriptable:///add">Open Scriptable</a> (or open it yourself and tap <b>+</b>), paste it in, then tap the title at the top and name it “${esc(houseName())}”. Tap Done.</li>
-        <li>Go to your home screen, hold down on an empty spot, tap <b>Edit</b> then <b>Add Widget</b>, pick <b>Scriptable</b>, and add the small or medium size.</li>
-        <li>Hold down on the new widget, tap <b>Edit Widget</b>, and for Script pick “${esc(houseName())}”.</li>
+}
+
+const SCRIPTABLE_APP = "https://apps.apple.com/app/scriptable/id1405459188";
+const KWGT_APP = "https://play.google.com/store/apps/details?id=org.kustom.widget";
+
+// The widget's own page (ADR 0027): the steps for the phone or computer
+// she's on opened first, the others below. `link` is her widget's address
+// and `script` the few lines Scriptable needs, from src/server.ts.
+export function homeScreenPage(v: Visit, did: Done | undefined, on: Device, link?: string, script?: string): string {
+  const w = v.widget;
+  const status = w?.seen
+    ? `<p class="widget-status working" data-live="widget-status"><span class="emoji" aria-hidden="true">✅</span> It's working. Your widget last looked in ${esc(ago(w.seen, v.now))}.</p>`
+    : `<p class="widget-status waiting" data-live="widget-status"><span class="emoji" aria-hidden="true">⏳</span> This page says so here as soon as your widget first looks in.</p>`;
+  const name = esc(houseName());
+  const copy = `<button type="button" class="widget-copy widget-yes" data-copy="widget-script" hidden>Copy my widget</button><span class="widget-copy-by-hand">Tap in the box, Select All, then Copy.</span>
+          <textarea id="widget-script" class="widget-script" readonly rows="3" aria-label="Your widget's few lines for Scriptable">${esc(script ?? "")}</textarea>`;
+  const iphone = (what: string): string => `<ol class="widget-steps">
+        <li>Get <a href="${SCRIPTABLE_APP}"><b>Scriptable</b></a> from the App Store. It's free, and it's what lets a website be a widget on ${what}.</li>
+        <li>${copy}</li>
+        <li><a class="button soft" href="scriptable:///add">Open Scriptable</a>, paste, and tap <b>Done</b>. (It names it “Untitled Script”; that's fine.)</li>
+        <li>On your home screen, hold an empty spot, tap <b>Edit</b> › <b>Add Widget</b>, find <b>Scriptable</b>, and add a size you like.</li>
+        <li>Hold the new widget, tap <b>Edit Widget</b>, and for <b>Script</b> pick the one you pasted. That's it.</li>
+      </ol>`;
+  const way = (key: Device, title: string, body: string): string =>
+    `<details class="widget-way" id="on-${key}" data-device="${key}"${key === on || (on === "other" && key === "iphone") ? " open" : ""}><summary>${title}</summary>${body}</details>`;
+  const ways = [
+    way("iphone", "On an iPhone", iphone("an iPhone")),
+    way("ipad", "On an iPad", iphone("an iPad")),
+    way("mac", "On a Mac", `<p>Put it on your iPhone first (the steps are just above). Then a Mac with macOS Sonoma or newer, signed in to the same Apple Account, can show it too:</p>
+      <ol class="widget-steps">
+        <li>Right-click an empty part of the desktop and choose <b>Edit Widgets</b>.</li>
+        <li>Find <b>Scriptable</b> under your iPhone, and drag the widget onto the desktop.</li>
+        <li>Click it with the Control key, choose <b>Edit</b>, and pick the script you pasted.</li>
       </ol>
-    </details>
-    <details id="widget-android"><summary>On an Android</summary>
-      <p>The easy way: in Chrome, tap ⋮ then <b>Add to home screen</b>. That puts the house itself there as an app.</p>
-      <p>For a widget like Locket's, it takes <b>KWGT</b> and its <b>Pro</b> key (a few dollars; it's what lets a widget read a link):</p>
-      <ol>
+      <p class="small">Want the house itself in the Dock? In Safari, choose <b>File</b> › <b>Add to Dock</b>.</p>`),
+    way("android", "On an Android", `<p>Android doesn't let a website be a widget on its own, so it takes the <a href="${KWGT_APP}"><b>KWGT</b></a> app and its Pro key (a few dollars), which lets a widget read a link:</p>
+      <ol class="widget-steps">
         <li>Add a KWGT widget to your home screen, tap it, and make a new one.</li>
-        <li>Add an image and a text. For the image, use <code>$wg("${esc(link)}", json, .latest.photo)$</code> with your link in front, and for the text <code>$wg("${esc(link)}", json, .latest.text)$</code>.</li>
-        <li>For the faces and clocks, add a text for each friend with <code>.friends[0].time</code>, <code>.friends[1].time</code> and so on.</li>
+        <li>Add a text, and for it use <code>$wg("${esc(link ?? "")}", json, .cards[0].title)$</code>; add an image with <code>.latest.photo</code> after your link.</li>
+        <li>For everyone's clocks, add a text each with <code>.friends[0].time</code>, <code>.friends[1].time</code> and so on.</li>
       </ol>
+      <p class="small">Just want the house as an app? In Chrome, tap ⋮ › <b>Add to home screen</b>.</p>`),
+  ];
+  // The steps for where she is come first.
+  const order = ["iphone", "ipad", "mac", "android"];
+  const first = on === "other" ? "iphone" : on;
+  ways.sort((a, b) => (a.includes(`data-device="${first}"`) ? -1 : b.includes(`data-device="${first}"`) ? 1 : order.indexOf(a) - order.indexOf(b)));
+  return shell(`Your home screen · ${houseName()}`, `
+${bar(v, "everyone")}
+<main class="list">
+  ${done(did)}
+  <section class="card home-widget" id="widget" aria-labelledby="widget-heading">
+    <h2 id="widget-heading">${emoji("widget")} ${name} on your home screen</h2>
+    <p>A little window on your home screen that shows something new each time your phone refreshes it (every quarter of an hour or so; your phone decides): a friend's birthday (that day and the day before), a note or a plate someone left you, the memory wall, your room, everyone's faces and clocks, and ${DOG}. Each refresh asks the house one small question, and every picture is kept on your phone once it has it, so it's easy on your battery. It's yours, so keep its link to yourself.</p>
+    ${status}
+    ${ways.join("\n    ")}
+    <details class="widget-way"><summary>Its link, and starting again</summary>
+      <p class="small">Your widget's own link, if an app asks for it: <input class="widget-link" readonly value="${esc(link ?? "")}" aria-label="Your widget's link" onfocus="this.select()"></p>
+      <form method="post" action="/widget" class="inline"><button class="soft">${emoji("widget")} Make a new link (the old one stops)</button></form>
     </details>
-    <p class="small">Your widget's own link, if an app asks for it: <input class="widget-link" readonly value="${esc(link)}" aria-label="Your widget's link" onfocus="this.select()"></p>
-    ${make}
-  </section>`;
+  </section>
+  ${footer(v.me)}
+</main>`, phase(clock(v.me.tz, v.now)), "page-list page-home-screen");
 }
 
 /* ---------- rooms ---------- */

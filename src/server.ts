@@ -1,5 +1,5 @@
-import { randomBytes, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { createHash, randomBytes, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
+import { readFileSync, statSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { ART, ART_TYPES, isArt } from "./assets.ts";
 import { avatarSvg, parseLook } from "./avatars.ts";
@@ -18,6 +18,7 @@ import {
   kitchenPage,
   livingPage,
   manifest,
+  homeScreenPage,
   widget,
   MAX_DISH_NOTE,
   MAX_NOTE,
@@ -28,6 +29,7 @@ import {
   readmePage,
   unoPage,
   updatesPage,
+  type Device,
   type Done,
   type Visit,
 } from "./pages.ts";
@@ -153,8 +155,43 @@ function widgetLink(req: IncomingMessage, me: Person): string | undefined {
   return key ? `${origin(req)}${house().base}/widget/${me.id}.${key}/` : undefined;
 }
 
-// The iPhone widget's script (Scriptable), with her own link written in.
+// The iPhone widget's script (Scriptable), with her own link written in:
+// a few lines that fetch the widget itself (`widgetCode()`) and keep a copy
+// (ADR 0027), so a widget already on a phone keeps up with the house.
 const scriptFor = (link: string): string => readFileSync(SCRIPTABLE, "utf8").replace("__LINK__", link);
+
+// The widget itself, and its fingerprint, which the widget's JSON carries
+// (`code`) so a phone holding an older copy fetches the new one.
+const WIDGET_CODE = new URL("../public/widget/widget.js", import.meta.url);
+let widgetKept: { at: number; code: string; version: string } | undefined;
+function widgetCode(): { code: string; version: string } {
+  const at = statSync(WIDGET_CODE).mtimeMs;
+  if (!widgetKept || widgetKept.at !== at) {
+    const raw = readFileSync(WIDGET_CODE, "utf8");
+    const version = createHash("sha256").update(raw).digest("hex").slice(0, 10);
+    widgetKept = { at, code: raw.replace("__VERSION__", version), version };
+  }
+  return widgetKept;
+}
+
+// Which phone or computer this is, from its browser, so the widget's page
+// opens the steps for it (an iPad that says it's a Mac is put right by
+// public/live.js).
+function device(req: IncomingMessage): Device {
+  const ua = req.headers["user-agent"] ?? "";
+  if (/iPhone|iPod/.test(ua)) return "iphone";
+  if (/iPad/.test(ua)) return "ipad";
+  if (/Android/.test(ua)) return "android";
+  if (/Macintosh/.test(ua)) return "mac";
+  return "other";
+}
+
+// Home asks each browser about the widget once a fortnight at most (ADR
+// 0027): "Not now" is kept in this browser only, since it's about this
+// screen, not about anything friends see.
+const ASK_AGAIN = 14 * 24 * 60 * 60;
+const askCookie = (req: IncomingMessage): string =>
+  `widget-ask=later; Path=${house().base || "/"}; Max-Age=${ASK_AGAIN}; SameSite=Lax${req.headers["x-forwarded-proto"] === "https" ? "; Secure" : ""}`;
 
 // Her widget's link and its script, for the Everyone tab, once she's made one.
 function widgetFor(req: IncomingMessage, me: Person): [string?, string?] {
@@ -188,7 +225,7 @@ function visit(me: Person, place = ""): Visit {
     now,
     // A friend's first visit is a welcome, not a recap.
     recap: seenUntil ? recapFor(things, monthClock(), now, store.recapRead(me.id)) : undefined,
-    widget: store.widgetKey(me.id) !== "",
+    widget: { made: store.widgetKey(me.id) !== "", seen: store.widgetSeenAt(me.id) },
   };
 }
 
@@ -290,7 +327,8 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
 
   if (route === "GET /") {
     if (!me) return send(res, 200, doorPage(store.lastSeen(), Date.now(), taken()));
-    return send(res, 200, housePage(visit(me)));
+    const v = visit(me);
+    return send(res, 200, housePage({ ...v, widget: v.widget && { ...v.widget, later: cookie(req, "widget-ask") === "later" } }));
   }
 
   // Coming in as one of the five, if nobody else is in the house as her right
@@ -318,9 +356,14 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
 
   if (route === "GET /readme") return redirect(res, "/readme/");
   if (route === "GET /readme/") return send(res, 200, readmePage(markdown(readFileSync(README, "utf8"))));
-  if (route === "GET /style.css") return send(res, 200, readFileSync(STYLE), "text/css; charset=utf-8");
-  if (route === "GET /house.js") return send(res, 200, readFileSync(SCRIPT), "text/javascript; charset=utf-8");
-  if (route === "GET /live.js") return send(res, 200, readFileSync(LIVE), "text/javascript; charset=utf-8");
+  // The page's own stylesheet and scripts. Asked for by their fingerprint
+  // (`own()`, src/assets.ts), a copy can be kept for good: a change is a new
+  // address. Asked for without one, the browser checks back every time.
+  const ownFile = { "GET /style.css": [STYLE, "text/css"], "GET /house.js": [SCRIPT, "text/javascript"], "GET /live.js": [LIVE, "text/javascript"] }[route];
+  if (ownFile) {
+    res.writeHead(200, { "content-type": `${ownFile[1]}; charset=utf-8`, "cache-control": url.searchParams.has("v") ? "public, max-age=31536000, immutable" : "no-cache" });
+    return void res.end(readFileSync(ownFile[0]));
+  }
   // For a phone's home screen (Android); an iPhone reads the page's own tags.
   if (route === "GET /manifest.webmanifest") return send(res, 200, manifest(), "application/manifest+json; charset=utf-8");
   // A made friend's sticker, drawn on the server from her look
@@ -353,8 +396,21 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     const rest = w[3];
     if (rest === "") {
       const data = widget(look(friend));
+      // Her widget checked in: her widget page can say it's working.
+      store.widgetSeen(friend.id);
       // Where tapping it goes: the house, at its own address.
-      return json(200, { ...data, open: `${house().base}${data.latest?.open ?? "/"}`, latest: data.latest && { ...data.latest, open: `${house().base}${data.latest.open}` } });
+      const base = house().base;
+      return json(200, {
+        ...data,
+        code: widgetCode().version,
+        open: `${base}${data.latest?.open ?? "/"}`,
+        latest: data.latest && { ...data.latest, open: `${base}${data.latest.open}` },
+        cards: data.cards.map((c) => ({ ...c, open: `${base}${c.open}` })),
+      });
+    }
+    if (rest === "widget.js") {
+      res.writeHead(200, { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-store" });
+      return void res.end(widgetCode().code);
     }
     if (rest === "scriptable.js") {
       const link = `${origin(req)}${house().base}/widget/${friend.id}.${w[2]}/`;
@@ -386,7 +442,27 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   if (route === "POST /widget") {
     if (!me) return send(res, 403, messagePage("Knock first", "Pick who you are at the door first."));
     store.setWidgetKey(me.id, randomBytes(18).toString("base64url"));
-    return redirect(res, "/everyone?did=widget#widget");
+    return redirect(res, "/home-screen?did=widget#widget");
+  }
+
+  // Home's question (ADR 0027). Yes makes her widget's link if she hasn't
+  // one yet (one she has keeps working) and shows how to put it on; not now
+  // stops this browser asking for a fortnight.
+  if (route === "POST /widget/yes") {
+    if (!me) return send(res, 403, messagePage("Knock first", "Pick who you are at the door first."));
+    if (!store.widgetKey(me.id)) store.setWidgetKey(me.id, randomBytes(18).toString("base64url"));
+    return redirect(res, "/home-screen#widget");
+  }
+  if (route === "POST /widget/later") {
+    if (!me) return send(res, 403, messagePage("Knock first", "Pick who you are at the door first."));
+    store.log(`${me.id}:${me.name} said not now to the home-screen widget on this browser`);
+    return redirect(res, "/", { "set-cookie": askCookie(req) });
+  }
+
+  // How to put the house on this phone's (or computer's) home screen.
+  if (route === "GET /home-screen") {
+    if (!me) return redirect(res, "/");
+    return send(res, 200, homeScreenPage(visit(me), confirmation(did), device(req), ...widgetFor(req, me)));
   }
 
   // A photo on the memory wall (ADR 0024), only for friends who are in this
@@ -407,7 +483,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     if (!me) return redirect(res, "/");
     const v = visit(me);
     if (pathname === "/uno") return send(res, 200, unoPage(v, confirmation(did)));
-    return send(res, 200, pathname === "/updates" ? updatesPage(v) : pathname === "/everyone" ? everyonePage(v, confirmation(did), ...widgetFor(req, me)) : moviesPage(v, confirmation(did)));
+    return send(res, 200, pathname === "/updates" ? updatesPage(v) : pathname === "/everyone" ? everyonePage(v, confirmation(did)) : moviesPage(v, confirmation(did)));
   }
 
   const roomMatch = pathname.match(/^\/room\/([^/]+)(\/leave|\/tidy|\/mask|\/kettle|\/nap|\/wish|\/reply)?$/);

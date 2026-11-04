@@ -620,3 +620,18 @@
   copyButtons();
   document.addEventListener("house:fresh", copyButtons);
 })();
+
+// The widget's page opens the steps for the phone it's on (src/server.ts
+// reads that from the browser). An iPad's Safari says it's a Mac, so a Mac
+// with a touch screen is an iPad: its steps go first instead.
+(() => {
+  if (!document.body.classList.contains("page-home-screen")) return;
+  if (!/Macintosh/.test(navigator.userAgent) || navigator.maxTouchPoints < 2) return;
+  const ipad = document.getElementById("on-ipad");
+  const mac = document.getElementById("on-mac");
+  const first = document.querySelector("details.widget-way");
+  if (!ipad || !mac || !first) return;
+  mac.open = false;
+  ipad.open = true;
+  first.before(ipad);
+})();

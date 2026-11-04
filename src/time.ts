@@ -117,6 +117,17 @@ export function birthday(p: Person, now: number): 0 | 1 | 2 {
   return day === p.birthday[1] ? 2 : 1;
 }
 
+// Whether her birthday is today or tomorrow, by her own clock, for the
+// home-screen widget (ADR 0027), which shows her on both days.
+export function birthdaySoon(p: Person, now: number): "today" | "tomorrow" | undefined {
+  if (!p.birthday[0]) return undefined;
+  const is = (at: number): boolean => {
+    const [, month, day] = ymd(p.tz, at);
+    return month === p.birthday[0] && day === p.birthday[1];
+  };
+  return is(now) ? "today" : is(now + DAY) ? "tomorrow" : undefined;
+}
+
 // "Friday 16 October": her birthday this year, in her own calendar.
 export function birthdayLabel(p: Person, now: number): string {
   const [year] = ymd(p.tz, now);

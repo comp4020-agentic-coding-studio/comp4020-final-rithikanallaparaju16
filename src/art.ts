@@ -256,6 +256,21 @@ export const EMOJI: Record<string, string> = {
   joke: "😂",
 };
 
+// What a home-screen widget (ADR 0027) shows beside a gift or a plate left for
+// you: a widget can't draw the house's own little SVG drawings.
+export const GIFT_EMOJI: Record<string, string> = {
+  chai: "☕",
+  coffee: "☕",
+  dosa: "🫓",
+  biryani: "🍛",
+  maggi: "🍜",
+  cake: "🍰",
+  mango: "🥭",
+  flower: "🌸",
+  chocolate: "🍫",
+  kitkat: "🍫",
+};
+
 // What pops up where you did it, once it's done.
 export const POP: Record<string, string[]> = {
   nap: ["💤"],

@@ -1,3 +1,6 @@
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import vm from "node:vm";
 import { JSDOM } from "jsdom";
 import { afterAll, describe, expect, inject, it } from "vitest";
@@ -280,25 +283,41 @@ describe.skipIf(!throwaway)("living in the house", () => {
 
   // Rithika: "can you make this into sumn i can view on the homescreen, like
   // locket?" (ADR 0025). A widget reads one private link per friend.
-  it("gives each friend a home-screen widget link showing what friends left her, and nothing to anyone else", async () => {
+  // And (ADR 0027): "when i enter the home through laptop,phone or ipad,
+  // there should be an option asking if i want the widget on my homescreen,
+  // if i say yes, it has to work", showing things that keep changing.
+  it("asks on Home about a home-screen widget, and yes gives each friend one that shows what friends left her, to nobody else", async () => {
     const [a, b] = await people();
-    const before = await page("/everyone", a.id);
-    expect(before.querySelector("#widget form[action='/widget'] button"), "there's no way to make a widget link").not.toBeNull();
-    // Home shows the way to it, so nobody has to know where it is.
-    expect((await page("/", a.id)).querySelector("a.to-widget")?.getAttribute("href"), "Home doesn't show the way to the widget").toBe("/everyone#widget");
+    // Home asks, with a yes and a not now.
+    const home = await page("/", a.id);
+    expect(home.querySelector(".widget-ask form[action='/widget/yes'] button"), "Home doesn't ask about the widget").not.toBeNull();
+    expect(home.querySelector(".widget-ask form[action='/widget/later'] button"), "Home's question has no not now").not.toBeNull();
 
-    expect((await post("/widget", {}, a.id)).headers.get("location")).toBe("/everyone?did=widget#widget");
-    const link = (await page("/everyone", a.id)).querySelector<HTMLInputElement>("#widget input.widget-link")?.getAttribute("value") ?? "";
+    // Yes makes her link and shows the steps for the phone she's on.
+    expect((await post("/widget/yes", {}, a.id)).headers.get("location")).toBe("/home-screen#widget");
+    const iphone = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
+    const steps = parse(await (await fetch(new URL("/home-screen", baseUrl), { headers: { cookie: await cookieFor(a.id), "user-agent": iphone } })).text());
+    expect(steps.querySelector("details.widget-way[open]")?.id, "an iPhone isn't shown the iPhone steps first").toBe("on-iphone");
+    expect([...steps.querySelectorAll("details.widget-way[data-device]")].map((d) => d.id).sort()).toEqual(["on-android", "on-ipad", "on-iphone", "on-mac"]);
+    expect(steps.querySelector(".widget-status.waiting"), "the page doesn't say it's waiting for the widget").not.toBeNull();
+    const link = steps.querySelector<HTMLInputElement>("input.widget-link")?.getAttribute("value") ?? "";
     expect(link).toMatch(new RegExp(`/widget/${a.id}\\.[A-Za-z0-9_-]{20,}/$`));
     const path = new URL(link).pathname;
+    // Saying yes again keeps the same link working.
+    await post("/widget/yes", {}, a.id);
+    expect((await page("/home-screen", a.id)).querySelector("input.widget-link")?.getAttribute("value")).toBe(link);
 
-    // b pins a photo; a's widget shows it, as a Locket would, with b's words.
+    // b pins a photo, leaves a note and a KitKat on a's desk, and saves her a plate.
     const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP4v+7/fwAIDAN+M8x3iQAAAABJRU5ErkJggg==", "base64");
     const caption = unique("this reminds me of you guys");
     const data = new FormData();
     data.set("photo", new Blob([png], { type: "image/png" }), "us.png");
     data.set("body", caption);
     await fetch(new URL("/wall/photo", baseUrl), { method: "POST", headers: { cookie: await cookieFor(b.id) }, body: data, redirect: "manual" });
+    const note = unique("for the exam, you've got this");
+    expect((await post(`/room/${a.id}/leave`, { item: "chocolate", body: note }, b.id)).status).toBe(303);
+    const plateNote = unique("saved yours");
+    expect((await post("/kitchen", { item: "biryani", for: a.id, body: plateNote }, b.id)).status).toBe(303);
 
     // Read with no cookie at all: the link is the key.
     const res = await fetch(new URL(path, baseUrl));
@@ -310,6 +329,13 @@ describe.skipIf(!throwaway)("living in the house", () => {
     const five = await people();
     expect(w.friends.map((f: { name: string }) => f.name), "the widget doesn't show all five").toEqual(five.map((p) => (p.id === a.id ? "You" : p.name)));
     for (const f of w.friends) expect(f.time, `${f.name} has no clock`).toMatch(/^\d{1,2}:\d{2} [ap]m$/);
+    // Its cards: what's for her first, then the wall, her room, everyone and Shinzo.
+    const kinds = w.cards.map((c: { kind: string }) => c.kind).filter((k: string) => k !== "birthday");
+    expect(kinds, "the widget's cards").toEqual(["desk", "plate", "wall", "room", "everyone", "dog"]);
+    const card = (kind: string) => w.cards.find((c: { kind: string }) => c.kind === kind);
+    expect(card("desk"), "the widget doesn't show the note b left").toMatchObject({ by: b.name, text: `“${note}”`, emoji: "🍫" });
+    expect(card("plate"), "the widget doesn't show the plate b saved").toMatchObject({ by: b.name, title: `${b.name} saved you some biryani`, text: `“${plateNote}”` });
+    expect(card("wall").photos[0], "the widget's wall doesn't show b's photo").toMatchObject({ by: b.name, caption });
 
     // The photo and faces come through the same link, so the widget never signs in.
     const photo = await fetch(new URL(w.latest.photo, new URL(path, baseUrl)));
@@ -317,79 +343,124 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect((await fetch(new URL(w.friends[0].face, new URL(path, baseUrl)))).status).toBe(200);
     const script = await (await fetch(new URL(`${path}scriptable.js`, baseUrl))).text();
     expect(script, "the iPhone script doesn't carry her link").toContain(`const LINK = "${new URL(path, baseUrl).origin}${path}";`);
-    // The same script is on her Everyone tab, ready to copy into Scriptable,
-    // and Home shows the way there only until she's made one.
-    expect((await page("/everyone", a.id)).querySelector("#widget textarea.widget-script")?.textContent, "the script isn't on the Everyone tab to copy").toBe(script);
-    expect((await page("/", a.id)).querySelector("a.to-widget"), "Home still offers a widget she's made").toBeNull();
+    expect(steps.querySelector("textarea.widget-script")?.textContent, "the script isn't on the widget's page to copy").toBe(script);
 
     // And it runs as Scriptable runs it: plain JavaScriptCore, with no
-    // browser's URL or fetch, only Scriptable's own Request, ListWidget and
-    // the rest (stood in for here). Its first version used URL, and would
-    // have failed on a real iPhone.
-    const asked: string[] = [];
-    let shown: { url?: string; texts: string[] } | undefined;
-    const sandbox = vm.createContext({
-      Request: class {
-        url: string;
-        timeoutInterval = 0;
-        constructor(url: string) {
-          this.url = url;
-          asked.push(url);
-        }
-        async loadJSON() {
-          return (await fetch(this.url)).json();
-        }
-        async loadImage() {
-          const r = await fetch(this.url);
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return {};
-        }
-      },
-      ListWidget: class {
-        url?: string;
-        texts: string[] = [];
-        addText(t: string) {
-          this.texts.push(t);
-          return {};
-        }
-        addStack() {
-          const texts = this.texts;
-          const stack: Record<string, unknown> = {
-            addText: (t: string) => (texts.push(t), {}),
-            addImage: () => ({}),
-            addSpacer: () => {},
-            addStack: () => stack,
-            layoutHorizontally: () => {},
-            layoutVertically: () => {},
-            centerAlignContent: () => {},
-          };
-          return stack;
-        }
-        addImage() {
-          return {};
-        }
-        addSpacer() {}
-        setPadding() {}
-        async presentMedium() {
-          shown = this;
-        }
-      },
-      Color: class {
-        static white() {
-          return {};
-        }
-      },
-      Font: { mediumSystemFont: () => ({}), boldSystemFont: () => ({}), systemFont: () => ({}) },
-      Size: class {},
-      config: { runsInWidget: false, widgetFamily: "medium" },
-      Script: { setWidget: () => {}, complete: () => {} },
-      console,
-    });
-    expect(vm.runInContext("typeof URL + ' ' + typeof fetch", sandbox), "the sandbox isn't as bare as Scriptable").toBe("undefined undefined");
-    await vm.runInContext(`(async () => {\n${script}\n})()`, sandbox);
-    expect(asked[0], "the iPhone widget didn't read her link").toBe(`${new URL(path, baseUrl).origin}${path}`);
-    expect(shown?.texts, "the iPhone widget doesn't show b's photo's words").toContain(`“${caption}”`);
-    expect(shown?.url, "tapping the iPhone widget doesn't go into the house").toMatch(new RegExp(`^${new URL(baseUrl).origin}/living#note-\\d+$`));
+    // browser's URL or fetch, only Scriptable's own Request, ListWidget,
+    // FileManager and the rest (stood in for here). The pasted lines fetch
+    // the widget itself from the house; each draw shows the next card, and
+    // pictures already kept aren't fetched again.
+    const folder = mkdtempSync(join(tmpdir(), "scriptable-"));
+    const draw = async (): Promise<{ asked: string[]; url?: string; texts: string[] }> => {
+      const asked: string[] = [];
+      let shown: { url?: string } | undefined;
+      const texts: string[] = [];
+      const stack = (): Record<string, unknown> => ({
+        addText: (t: string) => (texts.push(t), { centerAlignText: () => {} }),
+        addImage: () => ({ applyFillingContentMode: () => {} }),
+        addSpacer: () => {},
+        addStack: () => stack(),
+        layoutHorizontally: () => {},
+        layoutVertically: () => {},
+        centerAlignContent: () => {},
+      });
+      const sandbox = vm.createContext({
+        Request: class {
+          url: string;
+          timeoutInterval = 0;
+          constructor(url: string) {
+            this.url = url;
+            asked.push(url);
+          }
+          async ok() {
+            const r = await fetch(this.url);
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            return r;
+          }
+          async loadJSON() {
+            return (await fetch(this.url)).json();
+          }
+          async loadString() {
+            return (await this.ok()).text();
+          }
+          async load() {
+            return { bytes: Buffer.from(await (await this.ok()).arrayBuffer()) };
+          }
+        },
+        FileManager: {
+          local: () => ({
+            joinPath: (x: string, y: string) => join(x, y),
+            libraryDirectory: () => folder,
+            fileExists: (f: string) => existsSync(f),
+            createDirectory: (f: string) => mkdirSync(f, { recursive: true }),
+            readString: (f: string) => readFileSync(f, "utf8"),
+            writeString: (f: string, t: string) => writeFileSync(f, t),
+            write: (f: string, d: { bytes: Buffer }) => writeFileSync(f, d.bytes),
+            remove: (f: string) => rmSync(f),
+            modificationDate: (f: string) => statSync(f).mtime,
+            listContents: (f: string) => readdirSync(f),
+          }),
+        },
+        Image: { fromFile: (f: string) => (existsSync(f) ? {} : null), fromData: (d: { bytes: Buffer }) => (d.bytes.length ? {} : null) },
+        Data: { fromJPEG: () => ({ bytes: Buffer.from("drawn") }) },
+        DrawContext: class {
+          drawImageAtPoint() {}
+          drawImageInRect() {}
+          setFillColor() {}
+          fillRect() {}
+          getImage() {
+            return {};
+          }
+        },
+        ListWidget: class {
+          url?: string;
+          constructor() {
+            Object.assign(this, stack());
+          }
+          setPadding() {}
+          async presentMedium() {
+            shown = this;
+          }
+        },
+        LinearGradient: class {},
+        Color: class {
+          static white() {
+            return {};
+          }
+        },
+        Font: { mediumSystemFont: () => ({}), boldSystemFont: () => ({}), systemFont: () => ({}) },
+        Size: class {},
+        Point: class {},
+        Rect: class {},
+        config: { runsInWidget: false, widgetFamily: "medium" },
+        Script: { setWidget: () => {}, complete: () => {} },
+        console,
+      });
+      expect(vm.runInContext("typeof URL + ' ' + typeof fetch + ' ' + typeof setTimeout", sandbox), "the sandbox isn't as bare as Scriptable").toBe("undefined undefined undefined");
+      await vm.runInContext(`(async () => {\n${script}\n})()`, sandbox);
+      return { asked, url: shown?.url, texts };
+    };
+    const origin = new URL(baseUrl).origin;
+    const first = await draw();
+    expect(first.asked.slice(0, 2), "the iPhone widget didn't fetch itself and read her link").toEqual([`${origin}${path}widget.js`, `${origin}${path}`]);
+    const order = [...w.cards.map((c: { kind: string }) => c.kind)];
+    const firstCard = w.cards[0];
+    expect(first.url, "tapping the widget doesn't go to what it shows").toBe(`${origin}${firstCard.open}`);
+    const seen = [first];
+    for (let i = 1; i < order.length + 1; i++) seen.push(await draw());
+    // Each draw is the next card, round and round.
+    expect(seen.map((d) => d.url), "the widget doesn't show the next card each time").toEqual([...w.cards, w.cards[0]].map((c: { open: string }) => `${origin}${c.open}`));
+    const deskDraw = seen[order.indexOf("desk")];
+    expect(deskDraw.texts, "the widget doesn't show b's note").toContain(`“${note}”`);
+    expect(seen[order.indexOf("plate")].texts, "the widget doesn't show the saved plate").toContain(`${b.name} saved you some biryani`);
+    // Easy on the battery: it doesn't fetch itself again, asks the house
+    // again only after a few minutes, and keeps every picture it's fetched.
+    expect(seen.slice(1).flatMap((d) => d.asked).filter((u) => u.endsWith("widget.js") || u === `${origin}${path}`), "the widget kept asking the house").toEqual([]);
+    expect(seen[seen.length - 1].asked, "the widget fetched a picture it already had").toEqual([]);
+
+    // Her widget looked in: her page says it's working, and Home stops asking.
+    expect((await page("/home-screen", a.id)).querySelector(".widget-status.working"), "the page doesn't say her widget's working").not.toBeNull();
+    expect((await page("/", a.id)).querySelector(".widget-ask"), "Home still asks once her widget's working").toBeNull();
 
     // A widget reading the house isn't coming by: her window stays as it was.
     await signOut(a.id);
@@ -401,9 +472,25 @@ describe.skipIf(!throwaway)("living in the house", () => {
     // Wrong keys, other friends' ids and old links read nothing.
     expect((await fetch(new URL(path.replace(/\.[^/]+\//, ".wrongkeywrongkeywrongkey/"), baseUrl))).status).toBe(404);
     expect((await fetch(new URL(path.replace(`/widget/${a.id}.`, `/widget/${b.id}.`), baseUrl))).status, "a's key opens b's widget").toBe(404);
-    expect((await post("/widget", {}, a.id)).status).toBe(303);
+    expect((await fetch(new URL(`${path.replace(/\.[^/]+\//, ".wrongkeywrongkeywrongkey/")}widget.js`, baseUrl))).status).toBe(404);
+    expect((await post("/widget", {}, a.id)).headers.get("location")).toBe("/home-screen?did=widget#widget");
     expect((await fetch(new URL(path, baseUrl))).status, "the old link still works after making a new one").toBe(404);
     expect((await post("/widget", {})).status, "a stranger made a widget link").toBe(403);
+    expect((await post("/widget/yes", {})).status, "a stranger said yes to a widget").toBe(403);
+  });
+
+  // "Not now" is this browser's own answer: Home stops asking here, and shows
+  // a quiet way back instead.
+  it("lets a friend say not now to the widget, and Home stops asking on that browser", async () => {
+    const [, , c] = await people();
+    expect((await page("/", c.id)).querySelector(".widget-ask"), "Home doesn't ask").not.toBeNull();
+    const res = await post("/widget/later", {}, c.id);
+    expect(res.headers.get("location")).toBe("/");
+    const later = res.headers.getSetCookie().find((x) => x.startsWith("widget-ask="))?.split(";")[0] ?? "";
+    expect(later, "not now isn't kept").toBe("widget-ask=later");
+    const home = parse(await (await fetch(new URL("/", baseUrl), { headers: { cookie: `${await cookieFor(c.id)}; ${later}` } })).text());
+    expect(home.querySelector(".widget-ask"), "Home still asks after not now").toBeNull();
+    expect(home.querySelector("a.to-widget")?.getAttribute("href"), "there's no way back to the widget").toBe("/home-screen#widget");
   });
 
   it("only lets the five leave things", async () => {
@@ -785,7 +872,7 @@ describe.skipIf(!throwaway)("living in the house", () => {
     const mine = svg?.querySelector(`.walker.me[data-person="${me.id}"]`);
     expect(mine?.classList.contains("napping"), "you're not in bed").toBe(true);
     expect(svg?.querySelector(`[data-person="${friend.id}"]`), `${friend.name}, in the kitchen, isn't in the drawing of your room`).not.toBeNull();
-    expect(room.querySelector("script[src='/house.js']"), "nothing on the page can zoom out").not.toBeNull();
+    expect(room.querySelector("script[src^='/house.js?v=']"), "nothing on the page can zoom out").not.toBeNull();
   });
 
   it("only takes things the house actually has", async () => {

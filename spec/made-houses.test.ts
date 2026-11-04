@@ -167,7 +167,7 @@ describe.skipIf(!throwaway)("making a house for any five friends", () => {
 
   it("keeps every link, form and picture in a made house inside it", async () => {
     const h = await strangeHouse();
-    const shared = /^\/(art|avatar)\/|^\/style\.css$|^\/make$/;
+    const shared = /^\/(art|avatar)\/|^\/style\.css(\?v=\w+)?$|^\/make$/;
     const leaks: string[] = [];
     const links = new Set<string>();
     const pictures = new Set<string>();
@@ -250,8 +250,8 @@ describe.skipIf(!throwaway)("making a house for any five friends", () => {
 
   it("gives a made house's friends their own home-screen widget, at that house's address, and pins photos on its wall", async () => {
     const h = await makeHouse({ friends: "4", ...named(FOUR) });
-    expect((await post(h, "widget", {}, "1")).headers.get("location")).toBe(`${h.base}everyone?did=widget#widget`);
-    const link = (await inside(h, "everyone", "1")).querySelector("#widget input.widget-link")?.getAttribute("value") ?? "";
+    expect((await post(h, "widget", {}, "1")).headers.get("location")).toBe(`${h.base}home-screen?did=widget#widget`);
+    const link = (await inside(h, "home-screen", "1")).querySelector("#widget input.widget-link")?.getAttribute("value") ?? "";
     expect(new URL(link).pathname, "the widget's link isn't at the made house").toMatch(new RegExp(`^${h.base}widget/1\\.`));
 
     const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP4v+7/fwAIDAN+M8x3iQAAAABJRU5ErkJggg==", "base64");
@@ -268,6 +268,8 @@ describe.skipIf(!throwaway)("making a house for any five friends", () => {
     expect(w.friends.map((f: { name: string }) => f.name)).toEqual(["You", "Rae", "Kit", "Bo"]);
     expect(w.latest).toMatchObject({ by: "Rae", caption: "this reminds me of you guys" });
     expect(w.open, "tapping it doesn't open the made house").toMatch(new RegExp(`^${h.base}`));
+    for (const c of w.cards) expect(c.open, `the ${c.kind} card doesn't open the made house`).toMatch(new RegExp(`^${h.base}`));
+    expect(w.cards.find((c: { kind: string }) => c.kind === "everyone")?.title, "a made house's widget says all five").not.toMatch(/five/);
     // Rithika's house doesn't know this house's widget, and its photo.
     expect((await fetch(new URL(new URL(link).pathname.replace(h.base, "/"), baseUrl))).status).toBe(404);
     expect((await fetch(new URL(src.replace(h.base, "/"), baseUrl), { headers: { cookie: await cookieIn(h, "2") } })).status).not.toBe(200);

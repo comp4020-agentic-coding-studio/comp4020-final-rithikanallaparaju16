@@ -56,7 +56,9 @@ function migrate(db: DatabaseSync): void {
   // house without ever being in it.
   // And the month whose wall recap she last put away (ADR 0026), "" until
   // she has, so a recap waits for her until she's read it.
-  for (const [column, type] of [["arrived", "INTEGER NOT NULL DEFAULT 0"], ["x", "REAL"], ["y", "REAL"], ["token", "TEXT NOT NULL DEFAULT ''"], ["claimed", "INTEGER NOT NULL DEFAULT 0"], ["widget", "TEXT NOT NULL DEFAULT ''"], ["recap", "TEXT NOT NULL DEFAULT ''"]]) {
+  // 4 November (ADR 0027): when her widget last read the house
+  // (`widget_seen`, 0 until it has), so the house can tell her it's working.
+  for (const [column, type] of [["arrived", "INTEGER NOT NULL DEFAULT 0"], ["x", "REAL"], ["y", "REAL"], ["token", "TEXT NOT NULL DEFAULT ''"], ["claimed", "INTEGER NOT NULL DEFAULT 0"], ["widget", "TEXT NOT NULL DEFAULT ''"], ["recap", "TEXT NOT NULL DEFAULT ''"], ["widget_seen", "INTEGER NOT NULL DEFAULT 0"]]) {
     if (!db.prepare("SELECT 1 FROM pragma_table_info('visits') WHERE name = ?").get(column)) {
       db.exec(`ALTER TABLE visits ADD COLUMN ${column} ${type}`);
     }
@@ -170,7 +172,9 @@ function statements(db: DatabaseSync) {
   const selectPhoto = db.prepare("SELECT type, data FROM photos WHERE id = ?");
   const selectRecap = db.prepare("SELECT recap FROM visits WHERE person = ?");
   const setRecap = db.prepare("UPDATE visits SET recap = ? WHERE person = ?");
-  return { db, insertThing, selectThings, selectVisit, selectToken, claimToken, releaseToken, selectVisits, upsertVisit, updateSpot, selectWidget, setWidget, insertPhoto, selectPhoto, selectRecap, setRecap };
+  const selectWidgetSeen = db.prepare("SELECT widget_seen FROM visits WHERE person = ?");
+  const setWidgetSeen = db.prepare("UPDATE visits SET widget_seen = ? WHERE person = ?");
+  return { db, insertThing, selectThings, selectVisit, selectToken, claimToken, releaseToken, selectVisits, upsertVisit, updateSpot, selectWidget, setWidget, insertPhoto, selectPhoto, selectRecap, setRecap, selectWidgetSeen, setWidgetSeen };
 }
 
 type Statements = ReturnType<typeof statements>;
@@ -213,7 +217,24 @@ export function widgetKey(person: string): string {
 
 export function setWidgetKey(person: string, key: string): void {
   q().setWidget.run(person, key);
+  q().setWidgetSeen.run(0, person);
   log(`${who(person)} made a home-screen widget key (${tag(key)})`);
+}
+
+// When her widget last read the house (ADR 0027), 0 for never.
+export function widgetSeenAt(person: string): number {
+  return Number(q().selectWidgetSeen.get(person)?.widget_seen ?? 0);
+}
+
+// Her widget read the house. Not a visit. Only the first time after a link
+// is made tells open pages, so her widget page can say it's working.
+export function widgetSeen(person: string): void {
+  const first = widgetSeenAt(person) === 0;
+  q().setWidgetSeen.run(Date.now(), person);
+  if (first) {
+    log(`${who(person)}'s home-screen widget read the house for the first time`);
+    changed();
+  }
 }
 
 // The month whose wall recap a friend last put away (ADR 0026), or "".

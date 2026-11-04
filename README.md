@@ -91,7 +91,7 @@ Only one person can be each of us at a time. A friend's window at the door stays
 
 The house can go on a phone's home screen like an app, with the living room's fire as its icon. On an iPhone, open it in Safari, tap Share, then Add to Home Screen. On Android, open it in Chrome and choose Add to Home screen (or Install app) from the menu. It opens full-screen, without the browser around it. A made house goes on the home screen under its own name and opens straight to its own door.
 
-There's a widget too, like Locket: the newest photo or note a friend left you, with her face, and below it everyone's face and clock, glowing if she's home now. Tap it to go in. Home shows the way to it ("Put the house on your home screen") until you've made yours; it's on the Everyone tab, and it's yours alone, so keep it to yourself (making a new one turns the old one off). On an iPhone it's a widget in the free Scriptable app: copy your script in one tap (your link's already in it), paste it into Scriptable, and add the widget. On Android it's a KWGT widget (its Pro key is a few dollars). It refreshes every so often, when your phone lets it, and never sends a notification.
+There's a widget too, like Locket. Home asks once on each phone, iPad or laptop: "Put Five Windows on your home screen?" Say yes and it shows the steps for whatever you're on, and tells you "It's working" as soon as your widget first looks in; say not now and it stops asking on that one. The widget shows something different each time your phone refreshes it: a friend's birthday (that day and the day before, with her picture), a note or a gift someone left on your desk with their words, a plate saved for you, this month's photos on the memory wall, your room with you in it, everyone's faces and clocks, and Shinzo. Tap it to go straight there. It's easy on the battery: one small question to the house each refresh, and every picture kept on the phone once it has it. On an iPhone or iPad it's a widget in the free Scriptable app (copy, paste, add); a Mac with macOS Sonoma or newer shows the iPhone's widget on its desktop. On Android it takes KWGT (its Pro key is a few dollars), since Android doesn't let a website be a widget on its own. The widget updates itself, so nobody pastes twice, and it never sends a notification.
 
 ## How it's built
 
@@ -155,7 +155,9 @@ Run it locally with `pnpm start` (it keeps its data in `./data`), then run `pnpm
 - the time for all of us comes first on Movies, before the suggestions
 - a photo pinned on the memory wall, with its words, is there for friends in the house and nobody else
 - the wall starts fresh each month, keeps every month before in the memory box, and a friend back after the 1st gets a recap of what she missed until she puts it away
-- each friend's home-screen widget link shows what friends left her and everyone's clocks, only with her own key, without coming in, and its iPhone script runs as Scriptable runs it
+- Home asks about the widget, and yes gives each friend one that shows what friends left her and everyone's clocks, only with her own key, without coming in; its iPhone script runs as Scriptable runs it, shows the next card each time, and doesn't fetch what it already has
+- saying not now to the widget stops Home asking on that browser
+- a browser never runs yesterday's scripts under today's page
 - the house can go on an Android or iPhone home screen, and a made house goes on as itself
 - every common area stays lit whatever the time, and only bedrooms dim, by their owner's clock
 - friends who are close can hug, one or a group, up to all five

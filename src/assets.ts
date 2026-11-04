@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 
 // The house's pictures in public/art/, made by scripts/cut-art.py. Browsers
 // keep them for a day, so each page asks for one by a fingerprint of the file:
@@ -18,3 +18,19 @@ const prints = new Map(
 export const isArt = (file: string): boolean => prints.has(file);
 
 export const art = (file: string): string => `/art/${file}?v=${prints.get(file) ?? ""}`;
+
+// The page's own stylesheet and scripts, asked for by a fingerprint too. They
+// had none until November, and a phone kept yesterday's copies: the page was
+// new, but the walking under it was old. The fingerprint is taken again
+// whenever the file changes, so even a server that's been running since
+// before the change hands out the new address.
+export const OWN = new URL("../public/", import.meta.url);
+const owned = new Map<string, { at: number; print: string }>();
+
+export function own(file: "style.css" | "house.js" | "live.js"): string {
+  const path = new URL(file, OWN);
+  const at = statSync(path).mtimeMs;
+  let kept = owned.get(file);
+  if (!kept || kept.at !== at) owned.set(file, (kept = { at, print: createHash("sha256").update(readFileSync(path)).digest("hex").slice(0, 10) }));
+  return `/${file}?v=${kept.print}`;
+}
