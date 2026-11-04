@@ -3721,4 +3721,13 @@ deployed.
 
 **Correction:** none.
 
-**Commits:** `eee8d97`, the PROCESS.md prompt line, and this entry's commit.
+While this was being written, a photo of Rithika's iPhone home screen
+appeared in `doc/screenshots/` (8:28 pm): the widget, small size, showing
+"All five of you" with every face and clock. The first run on a real phone.
+The three documents were corrected where they said it was untested. In the
+small size, the second row's two faces sit at the edges; noted in RICE (AE).
+Her photo was left where she put it, uncommitted. (The commit `423614f`
+carried only the RICE change; a failed edit stopped the rest, which went in
+the next commit.)
+
+**Commits:** `eee8d97`, the PROCESS.md prompt line, and this entry's commits.

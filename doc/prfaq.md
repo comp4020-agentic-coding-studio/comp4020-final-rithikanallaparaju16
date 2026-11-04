@@ -203,7 +203,8 @@ tests both.
 It was "nothing brings anyone back". The widget changes that: what a friend
 left now reaches her home screen, without the house sending anything. The
 risk now is that the widget is fiddly to set up (an extra app on every phone,
-a paid one on Android) and hasn't been tried on a real phone yet. If friends
+a paid one on Android), and only its first card has been seen on a real
+phone (Rithika's iPhone, 4 November). If friends
 don't add it, the house is back to depending on habit and the group chat.
 [rice.md](rice.md) scores the follow-ups: a nudge you send yourself (C), and
 a check that the widget works on the five's real phones (AE).

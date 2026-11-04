@@ -260,7 +260,8 @@ there's a front door key (G), and photos raised the stakes.
   awake with the others, and Arjun, who comes rarely and says little.
 - The biggest risk changed. "Nothing brings anyone back" is mostly answered by
   the widget, for iPhones. Now the risks are that the widget is fiddly to set
-  up, untested on real phones (AE), and costs Android users money (AF).
+  up, mostly unseen on real phones (AE; its first card worked on Rithika's
+  iPhone), and costs Android users money (AF).
 - Made houses work, and B is fixed, but a maker's first visit still has the
   most bugs (D, E, I). D got worse: the planner and time strip show the wrong
   clocks too.
