@@ -3681,3 +3681,44 @@ Two screenshots she took (the kitchen, the wall's polaroids) appeared in
 
 **Commits:** `8323d30`, `c11618f` (PROCESS.md prompts), and this entry's
 commit.
+
+### 88. The PRFAQ, personas and RICE again, and more ideas (4 Nov 2026)
+
+**Asked:** "now do the same rice,prfaqs,personas and suggest more ideas for
+this app".
+
+**Agent:** rewrote all three for the house as it is on 4 November. Since the
+first versions (log 65, 1 November) the house had gained photos on the wall,
+the widget and Home's question about it, the monthly wall with its recap,
+saved plates, writing back, a planner for video calls, the time strip,
+walking from a phone's corners and house names at the door. Checked against
+the code first: which skipped bug tests are still open (17; B and T are
+fixed), that a birthday wish still carries no words, the caps (3 an hour
+each, 30 in all), the volume (1 GB), and what the wall and Updates show (24
+and 40).
+
+- `doc/prfaq.md`: the press release now leads with the widget and the
+  memory wall's photos; new customer questions on the widget, the monthly
+  wall and how many photos fit. The internal FAQ's biggest risk moved from
+  "nothing brings anyone back" to the widget being untested on real phones
+  and paid on Android.
+- `doc/personas.md`: the same five people walked through again, with a
+  "was" column. Kavya's gap moved from nothing bringing her back to Updates'
+  40-line limit (M); Arjun is the one the widget leaves out (Android, paid
+  KWGT); Priya's wrong clocks now break the planner and time strip too.
+- `doc/rice.md`: done rows taken off (B, T, Q, R), C halved (the widget
+  does most of its job), and new rows AA to AH plus AE. Scores were
+  recomputed and sorted by a script after the agent's first table was out
+  of order. Top: try the widget on the five's real phones (AE, 144), sealed
+  birthday cards (AA, 144; Aswathy's birthday is 8 November), then Home's
+  phone line (A, 100).
+
+Ideas named as Rithika's calls: whether a birthday card shows who it's from
+before it opens; whether "found your note" is too close to a read receipt;
+and whether the five celebrate Diwali (8 November this year, the same day
+as Aswathy's birthday), which only she can say. No code change, nothing
+deployed.
+
+**Correction:** none.
+
+**Commits:** `eee8d97`, the PROCESS.md prompt line, and this entry's commit.
