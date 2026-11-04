@@ -3784,3 +3784,63 @@ along with log 88's documents on the same branch.
 **Correction:** none.
 
 **Commits:** `68a3b38`, the PROCESS.md prompt line, and this entry's commit.
+
+### 90. Push it; what came from the RICE, PRFAQ and personas; widget previews (4 Nov 2026)
+
+Asked: "push it and give me the feature updates you did from rice,prfaqs
+and personas". While CI was deploying, a second message: "when amirdha puts
+a note on my desk, i want a small preview. if theres an update on the
+mermory wall i want a small preview on my widget / if amirdha leaves a note
+on nehas desk, i dont need a preview, but if food is left on the counter
+for me i need to see, but if its a note, it could be private, so dont read
+it / but memory wall wont be private. so maybe ask if it can be shown on
+the widget before you show. because if its like a nice motivational thing
+id love to see it".
+
+**Push.** Fast-forwarded `main` to `product-docs-nov` (`f2aeea1`) and
+pushed. CI's check and deploy passed. Live: the door and `/readme/` answer
+200, the page asks for the new `house.js` fingerprint, and the read-only
+spec passes (19, the rest skipped as writes). No crit tag: crit 10's cutoff
+has passed, and later cutoffs aren't tagged.
+
+**What came from the three documents.** Gave Rithika the list, traced
+through log entries 65 to 89: RICE B (the house's name at its door) and T
+(the planner keeping up live) fixed; Q (photos on the wall) built; R
+replaced by the widget; and from the ideas lists in 66 and 70, saved
+plates, writing back, the home-screen icon, the planner for calls and the
+time strip. Not built yet: the top-scoring rows AE (being done now, on her
+phones), AA (sealed birthday cards), A, and the quarter-day bug batch.
+
+**Widget previews** (ADR 0029). Checked first what the widget already did:
+a note on her own desk already showed its words, a note on anyone else's
+desk never did, and a plate showed only when saved for her. What was
+missing:
+
+- The wall showed on every widget without its writer knowing. Now both of
+  the wall's forms ask "Show it on friends' home-screen widgets too",
+  unticked. The writer can switch it on or off on her own note later
+  (`POST /wall/widget`, a new `onwidget` kind); friends see "📱 on
+  widgets". The widget's wall card, its `latest` and its photo route show
+  only what writers said yes to. Notes from before today stay off until
+  their writer turns them on.
+- Something new waited for its turn. Now the house says when the newest
+  desk, plate or wall card was left, and the widget shows it first, once,
+  then carries on in turn. A widget's first draw starts from now.
+- Food left out for everyone isn't a card (named as a call she can change).
+
+Spec: one new test for the promise (both forms ask, unticked; a friend's
+desk note and an unshared wall note never on her widget; the shared one is;
+the newest is marked; only the writer can switch it; off widgets isn't off
+the wall; not news). The two widget tests now tick the box. Full check on a
+fresh `HOUSE_MAKER=fake` server: 119 passed, 21 skipped (a first run on a
+reused server failed only because an earlier run's widget had checked in,
+so Home rightly stopped asking). Looked at the forms and Neha's switch at
+390 px, a friend's view on a laptop, and tapped Neha's switch for real
+(the button was under the finger; her yes was written). Ran widget.js in a
+bare sandbox: in turn, the new note out of turn, then back in turn.
+
+On the branch `widget-previews`, not pushed: waiting for her go-ahead.
+
+**Correction:** none.
+
+**Commits:** `b863836`, the PROCESS.md prompt lines, and this entry's commit.
