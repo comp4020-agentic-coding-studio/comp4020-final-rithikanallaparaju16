@@ -3951,3 +3951,50 @@ oldest five things; it lists the newest now.
 unchanged.
 
 **Commits:** `2afa797`, the PROCESS.md prompt lines, and this entry's commits.
+
+### 93. A phone on its side; the widget question on every browser (5 Nov 2026)
+
+Asked: a photo of Rithika's phone held sideways, with "right now we cant
+even see the toggle, i want you to force only landscpae for phone because
+you can see the house only then, and make the toggle visibile no matter
+where i am.The toggle should be there on the bottom corners of my screen
+not the page. fix this and push it live". While it was being built: "also,
+amirdha tried from her laptop and her phone, she uses windows and android
+she says she didnt get the pop up thingee i got for downloading the widget.
+fix the issue". Then a keepsake box (entry 94).
+
+**Why the toggle was missing.** Sideways, her phone is about 932 × 430, so
+it got the laptop layout: the walking corners sit on the picture
+(`position: absolute`), and the picture was a card mostly below the screen.
+Only under 700px wide were they the screen's own.
+
+**What was built** (ADR 0032): a layout for a short touch screen in
+landscape. A slim bar with the tabs; the house, or a room, fills the rest;
+the walking corners are fixed to the screen's bottom corners on every page
+with the house and never step aside; the buttons sit between them. Held
+upright, the house's pages show "Turn your phone sideways" (the door, make
+form, README and widget steps stay readable). A page can't lock rotation on
+an iPhone, so that's the "force"; the manifest asks Android for landscape
+from the home screen. `scripts/shot.ts` gained `SHOT_HEIGHT` to emulate a
+phone on its side.
+
+**Amirdhavarshini's question.** Home stopped asking once any widget of hers
+had looked in, and hers was set up on Rithika's iPhone on 4 November, so
+her own Windows laptop and Android never asked (the live logs only reach
+back a few hours, and show her using the house, nothing about the widget).
+Now each browser is asked until that browser says Yes (kept a year) or Not
+now (a fortnight); a widget working elsewhere only changes the words ("on
+this screen too?"). Windows is told the widget lives on a phone, with
+Android's steps first. On a sideways phone the question is one slim line
+above the house.
+
+Checked at 932 × 430 with touch: Home, a room, a room scrolled to its cards
+(both corners still on the screen), the question above the house, and a
+real tap in the bottom-left corner (on top is `div.walk-corner.left`);
+upright at 390 px, the turn notice. Full check on a fresh server: 133
+passed, 18 skipped. Two specs added (the sideways promise and the manifest;
+each browser asked); one changed to the new rule.
+
+**Correction:** none.
+
+**Commits:** `397f8b1`, the PROCESS.md prompt lines, and this entry's commit.
