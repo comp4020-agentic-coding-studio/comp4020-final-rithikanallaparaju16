@@ -353,7 +353,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     if (!me) return send(res, 200, doorPage(store.lastSeen(), Date.now(), taken()));
     const v = visit(me);
     const answer = cookie(req, "widget-ask");
-    return send(res, 200, housePage({ ...v, widget: v.widget && { ...v.widget, later: answer === "later", answered: answer === "yes" || answer === "later" } }));
+    return send(res, 200, housePage({ ...v, widget: v.widget && { ...v.widget, later: answer === "later", answered: answer === "yes" || answer === "later" } }, url.searchParams.has("hi") && !req.headers["x-live"]));
   }
 
   // Coming in as one of the five, if nobody else is in the house as her right
@@ -361,14 +361,16 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   if (route === "POST /me") {
     const who = personById((await readForm(req))?.get("who") ?? undefined);
     if (!who) return send(res, 400, messagePage("Who's that?", "That isn't one of the friends in this house."));
-    if (mine?.me.id === who.id) return redirect(res, "/");
+    // Coming in says who you are, once (`?hi`): Rithika kept finding she'd
+    // come in as a friend without noticing (5 Nov, ADR 0034).
+    if (mine?.me.id === who.id) return redirect(res, "/?hi=1");
     if (held(who.id)) {
       return send(res, 409, messagePage(`${who.name}'s already home`, `Someone's in the house as ${who.name} right now. ${cap(their(who))} window opens again once they leave.`));
     }
     if (mine) leaveHouse(mine.me.id, mine.token);
     const token = randomUUID();
     store.claim(who.id, token);
-    return redirect(res, "/", { "set-cookie": whoCookie(req, `${who.id}.${token}`, YEAR) });
+    return redirect(res, "/?hi=1", { "set-cookie": whoCookie(req, `${who.id}.${token}`, YEAR) });
   }
 
   if (route === "POST /leave") {

@@ -417,13 +417,36 @@ describe.skipIf(!throwaway)("the front door", () => {
     expect(text((await door(now)).querySelector(".greeting"))).toContain(c.name);
   });
 
+  // Rithika, 5 Nov: "idk why im making the mistake of loggin in as some
+  // other person everytime" (ADR 0034). Coming in says who you are, once,
+  // with your sticker; a plain page load doesn't.
+  it("says who you are as you come in, once, and not on every page", async () => {
+    const five = await people();
+    const b = five[4];
+    await signOut(b.id);
+    const res = await signIn(b.id);
+    expect(res.status, `couldn't come in as ${b.name}`).toBe(303);
+    expect(res.headers.get("location"), "coming in doesn't land on the greeting").toBe("/?hi=1");
+    const cookie = sessionOf(res)!;
+    const hi = parse(await (await fetch(new URL("/?hi=1", baseUrl), { headers: { cookie } })).text());
+    expect(text(hi.querySelector(".hi-there")), "coming in doesn't say who you are").toContain(`Hi ${b.name}`);
+    expect(hi.querySelector(".hi-there img"), "the greeting has no sticker").not.toBeNull();
+    expect(hi.querySelector(".hi-there form[action='/leave'] button"), "there's no way to change who you are from it").not.toBeNull();
+    const plain = parse(await (await fetch(new URL("/", baseUrl), { headers: { cookie } })).text());
+    expect(plain.querySelector(".hi-there"), "every page load says hi").toBeNull();
+    const live = parse(await (await fetch(new URL("/?hi=1", baseUrl), { headers: { cookie, "x-live": "1" } })).text());
+    expect(live.querySelector(".hi-there"), "a live refresh says hi again").toBeNull();
+    sessions.set(b.id, cookie);
+    await signOut(b.id);
+  });
+
   it("changes nothing when you pick yourself again", async () => {
     const five = await people();
     const [a] = five;
     const mine = await cookieFor(a.id);
     const res = await signIn(a.id, mine);
     expect(res.status).toBe(303);
-    expect(res.headers.get("location")).toBe("/");
+    expect(res.headers.get("location")).toBe("/?hi=1");
     expect(sessionOf(res), "picking yourself again handed out a new session").toBeUndefined();
     expect(atTheDoor(await door(mine))).toBe(false);
   });

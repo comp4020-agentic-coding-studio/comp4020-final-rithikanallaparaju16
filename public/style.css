@@ -4913,3 +4913,86 @@ html.as-app .house-svg {
     padding-top: max(4px, env(safe-area-inset-top));
   }
 }
+
+/* ---------- who you are, on coming in (ADR 0034) ---------- */
+/* A card over the top of the house with your sticker: "Hi Rithika 👋".
+   It drops in, stays a few seconds, and goes (public/live.js). Tapping it
+   sends it away sooner. Not .hello (the bar) or .who (the name labels). */
+.hi-there {
+  position: fixed;
+  top: calc(var(--bar-h) + 12px);
+  left: 50%;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: calc(100vw - 32px);
+  padding: 8px 18px 8px 10px;
+  border-radius: 999px;
+  border: 3px solid var(--accent);
+  background: #fffaf0;
+  box-shadow: 0 10px 28px rgba(40, 20, 10, 0.28);
+  transform: translateX(-50%);
+  animation: hi-in 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+  cursor: pointer;
+}
+
+.hi-there img {
+  flex: none;
+  width: 44px;
+  height: 58px;
+  object-fit: contain;
+}
+
+.hi-words {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.hi-words b {
+  font-size: 1.2rem;
+}
+
+.hi-not {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.hi-not form.inline,
+.hi-not button.link {
+  display: inline;
+  font-size: inherit;
+}
+
+.hi-there.going {
+  animation: hi-out 0.4s ease-in both;
+}
+
+@keyframes hi-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -24px) scale(0.9);
+  }
+}
+
+@keyframes hi-out {
+  to {
+    opacity: 0;
+    transform: translate(-50%, -16px) scale(0.95);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hi-there,
+  .hi-there.going {
+    animation: none;
+  }
+}
+
+/* A phone held upright has no bar over the house; on its side, a slim one. */
+@media (max-width: 699px) {
+  .hi-there {
+    top: calc(var(--bar-h) + 8px);
+  }
+}

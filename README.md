@@ -85,7 +85,7 @@ It's a prototype: five friends only for now, because more friends means more roo
 
 Photos, drawings, notifications, and editing or deleting things you left. Each one has to show it makes five people feel closer first. Being in at the same time is a bonus, never a need: you see friends walk and what they do as it happens, but everything waits for whoever comes by later. UNO, with its twenty-second turns, is the one thing that needs you there.
 
-Only one person can be each of us at a time. A friend's window at the door stays shut while someone's in the house as her, and opens again two minutes after they leave, even for her own second device. Anyone with the link can still pick a window that's free. There's no password on purpose for now, so the course's markers can walk in as any of us: a desk note is private from the other friends in the house, but not from someone who comes in as you. A shared front-door key is the likely next step before the real five move in.
+Only one person can be each of us at a time. A friend's window at the door stays shut while someone's in the house as her, and opens again two minutes after they leave, even for her own second device. Anyone with the link can still pick a window that's free. Coming in as anyone (a window at the door, or "Come in as" on Everyone), Home says "Hi Rithika 👋" with her picture for a few seconds, and "Not you? Change" takes you back to the door, so a wrong tap is caught straight away. There's no password on purpose for now, so the course's markers can walk in as any of us: a desk note is private from the other friends in the house, but not from someone who comes in as you. A shared front-door key is the likely next step before the real five move in.
 
 ## On your phone
 

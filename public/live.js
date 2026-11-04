@@ -735,3 +735,30 @@
     });
   }
 })();
+
+// Who you are, on coming in (ADR 0034): the "Hi Rithika" card goes by
+// itself after a few seconds, or sooner if it's tapped, and the address
+// loses its ?hi so a reload doesn't say it again. Tapping "Change" still
+// goes to the door.
+(() => {
+  const hi = document.querySelector(".hi-there");
+  if (!hi) return;
+  try {
+    const url = new URL(location.href);
+    url.searchParams.delete("hi");
+    history.replaceState(history.state, "", url.pathname + url.search + url.hash);
+  } catch {
+    // the address keeps it; a reload would greet again, which is harmless
+  }
+  const go = () => {
+    if (hi.classList.contains("going")) return;
+    hi.classList.add("going");
+    setTimeout(() => hi.remove(), matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 400);
+  };
+  const timer = setTimeout(go, 4500);
+  hi.addEventListener("click", (event) => {
+    if (event.target.closest("form, button")) return;
+    clearTimeout(timer);
+    go();
+  });
+})();

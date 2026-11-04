@@ -1196,10 +1196,21 @@ const pageFor = (place: string): string => (place.startsWith("room:") ? `/room/$
 
 /* ---------- the tabs ---------- */
 
-export function housePage(v: Visit): string {
+// Just come in at the door: a moment that says who you are, with your
+// sticker, so coming in as the wrong friend is plain at once (ADR 0034).
+// It goes by itself (public/live.js); without the script it just stays.
+function hiThere(me: Person): string {
+  return `<aside class="hi-there" role="status" style="--accent:${me.color}">
+    <img src="${avatarUrl(me)}" alt="" width="60" height="80">
+    <span class="hi-words"><b>Hi ${esc(me.name)} 👋</b><span class="hi-not">Not you? <form method="post" action="/leave" class="inline"><button class="link">Change</button></form></span></span>
+  </aside>`;
+}
+
+export function housePage(v: Visit, hi = false): string {
   const light = phase(clock(v.me.tz, v.now));
   return shell(houseName(), `
 ${bar(v, "home")}
+${hi ? hiThere(v.me) : ""}
 <main class="home">
   ${news(v)}
   ${widgetAsk(v)}

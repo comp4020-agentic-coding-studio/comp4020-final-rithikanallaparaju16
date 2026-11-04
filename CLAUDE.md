@@ -153,7 +153,9 @@ accepted record.
   token must match `visits.token`. A friend is held while a page with her
   token is open, or for 2 minutes after her last page load; the door shows
   her window as a disabled `button.person.taken`, and `POST /me` answers 409.
-  `POST /leave` lets go.
+  `POST /leave` lets go. `POST /me` redirects to `/?hi=1`, and Home greets
+  her ("Hi Rithika 👋", "Not you? Change") for a few seconds, never on a
+  live re-fetch (ADR 0034); Rithika kept coming in as a friend by mistake.
 - Pages are server-rendered HTML forms that post and redirect. Every
   user-written string goes through `esc()` in `src/html.ts`.
 - The house is `public/art/house.jpg` with an SVG layer from `src/scene.ts`

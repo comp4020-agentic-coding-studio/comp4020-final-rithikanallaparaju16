@@ -481,7 +481,9 @@ export function tidy(w: Written, a: Answers, code: string): HouseSpec {
 // memory: a restart starts the count again, which is fine for a prototype.
 const HOUR = 60 * 60 * 1000;
 export const PER_VISITOR = 3;
-export const IN_ALL = 30;
+// A throwaway test server can allow more (MAKE_CAP): the spec makes more
+// than thirty houses in one run since 5 November. The live site keeps 30.
+export const IN_ALL = Number(process.env.MAKE_CAP) > 0 ? Number(process.env.MAKE_CAP) : 30;
 const made: { at: number; visitor: string }[] = [];
 
 // Fly's proxy says who's asking in fly-client-ip; locally, the socket does.

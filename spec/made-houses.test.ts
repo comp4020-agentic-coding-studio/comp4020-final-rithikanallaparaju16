@@ -265,6 +265,18 @@ describe.skipIf(!throwaway)("making a house for any five friends", () => {
     expect(JSON.stringify(w), "Rae's widget reads her sealed card").not.toContain(forRae);
   });
 
+  // ADR 0034 in a made house: coming in says who you are.
+  it("says who you are as you come into a made house", async () => {
+    const h = await makeHouse({ friends: "2", ...named(["Sam", "Lea"]) });
+    const res = await fetch(new URL(`${h.base}me`, baseUrl), { method: "POST", headers: FORM, body: "who=2", redirect: "manual" });
+    expect(res.headers.get("location"), "coming into a made house doesn't land on the greeting").toBe(`${h.base}?hi=1`);
+    const cookie = res.headers.getSetCookie().find((c) => c.startsWith("who="))!.split(";")[0];
+    const hi = parse(await (await fetch(new URL(`${h.base}?hi=1`, baseUrl), { headers: { cookie } })).text());
+    expect(text(hi.querySelector(".hi-there")), "a made house doesn't say who you are").toContain("Hi Lea");
+    expect(hi.querySelector(`.hi-there form[action="${h.base}leave"]`), "the made house's Change goes to the wrong door").not.toBeNull();
+    await fetch(new URL(`${h.base}leave`, baseUrl), { method: "POST", headers: { cookie }, redirect: "manual" });
+  });
+
   // ADR 0033, for made houses: "same applies for make your owb house as well".
   it("hands a made house out as its own app, from the ready page and its own app page", async () => {
     const h = await makeHouse({ friends: "3", ...named(["Ivy", "Rae", "Kit"]), title: "The Lake House" });
