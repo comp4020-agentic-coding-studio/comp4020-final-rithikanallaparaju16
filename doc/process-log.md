@@ -3904,3 +3904,50 @@ houses made from now on.
 **Correction:** none.
 
 **Commits:** `51511dd`, the PROCESS.md prompt lines, and this entry's commits.
+
+### 92. More features: six picked, built and pushed (5 Nov 2026)
+
+Asked: "more features". The agent checked what the widget and house
+already did, then asked with two lists of four. Rithika rejected the
+question ("nono ask again, i loved the ideas"), and on the second asking
+picked leave the light on, on this day, the next call on the widget, a line
+under a photo, a made house's own dog and page, and tell them I was here.
+Not picked: Diwali lights and "found your note". While building: "push it
+live", then (after a check without a verdict held up writing the ADR)
+"try now, continue".
+
+All six are in ADR 0031, each in Rithika's house and made houses:
+
+- **The light left on:** a `lamp` row; lit while it was left after her
+  "new" began (`store.newSince()`), so she comes home to it and it's out
+  the visit after. A desk hotspot and a room button; her room and Updates
+  say who.
+- **On this day:** `onThisDay()` in `src/house.ts`, by her clock, the
+  longest ago first, never this month; on Home's side column, Updates and
+  the widget (the widget only what writers shared).
+- **The next call on the widget:** a `plan` card, the sooner of a call or
+  movie night, in her own time.
+- **A line under a photo:** a `caption` row, one each, newest wins; the
+  photo's writer hears it.
+- **A made house's dog and page:** "What's the house dog called?" on the
+  form (`dogName()`, Shinzo when blank or older); `aboutHousePage()` instead
+  of the README. RICE E's skipped test is on again.
+- **Tell them you were here:** Home and Updates, once you've done something
+  this visit, say what you did (newest first), never what you wrote; Share
+  or Copy in `public/live.js`.
+
+Found while looking at Updates at 390 px: the page was 587 px wide. Long
+unbroken words (a test's ids) didn't wrap, and the list's grid column grew
+to fit them. `overflow-wrap: anywhere` and a `minmax(0, 1fr)` column fixed
+it; the page is 390 px now. The house picture, the tell-them card and a real
+tap on "Leave the light on" (the button was under the finger; the row was
+written) were checked at 390 px.
+
+Full check on a fresh `HOUSE_MAKER=fake` server: 131 passed, 18 skipped
+(one fewer skipped: E). One run failed first because the message listed the
+oldest five things; it lists the newest now.
+
+**Correction:** the first feature question was rejected and asked again,
+unchanged.
+
+**Commits:** `2afa797`, the PROCESS.md prompt lines, and this entry's commits.
