@@ -3540,3 +3540,19 @@ Product calls, named for Rithika to redirect:
 **Correction:** none.
 
 **Commits:** this entry's commit.
+
+### 84. Where's the widget? (4 Nov 2026)
+
+**Asked:** "queen, what happened to the widget thing i told you".
+
+**Agent:** answered, no code change. The widget work (log 83, `74c44de`
+and `5db5757` on `phone-corners-widget`) was built and committed but not
+live: the live `house.js` and `style.css` had none of it. The push to
+`main` at the end of log 83 was refused by Claude Code's permission check
+as a production deploy, since "just push it live" had been given for the
+batch before (log 82), and the agent stopped there instead of working
+around it. Asked Rithika to say "push it".
+
+**Correction:** none.
+
+**Commits:** this entry's commit (no code change).
