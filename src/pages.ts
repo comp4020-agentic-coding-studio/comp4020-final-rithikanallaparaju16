@@ -42,6 +42,8 @@ import {
   captionsOn,
   MAX_CAPTION,
   photoOf,
+  drawingOf,
+  voiceOf,
   onWidget,
   onThisDay,
   monthClock,
@@ -627,11 +629,12 @@ function happening(t: Thing, me: Person, all: Thing[]): Happening | undefined {
       if (!note || !sticker || note.author !== me.id || mine) return undefined;
       if (all.find((s) => s.kind === "sticker" && s.place === t.place && s.author === t.author) !== t) return undefined;
       const snippet = note.body.length > 40 ? `${note.body.slice(0, 40).trimEnd()}…` : note.body;
-      const what = photoOf(note) ? (snippet ? `your photo “${snippet}”` : "your photo") : `your note “${snippet}”`;
+      const pic = drawingOf(note) !== undefined ? "your drawing" : "your photo";
+      const what = photoOf(note) ? (snippet ? `${pic} “${snippet}”` : pic) : `your note “${snippet}”`;
       return { text: `${by} stuck ${sticker.emoji} on ${what}`, href: `/living#note-${note.id}`, forYou: true, at };
     }
     case "note":
-      if (photoOf(t)) return { text: `${by} pinned a photo on the wall${t.body ? `: “${t.body.length > 40 ? `${t.body.slice(0, 40).trimEnd()}…` : t.body}”` : ""}`, href: `/living#note-${t.id}`, forYou: false, at, photo: photoOf(t) };
+      if (photoOf(t)) return { text: `${by} ${drawingOf(t) ? "pinned a drawing" : "pinned a photo"} on the wall${t.body ? `: “${t.body.length > 40 ? `${t.body.slice(0, 40).trimEnd()}…` : t.body}”` : ""}`, href: `/living#note-${t.id}`, forYou: false, at, photo: photoOf(t) };
       return { text: t.item === "big" ? `${by} pinned big news on the wall` : `${by} wrote on the wall`, href: "/living", forYou: false, at };
     case "desk": {
       const owner = ownerOf(t.place);
@@ -639,7 +642,7 @@ function happening(t: Thing, me: Person, all: Thing[]): Happening | undefined {
       const href = `/room/${owner.id}`;
       if (owner.id !== me.id) return { text: `${by} left something on ${owner.name}'s desk`, href, forYou: false, at };
       const gift = find(GIFTS, t.item)?.label;
-      const what = t.body && gift ? `a note and ${gift}` : t.body ? "a note" : (gift ?? "something");
+      const what = drawingOf(t) ? "a drawing" : voiceOf(t) ? "a voice note" : t.body && gift ? `a note and ${gift}` : t.body ? "a note" : (gift ?? "something");
       return { text: `${by} left ${what} on your desk`, href, forYou: true, at };
     }
     // Writing back is news for whoever it's written back to.
@@ -813,7 +816,7 @@ function whatIDid(t: Thing, v: Visit): string | undefined {
       const what = (find(FOOD, food(t))?.short ?? "something").replace(/^a /, "");
       return forWhom ? `saved ${nameOf(forWhom)} some ${what}` : `made ${what} for everyone`;
     }
-    case "note": return photoOf(t) ? "pinned a photo on the wall" : "wrote on the wall";
+    case "note": return drawingOf(t) ? "pinned a drawing on the wall" : photoOf(t) ? "pinned a photo on the wall" : "wrote on the wall";
     case "water": return "watered the garden";
     case "plant": return "planted something in the garden";
     case "play": return `petted ${dogName()}`;
@@ -1079,14 +1082,17 @@ function widgetCards(v: Visit): WidgetCard[] {
     const gift = onDesk.kind === "desk" ? find(GIFTS, onDesk.item) : undefined;
     // "left you a flower", "left you a KitKat", "left you masala chai": the
     // gift's own short words, which carry their own "a" where it belongs.
-    const title = onDesk.kind === "reply" ? `${giver.name} wrote back` : gift ? `${giver.name} left you ${gift.short}` : `${giver.name} left you a note`;
+    // A drawing or a voice note (ADR 0037) is named, and waits in her room:
+    // the widget never carries the picture or the sound.
+    const made = onDesk.kind !== "desk" ? undefined : drawingOf(onDesk) !== undefined ? "a drawing" : voiceOf(onDesk) !== undefined ? "a voice note" : undefined;
+    const title = onDesk.kind === "reply" ? `${giver.name} wrote back` : made ? `${giver.name} left you ${made}` : gift ? `${giver.name} left you ${gift.short}` : `${giver.name} left you a note`;
     cards.push({
       kind: "desk",
       by: giver.name,
       color: giver.color,
       face: faceOf(giver),
-      ...(gift ? { gift: gift.key, emoji: GIFT_EMOJI[gift.key] ?? "🎁" } : {}),
-      text: onDesk.body ? `“${short(onDesk.body)}”` : `It's on your desk${gift ? ` with ${gift.label}` : ""}.`,
+      ...(gift ? { gift: gift.key, emoji: GIFT_EMOJI[gift.key] ?? "🎁" } : made ? { emoji: made === "a drawing" ? EMOJI.draw : EMOJI.voice } : {}),
+      text: onDesk.body ? `“${short(onDesk.body)}”` : `It's on your desk${gift ? ` with ${gift.label}` : made ? ", in your room" : ""}.`,
       ago: ago(onDesk.createdAt, v.now),
       title,
       open: `/room/${v.me.id}`,
@@ -1478,7 +1484,10 @@ function deskThing(t: Thing, owner: Person, v: Visit): string {
   const canRead = v.me.id === owner.id || v.me.id === t.author;
   const reply = t.kind === "reply";
   const gift = reply ? undefined : find(GIFTS, t.item);
-  const icons = [t.body ? iconSvg("note") : "", gift ? iconSvg(gift.key) : ""].join("");
+  // A drawing or a voice note on the desk (ADR 0037), as private as a note.
+  const drawing = reply ? undefined : drawingOf(t);
+  const voice = reply ? undefined : voiceOf(t);
+  const icons = [t.body || drawing || voice ? iconSvg("note") : "", gift ? iconSvg(gift.key) : ""].join("");
   const from = `from ${by(t, v)}, ${ago(t.createdAt, v.now)}`;
   // What a reply answers, quoted for whoever can read both.
   const original = reply ? answers(v.things, t) : undefined;
@@ -1486,12 +1495,17 @@ function deskThing(t: Thing, owner: Person, v: Visit): string {
     ? `<p class="reply-to">${original ? `Writing back to ${original.author === v.me.id ? "your" : `${esc(nameOf(original.author))}'s`} note “${esc(snippet(original.body))}”` : "Writing back"}</p>`
     : "";
   let text: string;
-  if (!t.body) text = `<p class="body">${esc(cap(gift?.label ?? "something"))}</p>`;
+  const from1 = nameOf(t.author);
+  if (drawing && canRead) text = `<a class="desk-drawing" href="/drawing/${drawing}"><img src="/drawing/${drawing}" alt="${esc(t.body ? `A drawing from ${from1}: ${t.body}` : `A drawing from ${from1}`)}" loading="lazy"></a>${t.body ? `<p class="body hand">${esc(t.body)}</p>` : ""}`;
+  else if (drawing) text = `<p class="body">A folded drawing for ${esc(owner.name)}.</p>`;
+  else if (voice && canRead) text = `<p class="voice-note">${emoji("voice")} A voice note from ${esc(t.author === v.me.id ? "you" : from1)}</p><audio controls preload="none" src="/voice/${voice}"><a href="/voice/${voice}">Listen</a></audio>${t.body ? `<p class="body hand">${esc(t.body)}</p>` : ""}`;
+  else if (voice) text = `<p class="body">A voice note for ${esc(owner.name)}.</p>`;
+  else if (!t.body) text = `<p class="body">${esc(cap(gift?.label ?? "something"))}</p>`;
   else if (canRead) text = `${answering}<p class="body hand">${esc(t.body)}</p>${gift ? `<p class="with">with ${esc(gift.label)}</p>` : ""}`;
   else text = `<p class="body">A folded note for ${esc(owner.name)}${gift ? `, and ${esc(gift.label)}` : ""}.</p>`;
   // On your own desk, a friend's note can be written back to, once, from
   // here: the answer goes on her desk.
-  const writeBack = owner.id === v.me.id && t.author !== v.me.id && t.body && personById(t.author)
+  const writeBack = owner.id === v.me.id && t.author !== v.me.id && (t.body || drawing || voice) && personById(t.author)
     ? answered(v.things, t, v.me.id)
       ? `<p class="small wrote-back">You wrote back to ${esc(nameOf(t.author))}.</p>`
       : `<details class="write-back" id="write-back-${t.id}"><summary>${emoji("reply")} Write back to ${esc(nameOf(t.author))}</summary>
@@ -1797,6 +1811,44 @@ function cardsCard(owner: Person, v: Visit): string {
   </section>`;
 }
 
+// Drawing something (ADR 0037): a sheet of paper and a few pens, in
+// public/live.js. The form posts the drawing as a PNG file, like a photo.
+// Without the script it's a plain file field, so a drawing made elsewhere
+// can still go. `where` is "desk" (folded, for one friend) or "wall".
+function drawForm(action: string, title: string, note: string, button: string, where: "desk" | "wall"): string {
+  const id = `draw-${where}`;
+  return `<details class="card draw-card" id="${where === "wall" ? "draw" : "draw-something"}">
+    <summary><h2>${emoji("draw")} ${esc(title)}</h2></summary>
+    <form method="post" action="${esc(action)}" enctype="multipart/form-data" class="compose draw-form" data-draw>
+      <input type="hidden" name="drawn" value="1">
+      <label for="${id}-file" class="draw-fallback">A drawing, as a PNG picture</label>
+      <input id="${id}-file" class="draw-fallback" name="drawing" type="file" accept="image/png" required>
+      <label for="${id}-body">${where === "wall" ? "What it is, if you like" : "A line with it, if you like"}</label>
+      <input id="${id}-body" name="body" maxlength="${MAX_NOTE}" placeholder="${where === "wall" ? "us at the beach, kind of" : "this is you, sorry"}">
+      ${where === "wall" ? widgetCheck() : ""}
+      <p class="small">${esc(note)}</p>
+      <button>${emoji("draw")} ${esc(button)}</button>
+    </form>
+  </details>`;
+}
+
+// A voice note for a friend's desk (ADR 0037): record in the page with the
+// microphone (public/live.js), or without the script, pick a recording the
+// phone made. Up to about a minute; only she hears it.
+function voiceForm(owner: Person): string {
+  return `<details class="card voice-card" id="voice-note">
+    <summary><h2>${emoji("voice")} Leave ${esc(owner.name)} a voice note</h2></summary>
+    <form method="post" action="/room/${esc(owner.id)}/voice" enctype="multipart/form-data" class="compose voice-form" data-voice>
+      <label for="voice-file" class="voice-fallback">A recording from your phone</label>
+      <input id="voice-file" class="voice-fallback" name="voice" type="file" accept="audio/*" capture required>
+      <label for="voice-body">A line with it, if you like</label>
+      <input id="voice-body" name="body" maxlength="${MAX_NOTE}" placeholder="listen to this when you wake up">
+      <p class="small">Up to about a minute. Only ${esc(owner.name)} will hear it. Anyone who walks in sees a voice note's been left.</p>
+      <button>${emoji("voice")} Leave it on ${esc(owner.name)}'s desk</button>
+    </form>
+  </details>`;
+}
+
 export function bedroomPage(owner: Person, v: Visit, did?: Done): string {
   const mine = owner.id === v.me.id;
   const c = clock(owner.tz, v.now);
@@ -1826,7 +1878,9 @@ export function bedroomPage(owner: Person, v: Visit, did?: Done): string {
     ${picker("item", "And something with it", gifts(), iconSvg, "Just the note")}
     <p class="small">Only ${esc(owner.name)} can read the note. Anyone who walks in can see something's been left.</p>
     <button>${emoji("desk")} Leave it on ${esc(owner.name)}'s desk</button>
-  </form>`;
+  </form>
+  ${drawForm(`/room/${owner.id}/draw`, `Draw ${owner.name} something`, `Only ${owner.name} will see it. Anyone who walks in sees a folded drawing.`, `Leave it on ${owner.name}'s desk`, "desk")}
+  ${voiceForm(owner)}`;
 
   // Anyone can sleep in anyone's bed, and sit down on the seats. Aswathy's
   // yoga mat, Rithanya's face masks and the hostel kettle are Rithika's five's
@@ -1901,7 +1955,8 @@ const WALL_SHOWN = 24;
 // you already stuck peels it off.
 function wallNote(t: Thing, v: Visit): string {
   const photo = photoOf(t);
-  const cls = ["note", t.item === "big" ? "big" : "", photo ? "photo" : "", isNew(t, v) ? "new" : "", t.author === v.me.id ? "mine" : ""].filter(Boolean).join(" ");
+  const drawn = drawingOf(t) !== undefined;
+  const cls = ["note", t.item === "big" ? "big" : "", photo ? "photo" : "", drawn ? "sketched" : "", isNew(t, v) ? "new" : "", t.author === v.me.id ? "mine" : ""].filter(Boolean).join(" ");
   const paper = personById(t.author)?.paper ?? "#fff8e6";
   const stuck = stickersOn(v.things, t);
   const chips = stuck.map((s) => {
@@ -1922,7 +1977,7 @@ function wallNote(t: Thing, v: Visit): string {
     ? `<form method="post" action="/wall/widget" class="widget-say"><input type="hidden" name="note" value="${t.id}"><input type="hidden" name="widget" value="${shared ? "" : "yes"}"><button aria-pressed="${shared}">${shared ? `${emoji("widget")} On friends' widgets · take it off` : `${emoji("widget")} Show it on friends' widgets`}</button></form>`
     : shared ? `<p class="widget-said" title="${esc(`${nameOf(t.author)} let this show on home-screen widgets`)}">${emoji("widget")} on widgets</p>` : "";
   const picture = photo
-    ? `<a class="snap" href="/photo/${photo}"><img src="/photo/${photo}" alt="${esc(t.body ? `A photo from ${nameOf(t.author)}: ${t.body}` : `A photo from ${nameOf(t.author)}`)}" loading="lazy"></a>`
+    ? `<a class="snap" href="/photo/${photo}"><img src="/photo/${photo}" alt="${esc(`${drawn ? "A drawing" : "A photo"} from ${nameOf(t.author)}${t.body ? `: ${t.body}` : ""}`)}" loading="lazy"></a>`
     : "";
   const words = t.body ? `<p class="body hand">${esc(t.body)}</p>` : "";
   // On a photo, a line each from friends underneath, like the back of a
@@ -2024,6 +2079,7 @@ export function livingPage(v: Visit, did?: Done): string {
     ${widgetCheck()}
     <button>${emoji("photo")} Pin the photo</button>
   </form>
+  ${drawForm("/wall/photo", "Draw something for the wall", "It goes up like a photo, and friends can stick stickers on it.", "Pin the drawing", "wall")}
   <section class="wall" id="wall" aria-labelledby="wall-heading" data-live="wall">
     <h2 id="wall-heading">The wall</h2>
     ${memoriesOnWall()}

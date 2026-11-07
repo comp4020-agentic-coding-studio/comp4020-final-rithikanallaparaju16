@@ -281,6 +281,112 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect((await pin(new Blob([png], { type: "image/png" }), "long.png", "x".repeat(501))).status).toBe(400);
   });
 
+  // Rithika, on "Drawings, voice notes and real-time chat": "wait can we do
+  // this? do it if its possible", and "Skip chat for now" (ADR 0037).
+  it("leaves a friend a drawing or a voice note on her desk that only she and its writer can see or hear", async () => {
+    const [a, b, c] = await people();
+    const room = await page(`/room/${b.id}`, a.id);
+    const drawForm = room.querySelector(`#draw-something form[action='/room/${b.id}/draw'][enctype='multipart/form-data']`);
+    expect(drawForm, "there's no paper to draw her something on").not.toBeNull();
+    expect(drawForm!.querySelector("input[type=file]")?.getAttribute("accept")).toBe("image/png");
+    const voiceForm = room.querySelector(`#voice-note form[action='/room/${b.id}/voice'][enctype='multipart/form-data']`);
+    expect(voiceForm, "there's no way to leave her a voice note").not.toBeNull();
+    expect(voiceForm!.querySelector("input[type=file]")?.getAttribute("accept")).toBe("audio/*");
+    expect((await page(`/room/${a.id}`, a.id)).querySelector("#draw-something, #voice-note"), "she's offered to draw on her own desk").toBeNull();
+
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP4v+7/fwAIDAN+M8x3iQAAAABJRU5ErkJggg==", "base64");
+    // The first bytes of a WebM recording (its EBML header), as a browser's
+    // recorder sends; the house knows a sound by its first bytes.
+    const webm = Buffer.concat([Buffer.from("1a45dfa3a3428681010000000000", "hex"), Buffer.alloc(64, 1)]);
+    const leave = async (what: "draw" | "voice", file: Blob, body: string, who = a.id, to = b.id): Promise<Response> => {
+      const data = new FormData();
+      data.set(what === "draw" ? "drawing" : "voice", file, what === "draw" ? "drawing.png" : "voice.webm");
+      data.set("body", body);
+      if (what === "draw") data.set("drawn", "1");
+      return fetch(new URL(`/room/${to}/${what}`, baseUrl), { method: "POST", headers: { cookie: await cookieFor(who) }, body: data, redirect: "manual" });
+    };
+    const drawLine = unique("this is you, sorry");
+    const drew = await leave("draw", new Blob([png], { type: "image/png" }), drawLine);
+    expect(drew.status).toBe(303);
+    expect(drew.headers.get("location")).toBe(`/room/${b.id}?did=draw`);
+    const voiceLine = unique("listen when you wake up");
+    expect((await leave("voice", new Blob([webm], { type: "audio/webm" }), voiceLine)).status).toBe(303);
+
+    // b finds both on her desk: the drawing to look at, the voice note to play.
+    const hers = await page(`/room/${b.id}`, b.id);
+    const drawing = withText(hers, ".desk-thing", drawLine);
+    const src = drawing?.querySelector(".desk-drawing img")?.getAttribute("src") ?? "";
+    expect(src, "she can't see the drawing").toMatch(/^\/drawing\/\d+$/);
+    const voice = withText(hers, ".desk-thing", voiceLine);
+    const clip = voice?.querySelector("audio")?.getAttribute("src") ?? "";
+    expect(clip, "she can't play the voice note").toMatch(/^\/voice\/\d+$/);
+    const news = text((await page("/updates", b.id)).body);
+    expect(news).toContain(`${a.name} left a drawing on your desk`);
+    expect(news).toContain(`${a.name} left a voice note on your desk`);
+
+    // Exactly as sent, for her and for whoever left it.
+    for (const who of [b.id, a.id]) {
+      const pic = await fetch(new URL(src, baseUrl), { headers: { cookie: await cookieFor(who) } });
+      expect(pic.status, `the drawing for ${who}`).toBe(200);
+      expect(pic.headers.get("content-type")).toBe("image/png");
+      expect(Buffer.from(await pic.arrayBuffer()).equals(png)).toBe(true);
+      const sound = await fetch(new URL(clip, baseUrl), { headers: { cookie: await cookieFor(who) } });
+      expect(sound.status, `the voice note for ${who}`).toBe(200);
+      expect(sound.headers.get("content-type")).toBe("audio/webm");
+      expect(Buffer.from(await sound.arrayBuffer()).equals(webm)).toBe(true);
+    }
+
+    // A third friend walking in sees that something's been left, and no more.
+    const theirs = await page(`/room/${b.id}`, c.id);
+    expect(text(theirs.querySelector("#desk"))).toContain(`A folded drawing for ${b.name}`);
+    expect(text(theirs.querySelector("#desk"))).toContain(`A voice note for ${b.name}`);
+    expect(text(theirs.querySelector("#desk")), "the line with the drawing shows to a third friend").not.toContain(drawLine);
+    expect(theirs.querySelector(`.desk-drawing, audio[src='${clip}']`)).toBeNull();
+    for (const path of [src, clip]) {
+      expect((await fetch(new URL(path, baseUrl), { headers: { cookie: await cookieFor(c.id) } })).status, `${path} for a third friend`).toBe(404);
+      expect((await fetch(new URL(path, baseUrl))).status, `${path} for someone not in the house`).toBe(403);
+    }
+
+    // Only a drawing and only a sound: anything else is turned away, and
+    // nobody leaves them on her own desk.
+    expect((await leave("draw", new Blob(["<svg onload=alert(1)>"], { type: "image/png" }), "x")).status).toBe(400);
+    expect((await leave("draw", new Blob([png], { type: "image/png" }), "x", a.id, a.id)).status, "she drew on her own desk").toBe(400);
+    expect((await leave("voice", new Blob([png], { type: "audio/webm" }), "x")).status, "a picture went up as a voice note").toBe(400);
+    expect((await leave("voice", new Blob(["<script>alert(1)</script>"], { type: "audio/webm" }), "x")).status).toBe(400);
+    expect((await leave("voice", new Blob([webm], { type: "audio/webm" }), "x".repeat(501))).status).toBe(400);
+  });
+
+  it("pins a drawing on the wall like a photo, for friends to sticker", async () => {
+    const [a, b] = await people();
+    const living = await page("/living", a.id);
+    expect(living.querySelector("#draw form[action='/wall/photo'] input[name=drawn][value='1']"), "there's no paper on the wall to draw on").not.toBeNull();
+
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP4v+7/fwAIDAN+M8x3iQAAAABJRU5ErkJggg==", "base64");
+    const caption = unique("us at the beach, kind of");
+    const data = new FormData();
+    data.set("photo", new Blob([png], { type: "image/png" }), "drawing.png");
+    data.set("drawn", "1");
+    data.set("body", caption);
+    const res = await fetch(new URL("/wall/photo", baseUrl), { method: "POST", headers: { cookie: await cookieFor(a.id) }, body: data, redirect: "manual" });
+    expect(res.status).toBe(303);
+    expect(res.headers.get("location")).toBe("/living?did=drawing#wall");
+
+    const note = withText(await page("/living", b.id), ".note.photo.sketched", caption);
+    expect(note, "the drawing isn't on the wall").toBeDefined();
+    expect(note!.querySelector(".snap img")?.getAttribute("alt")).toContain(`A drawing from ${a.name}`);
+    expect(text((await page("/updates", b.id)).body)).toContain(`${a.name} pinned a drawing on the wall`);
+    const id = note!.id.replace(/^note-/, "");
+    expect((await post("/wall/sticker", { note: id, sticker: "love" }, b.id)).status).toBe(303);
+    expect(text((await page("/updates", a.id)).body)).toContain(`${b.name} stuck ❤️ on your drawing “${caption.slice(0, 40)}`);
+
+    // A drawing is a PNG from the paper; a JPEG sent as one is turned away.
+    const jpeg = Buffer.from("ffd8ffe000104a46494600010100000100010000ffd9", "hex");
+    const fake = new FormData();
+    fake.set("photo", new Blob([jpeg], { type: "image/jpeg" }), "drawing.png");
+    fake.set("drawn", "1");
+    expect((await fetch(new URL("/wall/photo", baseUrl), { method: "POST", headers: { cookie: await cookieFor(a.id) }, body: fake, redirect: "manual" })).status).toBe(400);
+  });
+
   // Rithika: "can you make this into sumn i can view on the homescreen, like
   // locket?" (ADR 0025). A widget reads one private link per friend.
   // And (ADR 0027): "when i enter the home through laptop,phone or ipad,

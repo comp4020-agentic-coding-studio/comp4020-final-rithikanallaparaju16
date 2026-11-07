@@ -76,6 +76,17 @@ function migrate(db: DatabaseSync): void {
     );
   `);
 
+  // 8 November: a voice note left on a friend's desk (ADR 0037). Kept apart
+  // from photos, so nothing that serves a picture can ever serve a sound.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS sounds (
+      id INTEGER PRIMARY KEY,
+      type TEXT NOT NULL,
+      data BLOB NOT NULL,
+      created_at INTEGER NOT NULL
+    );
+  `);
+
   // The first house kept notes in their own table; they move onto the living
   // room wall, where they'd have been.
   if (db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'notes'").get()) {
@@ -184,11 +195,13 @@ function statements(db: DatabaseSync) {
   `);
   const insertPhoto = db.prepare("INSERT INTO photos (type, data, created_at) VALUES (?, ?, ?)");
   const selectPhoto = db.prepare("SELECT type, data FROM photos WHERE id = ?");
+  const insertSound = db.prepare("INSERT INTO sounds (type, data, created_at) VALUES (?, ?, ?)");
+  const selectSound = db.prepare("SELECT type, data FROM sounds WHERE id = ?");
   const selectRecap = db.prepare("SELECT recap FROM visits WHERE person = ?");
   const setRecap = db.prepare("UPDATE visits SET recap = ? WHERE person = ?");
   const selectWidgetSeen = db.prepare("SELECT widget_seen FROM visits WHERE person = ?");
   const setWidgetSeen = db.prepare("UPDATE visits SET widget_seen = ? WHERE person = ?");
-  return { db, insertThing, selectThings, selectVisit, selectToken, claimToken, releaseToken, selectVisits, upsertVisit, updateSpot, selectWidget, setWidget, insertPhoto, selectPhoto, selectRecap, setRecap, selectWidgetSeen, setWidgetSeen };
+  return { db, insertThing, selectThings, selectVisit, selectToken, claimToken, releaseToken, selectVisits, upsertVisit, updateSpot, selectWidget, setWidget, insertPhoto, selectPhoto, insertSound, selectSound, selectRecap, setRecap, selectWidgetSeen, setWidgetSeen };
 }
 
 type Statements = ReturnType<typeof statements>;
@@ -274,6 +287,17 @@ export function keepPhoto(type: string, data: Buffer): number {
 
 export function photo(id: number): { type: string; data: Buffer } | undefined {
   const r = q().selectPhoto.get(id);
+  return r ? { type: String(r.type), data: Buffer.from(r.data as Uint8Array) } : undefined;
+}
+
+// A voice note (ADR 0037), kept first like a photo; its id goes in the desk
+// row's item as `voice:<id>`.
+export function keepSound(type: string, data: Buffer): number {
+  return Number(q().insertSound.run(type, data, Date.now()).lastInsertRowid);
+}
+
+export function sound(id: number): { type: string; data: Buffer } | undefined {
+  const r = q().selectSound.get(id);
   return r ? { type: String(r.type), data: Buffer.from(r.data as Uint8Array) } : undefined;
 }
 

@@ -300,5 +300,7 @@ page and the right clocks), and A (Home's line on a phone).
   buzzes.
 - **Streaks, "you haven't been here in a week".** They punish absence, which
   the house never does.
-- **Drawings, voice notes and real-time chat.** Possibilities in `CLAUDE.md`,
-  not candidates until someone shows they'd make five people feel closer.
+- **Real-time chat.** Rithika asked for drawings, voice notes and chat on
+  8 November ("do it if its possible"), then "Skip chat for now". Drawings
+  and voice notes were built the same day (ADR 0037); chat stays out, since
+  it's the one thing the house isn't.

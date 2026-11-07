@@ -98,7 +98,9 @@ notifications.
 
 Ask: does it help five friends feel connected across distance, and does it
 strengthen the core loop enough to justify its complexity? If not, don't build
-it. Photos, drawings, prompts and real-time are possibilities, not a backlog. A
+it. Photos (ADR 0024), drawings and voice notes (ADR 0037) are built;
+prompts and chat are possibilities, not a backlog ("Skip chat for now",
+8 Nov 2026). A
 feature that changes the core interaction or the house metaphor goes back to
 Rithika first.
 

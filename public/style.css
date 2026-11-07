@@ -5026,3 +5026,227 @@ html.as-app .house-svg {
     top: calc(var(--bar-h) + 8px);
   }
 }
+
+/* ---------- drawings and voice notes (ADR 0037) ---------- */
+
+.draw-card > summary,
+.voice-card > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.draw-card > summary::-webkit-details-marker,
+.voice-card > summary::-webkit-details-marker {
+  display: none;
+}
+
+.draw-card > summary h2,
+.voice-card > summary h2 {
+  display: inline;
+  margin: 0;
+}
+
+.draw-card > summary::after,
+.voice-card > summary::after {
+  content: " ›";
+  color: var(--ink-soft);
+}
+
+.draw-card[open] > summary::after,
+.voice-card[open] > summary::after {
+  content: " ⌄";
+}
+
+.draw-form,
+.voice-form {
+  margin-top: 10px;
+}
+
+/* with the script, the paper or the recorder stands in for the file field */
+.drawing-on .draw-fallback,
+.recording-on .voice-fallback {
+  display: none;
+}
+
+.sketch-paper canvas {
+  display: block;
+  width: 100%;
+  max-width: 600px;
+  aspect-ratio: 4 / 3;
+  border-radius: 6px;
+  background: #fffdf6;
+  box-shadow: inset 0 0 0 1px rgba(60, 40, 20, 0.18), 0 2px 8px rgba(40, 20, 10, 0.12);
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.sketch-paper canvas.empty {
+  box-shadow: inset 0 0 0 2px #d0663f;
+}
+
+.sketch-pens {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 4px;
+}
+
+.sketch-pens .pen {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 2px solid #fffdf6;
+  border-radius: 50%;
+  background: var(--ink, #3b2a20);
+  box-shadow: 0 0 0 1px rgba(60, 40, 20, 0.25);
+}
+
+.sketch-pens .pen[aria-pressed="true"] {
+  box-shadow: 0 0 0 3px var(--accent, #c4553b);
+}
+
+.sketch-pens .rubber {
+  background: #fff;
+  font-size: 1rem;
+}
+
+/* the pad's own buttons aren't the form's send button (.compose button) */
+.compose .sketch-pens button {
+  justify-self: auto;
+  font-weight: 400;
+}
+
+.compose .sketch-pens .pen {
+  padding: 0;
+}
+
+.compose .sketch-pens .undo,
+.compose .sketch-pens .wipe {
+  min-height: 32px;
+  padding: 2px 14px;
+  border: 1px solid rgba(60, 40, 20, 0.3);
+  border-radius: 999px;
+  background: var(--card, #fffaf0);
+  color: var(--ink);
+  font-size: 0.85rem;
+}
+
+/* the line with it, like the photo form's */
+.draw-form input[name="body"],
+.voice-form input[name="body"] {
+  width: 100%;
+  padding: 4px 0;
+  border: 0;
+  border-bottom: 1px dashed rgba(59, 42, 32, 0.35);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--hand);
+  font-size: 1.35rem;
+}
+
+.draw-form input[name="body"]:focus,
+.voice-form input[name="body"]:focus {
+  outline: none;
+  border-bottom-color: var(--accent);
+}
+
+.draw-form input[type="file"],
+.voice-form input[type="file"] {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  font: inherit;
+  font-size: 0.92rem;
+  color: var(--ink);
+}
+
+.recorder {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.compose .recorder .rec {
+  justify-self: auto;
+  min-height: 44px;
+  padding: 6px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: #ffe7a0;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  outline: 2px solid #f2b233;
+  outline-offset: -2px;
+}
+
+.compose .recorder .rec.on {
+  background: #d0663f;
+  color: #fff;
+  outline-color: #b04a28;
+  animation: rec-on 1.2s ease-in-out infinite;
+}
+
+@keyframes rec-on {
+  50% { filter: brightness(1.15); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recorder .rec.on { animation: none; }
+}
+
+.recorder audio {
+  width: 100%;
+  max-width: 320px;
+}
+
+.recorder .rec-time {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+}
+
+/* on a desk */
+.desk-thing .desk-drawing {
+  display: block;
+  max-width: 220px;
+  margin: 2px 0 6px;
+  padding: 6px;
+  background: #fffdf6;
+  box-shadow: 0 2px 6px rgba(40, 20, 10, 0.18);
+  transform: rotate(-1.5deg);
+}
+
+.desk-thing .desk-drawing img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.desk-thing audio {
+  display: block;
+  width: 100%;
+  max-width: 280px;
+  margin: 4px 0 6px;
+}
+
+.desk-thing .voice-note {
+  margin: 0;
+  font-weight: 600;
+}
+
+/* on the wall: a drawing is on paper, not a print, so it's shown whole */
+.note.photo.sketched .snap {
+  background: #fffdf6;
+  aspect-ratio: 4 / 3;
+}
+
+.note.photo.sketched .snap img {
+  object-fit: contain;
+}

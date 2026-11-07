@@ -22,6 +22,20 @@ export function pictureType(data: Buffer): string | undefined {
   return undefined;
 }
 
+// What a voice note is, from its first bytes (ADR 0037): what phones and
+// browsers record. WebM/Ogg with Opus (Chrome, Firefox, Android), MP4/AAC
+// (Safari, iPhone), or a phone recorder's M4A. Only these are served back.
+export function soundType(data: Buffer): string | undefined {
+  if (data.length > 4 && data[0] === 0x1a && data[1] === 0x45 && data[2] === 0xdf && data[3] === 0xa3) return "audio/webm";
+  if (data.length > 4 && data.toString("latin1", 0, 4) === "OggS") return "audio/ogg";
+  if (data.length > 12 && data.toString("latin1", 4, 8) === "ftyp") return "audio/mp4";
+  return undefined;
+}
+
+// The longest voice note: a minute at what a phone records speech at is
+// well under a megabyte; this leaves room for a phone's own recorder.
+export const MAX_SOUND = 3 * 1024 * 1024;
+
 // The form's fields and its one file, or undefined if it's too big or isn't
 // a form with a file in it. `too` says it was the size.
 export async function readUpload(req: IncomingMessage): Promise<Upload | "too big" | undefined> {
@@ -59,7 +73,7 @@ function parts(body: Buffer, boundary: string): Upload | undefined {
     const name = /name="([^"]*)"/i.exec(head)?.[1];
     const isFile = /filename="/i.test(head);
     if (name && isFile) {
-      if (data.length && !file) file = { type: pictureType(data) ?? "", data: Buffer.from(data) };
+      if (data.length && !file) file = { type: pictureType(data) ?? soundType(data) ?? "", data: Buffer.from(data) };
     } else if (name) {
       fields.append(name, data.toString("utf8"));
     }

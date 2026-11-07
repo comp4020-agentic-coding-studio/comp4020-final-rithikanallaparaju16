@@ -771,3 +771,192 @@
     go();
   });
 })();
+
+// Drawing something (ADR 0037): a sheet of paper and a few pens, for a
+// friend's desk or the wall. Finger, pen or mouse. Leaving it puts the
+// drawing in the form's file field as a PNG and sends the form as it is,
+// so the house takes it exactly as it would a picked file. Without this
+// file the form is a plain file field.
+(() => {
+  const PENS = ["#3b2a20", "#e07a5f", "#d9668a", "#e0a33a", "#5a9e6f", "#5b8fd9", "#8e7cc3"];
+  const W = 600;
+  const H = 450;
+  function drawForm(form) {
+    if (form.dataset.ready) return;
+    form.dataset.ready = "1";
+    const file = form.querySelector("input[type=file]");
+    if (!file || !window.DataTransfer || !HTMLCanvasElement.prototype.toBlob) return;
+    // No paper to draw on in this browser: the file field stays.
+    if (!document.createElement("canvas").getContext?.("2d")) return;
+    form.classList.add("drawing-on");
+    file.required = false;
+    const pad = document.createElement("div");
+    pad.className = "sketch-paper";
+    pad.innerHTML = `<canvas width="${W}" height="${H}" aria-label="Paper to draw on"></canvas><div class="sketch-pens" role="group" aria-label="Pens">${PENS.map((c, i) => `<button type="button" class="pen" style="--ink:${c}" aria-label="Pen ${i + 1}" aria-pressed="${i === 0}"></button>`).join("")}<button type="button" class="pen rubber" aria-label="Rubber" aria-pressed="false">🧽</button><button type="button" class="undo">Undo</button><button type="button" class="wipe">Clear</button></div>`;
+    form.prepend(pad);
+    const canvas = pad.querySelector("canvas");
+    const ctx = canvas.getContext("2d");
+    const blank = () => {
+      ctx.fillStyle = "#fffdf6";
+      ctx.fillRect(0, 0, W, H);
+    };
+    blank();
+    let ink = PENS[0];
+    let rubber = false;
+    let strokes = [];
+    let line;
+    const redraw = () => {
+      blank();
+      for (const s of strokes) {
+        ctx.strokeStyle = s.rubber ? "#fffdf6" : s.ink;
+        ctx.lineWidth = s.rubber ? 22 : 5;
+        ctx.lineCap = ctx.lineJoin = "round";
+        ctx.beginPath();
+        s.points.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+        if (s.points.length === 1) ctx.lineTo(s.points[0][0] + 0.1, s.points[0][1]);
+        ctx.stroke();
+      }
+    };
+    const at = (e) => {
+      const r = canvas.getBoundingClientRect();
+      return [((e.clientX - r.left) / r.width) * W, ((e.clientY - r.top) / r.height) * H];
+    };
+    canvas.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      canvas.setPointerCapture(e.pointerId);
+      line = { ink, rubber, points: [at(e)] };
+      strokes.push(line);
+      redraw();
+    });
+    canvas.addEventListener("pointermove", (e) => {
+      if (!line) return;
+      line.points.push(at(e));
+      redraw();
+    });
+    const lift = () => (line = undefined);
+    canvas.addEventListener("pointerup", lift);
+    canvas.addEventListener("pointercancel", lift);
+    pad.querySelector(".sketch-pens").addEventListener("click", (e) => {
+      const b = e.target.closest("button");
+      if (!b) return;
+      if (b.classList.contains("undo")) strokes.pop();
+      else if (b.classList.contains("wipe")) strokes = [];
+      else {
+        for (const p of pad.querySelectorAll(".pen")) p.setAttribute("aria-pressed", String(p === b));
+        rubber = b.classList.contains("rubber");
+        if (!rubber) ink = b.style.getPropertyValue("--ink");
+      }
+      redraw();
+    });
+    form.addEventListener("submit", (e) => {
+      if (form.dataset.sending) return;
+      if (!strokes.some((s) => !s.rubber)) {
+        e.preventDefault();
+        canvas.classList.add("empty");
+        setTimeout(() => canvas.classList.remove("empty"), 600);
+        return;
+      }
+      e.preventDefault();
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const box = new DataTransfer();
+        box.items.add(new File([blob], "drawing.png", { type: "image/png" }));
+        file.files = box.files;
+        form.dataset.sending = "1";
+        form.querySelector("button:not([type=button])").disabled = true;
+        form.submit();
+      }, "image/png");
+    });
+  }
+  const all = () => document.querySelectorAll("form[data-draw]").forEach(drawForm);
+  all();
+  document.addEventListener("house:fresh", all);
+  // A link to #draw-something, #draw or #voice-note opens that card.
+  const open = () => {
+    const el = location.hash && document.getElementById(location.hash.slice(1));
+    if (el?.tagName === "DETAILS") el.open = true;
+  };
+  open();
+  addEventListener("hashchange", open);
+})();
+
+// A voice note for a friend's desk (ADR 0037): record with the microphone,
+// listen back, record again if you like, and leave it. Up to a minute. The
+// recording goes in the form's file field and the form is sent as it is.
+// Without this (or without a microphone) the field picks a recording the
+// phone made, which the house takes the same way.
+(() => {
+  const LIMIT = 60;
+  function voiceForm(form) {
+    if (form.dataset.ready) return;
+    form.dataset.ready = "1";
+    const file = form.querySelector("input[type=file]");
+    if (!file || !window.MediaRecorder || !navigator.mediaDevices?.getUserMedia || !window.DataTransfer) return;
+    form.classList.add("recording-on");
+    file.required = false;
+    const box = document.createElement("div");
+    box.className = "recorder";
+    box.innerHTML = `<button type="button" class="rec">🎙️ Record</button><span class="rec-time" aria-live="polite"></span><audio controls hidden></audio>`;
+    form.prepend(box);
+    const button = box.querySelector(".rec");
+    const time = box.querySelector(".rec-time");
+    const player = box.querySelector("audio");
+    let recorder;
+    let clip;
+    let tick;
+    const stop = () => recorder?.state === "recording" && recorder.stop();
+    button.addEventListener("click", async () => {
+      if (recorder?.state === "recording") return stop();
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch {
+        time.textContent = "The microphone's off for this page. Pick a recording below instead.";
+        form.classList.remove("recording-on");
+        return;
+      }
+      const type = ["audio/webm;codecs=opus", "audio/mp4", "audio/ogg;codecs=opus"].find((t) => MediaRecorder.isTypeSupported?.(t));
+      recorder = new MediaRecorder(stream, type ? { mimeType: type } : undefined);
+      const parts = [];
+      recorder.addEventListener("dataavailable", (e) => e.data.size && parts.push(e.data));
+      recorder.addEventListener("stop", () => {
+        clearInterval(tick);
+        for (const t of stream.getTracks()) t.stop();
+        clip = new Blob(parts, { type: recorder.mimeType || type || "audio/webm" });
+        player.src = URL.createObjectURL(clip);
+        player.hidden = false;
+        button.textContent = "🎙️ Record again";
+        button.classList.remove("on");
+      });
+      const started = Date.now();
+      recorder.start();
+      button.textContent = "⏹ Stop";
+      button.classList.add("on");
+      player.hidden = true;
+      time.textContent = "0:00";
+      tick = setInterval(() => {
+        const s = Math.floor((Date.now() - started) / 1000);
+        time.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+        if (s >= LIMIT) stop();
+      }, 250);
+    });
+    form.addEventListener("submit", (e) => {
+      if (form.dataset.sending || file.files?.length) return;
+      e.preventDefault();
+      if (!clip) {
+        time.textContent = "Record something first.";
+        return;
+      }
+      const ext = clip.type.includes("mp4") ? "m4a" : clip.type.includes("ogg") ? "ogg" : "webm";
+      const box2 = new DataTransfer();
+      box2.items.add(new File([clip], `voice.${ext}`, { type: clip.type }));
+      file.files = box2.files;
+      form.dataset.sending = "1";
+      form.querySelector("button:not([type=button])").disabled = true;
+      form.submit();
+    });
+  }
+  const all = () => document.querySelectorAll("form[data-voice]").forEach(voiceForm);
+  all();
+  document.addEventListener("house:fresh", all);
+})();

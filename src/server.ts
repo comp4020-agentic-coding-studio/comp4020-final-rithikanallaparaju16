@@ -3,7 +3,7 @@ import { readFileSync, statSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { ART, ART_TYPES, isArt } from "./assets.ts";
 import { avatarSvg, parseLook } from "./avatars.ts";
-import { counter, desk, dogName, find, FOOD, gifts, KETTLE_ROOM, MASK_ROOM, MAX_CAPTION, monthClock, movies, onWidget, pastMonths, photoOf, PLANTS, recapFor, resting, roomPlace, savedFor, seats, STICKERS, wall } from "./house.ts";
+import { counter, desk, dogName, drawingOf, find, FOOD, gifts, KETTLE_ROOM, MASK_ROOM, MAX_CAPTION, monthClock, movies, onWidget, pastMonths, photoOf, PLANTS, voiceOf, recapFor, resting, roomPlace, savedFor, seats, STICKERS, wall } from "./house.ts";
 import { closeHouses, findHouse, house, inHouse, made, ORIGINAL } from "./houses.ts";
 import * as live from "./live.ts";
 import { make } from "./maker.ts";
@@ -38,7 +38,7 @@ import {
 } from "./pages.ts";
 import { PEOPLE, personById, type Person } from "./people.ts";
 import { avatarUrl } from "./avatars.ts";
-import { MAX_PHOTO, readUpload } from "./photos.ts";
+import { MAX_PHOTO, MAX_SOUND, readUpload } from "./photos.ts";
 import { layout, matWords } from "./layouts.ts";
 import { isPlace, placeAt } from "./scene.ts";
 import * as store from "./store.ts";
@@ -281,6 +281,12 @@ function line(did: string | null, owner?: Person, me?: Person): string | undefin
       return "Pinned to the wall. Whoever comes by next will see it.";
     case "photo":
       return "Pinned to the memory wall. Whoever comes by next will see what reminded you of them.";
+    case "drawing":
+      return "Pinned to the memory wall. Whoever comes by next will see what you drew.";
+    case "draw":
+      return owner && `Left on ${owner.name}'s desk, folded. Only ${owner.name} will see what you drew.`;
+    case "voice":
+      return owner && `Left on ${owner.name}'s desk. Only ${owner.name} will hear it.`;
     case "widget":
       return "Your widget's link is ready. Any link you made before has stopped working.";
     case "recap":
@@ -523,6 +529,21 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     return void res.end(pic.data);
   }
 
+  // A drawing or a voice note left on a desk (ADR 0037): as private as the
+  // note, so only the friend whose desk it's on and whoever left it.
+  const onDesk = method === "GET" ? pathname.match(/^\/(drawing|voice)\/(\d+)$/) : null;
+  if (onDesk) {
+    if (!me) return send(res, 403, messagePage("Knock first", "Pick who you are at the door first."));
+    const id = Number(onDesk[2]);
+    const sound = onDesk[1] === "voice";
+    const left = store.things().find((t) => t.kind === "desk" && (sound ? voiceOf(t) : drawingOf(t)) === id);
+    const theirs = left && (left.author === me.id || left.place === roomPlace(me.id));
+    const kept = theirs ? (sound ? store.sound(id) : store.photo(id)) : undefined;
+    if (!kept) return send(res, 404, messagePage("Nothing here", sound ? "That voice note isn't for you." : "That drawing isn't for you."));
+    res.writeHead(200, { "content-type": kept.type, "content-length": kept.data.length, "cache-control": "private, max-age=86400", "x-content-type-options": "nosniff" });
+    return void res.end(kept.data);
+  }
+
   if (route === "GET /updates" || route === "GET /everyone" || route === "GET /movies" || route === "GET /uno") {
     if (!me) return redirect(res, "/");
     const v = visit(me);
@@ -530,7 +551,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     return send(res, 200, pathname === "/updates" ? updatesPage(v) : pathname === "/everyone" ? everyonePage(v, confirmation(did)) : moviesPage(v, confirmation(did)));
   }
 
-  const roomMatch = pathname.match(/^\/room\/([^/]+)(\/leave|\/tidy|\/mask|\/kettle|\/nap|\/wish|\/reply|\/card|\/lamp)?$/);
+  const roomMatch = pathname.match(/^\/room\/([^/]+)(\/leave|\/tidy|\/mask|\/kettle|\/nap|\/wish|\/reply|\/card|\/lamp|\/draw|\/voice)?$/);
   const owner = roomMatch ? personById(roomMatch[1]) : undefined;
   if (roomMatch && !owner) return send(res, 404, messagePage("No such room", `There are ${PEOPLE.length} rooms in this house, and that isn't one of them.`));
   // The face mask powder is in Rithanya's room, and the kettle in Amirdhavarshini's.
@@ -568,14 +589,36 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     const mb = MAX_PHOTO / 1024 / 1024;
     if (up === "too big") return send(res, 413, messagePage("That photo's too big", `Photos fit up to ${mb} MB. A screenshot of it, or a smaller copy, will fit.`, "/living#photo"));
     if (!up?.file) return send(res, 400, messagePage("No photo?", "Pick a photo to pin up first.", "/living#photo"));
-    if (!up.file.type) return send(res, 400, messagePage("That isn't a photo we can pin", "Pick a JPEG, PNG or WebP photo.", "/living#photo"));
+    if (!up.file.type.startsWith("image/")) return send(res, 400, messagePage("That isn't a photo we can pin", "Pick a JPEG, PNG or WebP photo.", "/living#photo"));
+    // A drawing from the page's canvas (ADR 0037) is always a PNG.
+    const drawn = up.fields.get("drawn") === "1";
+    if (drawn && up.file.type !== "image/png") return send(res, 400, messagePage("That isn't a drawing", "Draw something on the paper first.", "/living#draw"));
     const caption = (up.fields.get("body") ?? "").replace(/\r\n?/g, "\n").trim();
     if (caption.length > MAX_NOTE) return send(res, 400, messagePage("Too long", `Notes fit up to ${MAX_NOTE} characters.`, "/living#photo"));
     const id = store.keepPhoto(up.file.type, up.file.data);
-    const note = store.leave({ author: me.id, kind: "note", place: "wall", body: caption, item: `photo:${id}` });
+    const note = store.leave({ author: me.id, kind: "note", place: "wall", body: caption, item: `${drawn ? "drawing" : "photo"}:${id}` });
     // On friends' widgets only if she ticked it (ADR 0029).
     if (up.fields.get("widget") === "yes") store.leave({ author: me.id, kind: "onwidget", place: `note:${note}`, item: "yes" });
-    return redirect(res, "/living?did=photo#wall");
+    return redirect(res, `/living?did=${drawn ? "drawing" : "photo"}#wall`);
+  }
+
+  // A drawing or a voice note for a friend's desk (ADR 0037): a form with a
+  // file in it, read before the ordinary forms, like a photo. Only she and
+  // whoever left it can see or hear it.
+  if (owner && (roomMatch?.[2] === "/draw" || roomMatch?.[2] === "/voice")) {
+    const sound = roomMatch[2] === "/voice";
+    const back = `/room/${owner.id}#${sound ? "voice-note" : "draw-something"}`;
+    if (owner.id === me.id) return send(res, 400, messagePage("That's your desk", "Leave things on a friend's desk instead.", `/room/${owner.id}`));
+    const up = await readUpload(req);
+    if (up === "too big") return send(res, 413, messagePage(sound ? "That's a long one" : "That drawing's too big", sound ? "Voice notes fit about a minute. Say the best bit." : "Draw it again a little smaller.", back));
+    if (!up?.file) return send(res, 400, messagePage(sound ? "Nothing recorded" : "Nothing drawn", sound ? "Record something before leaving it." : "Draw something before leaving it.", back));
+    if (sound ? !up.file.type.startsWith("audio/") : up.file.type !== "image/png") return send(res, 400, messagePage(sound ? "That isn't a voice note" : "That isn't a drawing", sound ? "Record one here, or pick a recording from your phone." : "Draw something on the paper first.", back));
+    if (sound && up.file.data.length > MAX_SOUND) return send(res, 413, messagePage("That's a long one", "Voice notes fit about a minute. Say the best bit.", back));
+    const body = (up.fields.get("body") ?? "").replace(/\r\n?/g, "\n").trim();
+    if (body.length > MAX_NOTE) return send(res, 400, messagePage("Too long", `Notes fit up to ${MAX_NOTE} characters.`, back));
+    const id = sound ? store.keepSound(up.file.type, up.file.data) : store.keepPhoto(up.file.type, up.file.data);
+    store.leave({ author: me.id, kind: "desk", place: roomPlace(owner.id), body, item: `${sound ? "voice" : "drawing"}:${id}` });
+    return redirect(res, `/room/${owner.id}?did=${sound ? "voice" : "draw"}`);
   }
 
   const form = await readForm(req);

@@ -176,8 +176,23 @@ export function onThisDay(things: Thing[], tz: string, now: number, ok: (t: Thin
 // A note on the wall with a photo pinned to it (ADR 0024): its item is
 // `photo:<id>`, the photo's row in the house's own `photos` table. Big news
 // keeps item "big", so a photo is never big news.
+// A drawing (ADR 0037) is kept the same way, as a PNG in that table, with
+// item `drawing:<id>`: on the wall it's a photo in everything but its words,
+// and on a desk it's a private note in pictures.
 export const photoOf = (t: Thing): number | undefined => {
-  const m = /^photo:(\d+)$/.exec(t.item);
+  const m = /^(?:photo|drawing):(\d+)$/.exec(t.item);
+  return m ? Number(m[1]) : undefined;
+};
+
+export const drawingOf = (t: Thing): number | undefined => {
+  const m = /^drawing:(\d+)$/.exec(t.item);
+  return m ? Number(m[1]) : undefined;
+};
+
+// A voice note left on a friend's desk (ADR 0037): item `voice:<id>`, the
+// recording a row in the house's own `sounds` table.
+export const voiceOf = (t: Thing): number | undefined => {
+  const m = /^voice:(\d+)$/.exec(t.item);
   return m ? Number(m[1]) : undefined;
 };
 
