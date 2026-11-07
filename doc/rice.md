@@ -9,6 +9,33 @@ from what's been built since. Scored on 4 November 2026 and rescored on
 Letters are fixed IDs that the personas refer to, so they stay put if the
 scores change; new rows start at AA, and this round's at AI.
 
+## Done on 7 November, the same day
+
+After the review, Rithika said "yes do all that". Off the table:
+
+- **AI.** An upright phone gets the house, with one line under the bar
+  saying the whole house is there sideways (ADR 0035, superseding 0032's
+  cover). Checked at 390 × 844 with touch: Home, a room, a real tap on a
+  door window and on the Updates tab.
+- **AJ.** A live page fetches itself again whenever its line opens after
+  the first time. A new spec runs the served `public/live.js` in jsdom and
+  drops the line; it fails on the old script.
+- **AM.** `spec/access.test.ts`, the accessibility floor over every page,
+  at the door and inside. Every page passed first time; a made-up bad
+  page shows it catches each problem.
+- **AL** was already there. The 21 October sweep wrote it: five friends
+  eating one dish at once, a hug both ways at once, a double-tapped UNO
+  move, five walking at once, and twenty browsers pressing the same window.
+  Scoring it as missing was the agent's mistake, from not searching the
+  spec first.
+- **F, K, L and N.** Their skipped tests are on again and pass: the Updates
+  dot asks what Updates lists; the Everyone tab shuts "Come in as" for a
+  friend who's in, like the door; every kettle batch still out keeps its
+  note, with whose; and planting waters a seedling in, so a garden is
+  thirsty two days after the later of the last watering and the newest
+  planting. (That also means planting perks up the whole garden: the
+  agent's call, in keeping with plants never being punished.)
+
 ## What changed since 5 November
 
 Built, and not rows here: a layout for a phone on its side, with the walking
@@ -94,24 +121,16 @@ skipped test is mostly done once that test passes.
 
 | ID | Change | Kind | Reach | Impact | Conf. | Effort | Score |
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
-| AI | An upright phone gets the house, not only "Turn your phone sideways" | bug | 25 | 3 | 100% | 0.25 | **300** |
 | AE | Try the widget on the five's real phones, and fix what breaks | check | 45 | 2 | 80% | 0.5 | **144** |
-| AJ | A live page catches up after its connection drops | bug | 25 | 1 | 80% | 0.25 | **80** |
-| AM | A spec for the accessibility floor: landmarks, a language, alt text, every button named | check | 45 | 0.5 | 80% | 0.5 | **36** |
-| AL | A spec for two friends at once: the same plate, the same UNO turn, the same window | check | 45 | 0.25 | 80% | 0.25 | **36** |
 | AD | The writer hears her desk note was found, once, without a time | idea | 45 | 0.5 | 50% | 0.5 | **22.5** |
 | AO | Shinzo waits at your door with what's new for you | idea | 45 | 0.5 | 50% | 0.5 | **22.5** |
-| F | The Updates dot shows when there's nothing new to read there | bug | 20 | 0.25 | 100% | 0.25 | **20** |
 | G | A front door key for each house, so desk notes and photos are private | idea | 45 | 1 | 80% | 2 | **18** |
 | H | UNO deals a friend in after she's left the house | bug | 8 | 1 | 100% | 0.5 | **16** |
 | I | The live house maker waits up to about 40 s on a Claude it can't reach | ops | 10 | 0.5 | 80% | 0.25 | **16** |
 | AK | With every window taken, the door says so and offers somewhere to go | idea | 10 | 0.5 | 80% | 0.25 | **16** |
 | AF | A free widget for Android: the house's own picture, refreshed | idea | 12 | 1 | 50% | 0.5 | **12** |
 | J | A question on the wall now and then, for anyone to answer | idea | 45 | 0.5 | 50% | 1 | **11.25** |
-| K | The Everyone tab offers "Come in as" a friend who's already home | bug | 5 | 0.5 | 100% | 0.25 | **10** |
-| L | A second batch of kettle Maggi takes the first one's note with it | bug | 5 | 0.5 | 100% | 0.25 | **10** |
 | M | Updates stops at 40 lines, and its "more" link leads back to itself | bug | 10 | 0.5 | 100% | 0.5 | **10** |
-| N | A garden planted just now looks thirsty | bug | 10 | 0.25 | 100% | 0.25 | **10** |
 | P | Claude writes made houses on the live site (a key that calls Anthropic directly) | idea | 40 | 0.25 | 50% | 0.5 | **10** |
 | AH | A song left playing in the living room | idea | 45 | 0.5 | 50% | 1.5 | **7.5** |
 | AN | A guest book by the door, for visitors who aren't one of the five | idea | 30 | 0.5 | 50% | 1 | **7.5** |
@@ -258,20 +277,15 @@ no note here scored the same as on 1 November for the same reasons.
 
 As of 7 November, with the deadline at noon on 9 November:
 
-1. **AI first, if Rithika agrees.** A quarter of a day, and it's the phone
-   half of every marked visit.
-2. **AJ, AL and AM together.** Each is small, and each is a promise the
-   brief's top band tests (a slow connection, two people at once) or a check
-   the project owes itself (accessibility).
-3. **I** is one command on Rithika's secret: take the course key off Fly,
+AI, AJ, AL, AM, F, K, L and N were done the same day (above). Left:
+
+1. **I** is one command on Rithika's secret: take the course key off Fly,
    and the live maker builds from the form straight away instead of waiting
    about 40 s for a Claude it can't reach.
-4. **F, K, L and N together.** Four bugs, each a quarter of a day, each
-   with a skipped test ready to turn back on.
-5. **AE** whenever Rithika has her phone to hand.
-6. **Ask Rithika about AO, AK and AN.** AD (found your note) and AG (Diwali)
+2. **AE** whenever Rithika has her phone to hand.
+3. **Ask Rithika about AO, AK and AN.** AD (found your note) and AG (Diwali)
    she passed on on 5 November.
-7. **G after 9 November.**
+4. **G after 9 November.**
 
 Done on 5 November, from the last round: AA (sealed birthday cards, in time
 for Aswathy's birthday on 8 November), E and D (a made house's own about
