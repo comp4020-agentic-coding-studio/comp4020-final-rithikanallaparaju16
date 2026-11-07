@@ -4134,3 +4134,56 @@ against the transcript and fixed before committing.
 **Correction:** none.
 
 **Commits:** `272a413`, the PROCESS.md prompt lines, and this entry's commit.
+
+### 99. What's left for an amazing grade; RICE, PRFAQ and personas again (7 Nov 2026)
+
+Asked: "now i want you to look at the entire project, and the final
+assignment spec / tell me wehat i should do more to get an amazing grade";
+while that was being read: "also for the project, do rice,prfaqs and
+personas and come up with more chnaged from the prev prompt / after both of
+this give me a final message telling me mopre improvements for proj marks
+wise and projects wise".
+
+**Agent:** read the final project brief, its spec and the assessment page
+from the course site (due noon 9 November; process 50%, deployed app 25%,
+response 25%; README 400–600 words, PROCESS.md 900–1100, reflections
+150–300 each). Read README.md, PROCESS.md, the reflections, the spec and the
+three product documents, ran `pnpm check:evidence` (passes, with a warning
+that `reflections/crit-11.md` isn't a name the sweep reads), and checked the
+live door and `/readme/` (200). Then looked at the house as the marker
+will, on a throwaway copy of `./data` on port 8093 with `HOUSE_MAKER=fake`:
+
+- **At 390 × 844 with touch (the marking phone viewport), Home shows only
+  "Turn your phone sideways"**, white on the pale sky. The rule (ADR 0032,
+  log 93) covers Home, rooms, Updates, Everyone, Movies and UNO on any touch
+  screen held upright at 600 px or narrower, and the spec asks for it
+  (`spec/door.test.ts`). The same page with touch off shows the upright
+  house working underneath. The live stylesheet has the same rule. The door
+  is fine upright.
+- At 1920 × 1080 the house, its side column and hotspot buttons are fine.
+- A live page whose connection drops for under two minutes reconnects
+  without catching up: the server sends nothing on her return, since she was
+  held as "here" all along, and `public/live.js` doesn't fetch on reopen.
+
+RICE gained AI to AO (AI, the upright phone, scores 300 and goes first; AJ,
+catching up, 80; an accessibility spec, AM, and a spec for two friends at
+once, AL, 36 each; Shinzo waiting at your door, a door that says when every
+window's taken, and a guest book for showcase visitors, as Rithika's calls).
+Scores rechecked by a script. Personas and PRFAQ walked through again for
+what shipped on 5 November and for AI. No code changed: AI reverses part of
+"force only landscape", so it's Rithika's call.
+
+The reply's marks advice, briefly: the documents the brief marks are the
+weakest part of the submission against the rubric. README.md is about 5,300
+words against 400–600, cites no sources, and doesn't say which claims are
+enforced and which judged; PROCESS.md is about 1,800 words before its
+Prompts section, with half-finished notes in it, no case for the stack
+against alternatives, and no account of the agent workflow (subagents,
+worktrees); the reflections are about 60–110 words each against 150–300,
+and crit-11.md repeats crit-10's second answer. The brief advises Rithika
+drafts README.md and PROCESS.md herself, so the agent listed what each
+needs rather than writing them.
+
+**Correction:** none.
+
+**Commits:** `0ce7d7b`, the PROCESS.md prompt lines, and this entry's commit.
