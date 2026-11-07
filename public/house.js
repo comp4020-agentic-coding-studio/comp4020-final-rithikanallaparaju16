@@ -141,12 +141,13 @@
   // On a touch screen both bottom corners are for walking and nothing else:
   // put a thumb down anywhere in one and the stick comes up under it (no
   // reaching for a circle). The buttons sit between and above them.
-  pad.innerHTML = `<div class="walk-corner left" aria-hidden="true"></div><div class="walk-corner right" aria-hidden="true"></div><div class="stick" aria-hidden="true"><span class="knob"></span></div><p class="keys-hint"><span class="by-keys">Walk with the arrow keys or WASD</span><span class="by-thumb">Hold a corner to walk</span></p><div class="moves"><button type="button" class="go" hidden><span class="go-label"></span> <kbd>Enter</kbd></button></div>`;
+  pad.innerHTML = `<div class="walk-corner left" aria-hidden="true"></div><div class="walk-corner right" aria-hidden="true"></div><div class="stick" aria-hidden="true"><span class="knob"></span></div><p class="keys-hint"><span class="by-keys">Walk with the arrow keys or WASD</span><span class="by-thumb">Hold a corner to walk</span></p><div class="moves"><button type="button" class="go" hidden><span class="go-label"></span> <kbd>Enter</kbd></button></div><div class="moves spill"></div>`;
   map.append(pad);
   const corners = [...pad.querySelectorAll(".walk-corner")];
   const stickEl = pad.querySelector(".stick");
   const knob = pad.querySelector(".knob");
   const moves = pad.querySelector(".moves");
+  const spill = pad.querySelector(".moves.spill");
   const goButton = pad.querySelector(".go");
   const goLabel = pad.querySelector(".go-label");
   const goKey = goButton.querySelector("kbd");
@@ -154,6 +155,40 @@
   const touchy = () => pad.classList.add("touch");
   if (matchMedia("(pointer: coarse)").matches) touchy();
   addEventListener("touchstart", touchy, { once: true, passive: true });
+
+  // On a phone on its side, the house is narrower than the screen and
+  // there's garden green either side of it. Rithika, 8 Nov: the buttons
+  // ("Leave something on Rithanya's desk", "Leave the light on") covered the
+  // middle of the house, so where that green is wide enough for them, they
+  // stand in it, on the right above its walking corner, and the house is
+  // left clear. Measured from where the picture is drawn, so it holds for
+  // any phone's shape; too narrow, and they stay where they were.
+  const sideways = matchMedia("(pointer: coarse) and (orientation: landscape) and (max-height: 500px)");
+  function sides() {
+    let room = 0;
+    if (sideways.matches && !current) {
+      const box = svg.getBoundingClientRect();
+      const shown = Math.min(box.width, box.height * (W / H));
+      room = (Math.min(box.width, innerWidth) - shown) / 2;
+    }
+    const fits = room >= 120;
+    pad.classList.toggle("sides", fits);
+    pad.style.setProperty("--side-w", fits ? `${Math.floor(room - 12)}px` : "");
+    balance();
+  }
+
+  // In the green either side, the right-hand column holds what fits between
+  // the top of the house and its walking corner; the rest stand in the
+  // left-hand green, above that corner, in the same order. Elsewhere it's
+  // all one column again.
+  function balance() {
+    for (const b of [...spill.children]) moves.insertBefore(b, moves.querySelector(".do, .go"));
+    if (!pad.classList.contains("sides")) return;
+    const top = map.getBoundingClientRect().top + 6;
+    for (let b = moves.querySelector(".do"); b && moves.getBoundingClientRect().top < top; b = moves.querySelector(".do")) spill.append(b);
+  }
+  addEventListener("resize", sides);
+  sideways.addEventListener?.("change", sides);
 
   const remember = (key) => {
     try {
@@ -180,6 +215,7 @@
     const r = target();
     goButton.hidden = !r;
     if (r) goLabel.textContent = r.go;
+    balance();
   }
 
   goButton.addEventListener("click", () => {
@@ -603,7 +639,7 @@
     for (const f of friends) f.g.classList.add("near");
     const hug = friends.length ? { id: "hug", hug: true, friends } : undefined;
     offered = [...(hug ? hugDoings(friends).map((d) => [hug, d]) : []), ...(t ? t.doings.map((d) => [t, d]) : [])];
-    for (const b of moves.querySelectorAll(".do")) b.remove();
+    for (const b of pad.querySelectorAll(".do")) b.remove();
     offered.forEach(([thing, d], i) => {
       const b = document.createElement("button");
       b.type = "button";
@@ -615,6 +651,7 @@
       moves.insertBefore(b, goButton);
     });
     goKey.hidden = offered.length > 0;
+    balance();
   }
 
   // The thing's emoji pops up over it as you do it (the page you land on pops
@@ -1105,6 +1142,7 @@
     putDog();
   }
   draw();
+  sides();
 
   // Arriving at something to write, like the wall from "Write on the wall",
   // puts you straight in it.

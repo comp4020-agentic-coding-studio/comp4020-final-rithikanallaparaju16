@@ -4711,6 +4711,49 @@ g.light circle.left-on {
     height: 96px;
     margin: -48px 0 0 -48px;
   }
+
+  /* With garden green either side of the house wide enough for them
+     (public/house.js measures it, `--side-w`), the buttons stand in the
+     right-hand green, above its walking corner, so the house stays clear.
+     Rithika, 8 Nov: they were covering the middle of the house. Go in is
+     at the bottom, nearest the thumb. */
+  .page-home .pad.sides {
+    right: max(6px, env(safe-area-inset-right));
+    left: max(6px, env(safe-area-inset-left));
+    bottom: 132px;
+    justify-content: space-between;
+  }
+
+  .pad.touch.sides .moves {
+    width: var(--side-w);
+    margin: 0;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  /* what doesn't fit on the right stands in the left-hand green */
+  .pad.touch.sides .moves.spill {
+    order: -1;
+    margin-right: auto;
+  }
+
+  .pad.touch.sides .go,
+  .pad.touch.sides .do {
+    min-height: 36px;
+    padding: 5px 10px;
+    font-size: 0.74rem;
+    line-height: 1.2;
+    text-align: center;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    box-shadow: 0 2px 8px rgba(40, 20, 10, 0.25);
+  }
+}
+
+/* the spill column only stands anywhere in the green either side */
+.moves.spill:empty,
+.pad:not(.sides) .moves.spill {
+  display: none;
 }
 
 /* Held upright, a phone gets the house as it always did, with one slim
