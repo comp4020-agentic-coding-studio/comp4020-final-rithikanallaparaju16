@@ -4187,3 +4187,61 @@ needs rather than writing them.
 **Correction:** none.
 
 **Commits:** `0ce7d7b`, the PROCESS.md prompt lines, and this entry's commit.
+
+### 100. "yes do all that" (7 Nov 2026)
+
+Asked: "yes do all that", to the end of entry 99's reply ("Should I fix the
+phone and merge and push the docs branch?") and its suggested order.
+
+Read as: build everything the agent offered to (the upright phone, AJ, AL,
+AM, F, K, L, N, an evidence table for PROCESS.md), and merge, push and check
+live. README.md, PROCESS.md and the reflections stay Rithika's to write; the
+agent changed only README lines the code made untrue.
+
+- **AI** (ADR 0035, superseding 0032's cover). Upright touch screens at
+  600 px or narrower get the upright house, with "📱 Turn your phone
+  sideways for the whole house." in a 28 px line under the bar on Home and
+  rooms, and the map's height takes it off so the page still fits the
+  screen (the first try ran 29 px past 844). Sideways and the manifest's
+  landscape are unchanged. The spec now promises nothing covers an upright
+  phone's page. Looked at 390 × 844 with touch: Home, the living room, a
+  real tap on Aswathy's window at the door (landed on Home with "Hi
+  Aswathy 👋") and on the Updates tab; and at 932 × 430 sideways (no line,
+  as before).
+- **AJ.** `public/live.js` fetches the page on every open of its line after
+  the first. `spec/live-client.test.ts` runs the served script in jsdom with
+  a stand-in EventSource, drops the line and brings it back; it was run
+  against the old script and failed there.
+- **AM.** `spec/access.test.ts`: lang, title, one `main`, alt text, a name on
+  every button, link and field, and unique ids, over the door's five pages
+  (read-only, so it runs live too) and fourteen pages inside. Every page
+  passed first time, so a made-up bad page was run through it to see it
+  catch each problem; Home alone has 6 buttons, 23 links and 6 pictures.
+- **AL** was already in the spec, from the 21 October sweep: five friends
+  eating one dish at once, a hug both ways at once, a double-tapped UNO
+  move, five walking at once, twenty browsers at one window. The agent had
+  scored it as missing in entry 99 without searching the spec; corrected in
+  RICE rather than adding a duplicate.
+- **F, K, L, N**, their skipped tests on again: the Updates dot asks what
+  Updates lists; the Everyone tab shuts "Come in as" for a friend who's in
+  ("Neha is in", disabled and dashed, like her window at the door); every
+  kettle batch still out shows its note with whose; planting waters a
+  seedling in. That last one means planting perks up the whole garden: the
+  agent's call, named in RICE.
+- `CLAUDE.md`: the marking viewports, and that nothing may cover a whole
+  page on an upright phone; a dropped line catches up; client scripts are
+  checked in jsdom, and a new check is seen to fail first; the
+  accessibility floor's page list.
+- `doc/harness-evidence.md`: where each correction landed, with commits,
+  for Rithika's PROCESS.md. Every hash checked. The first draft said
+  Claude's room drawings were dropped for not being good enough; ADR 0020
+  says they never ran live, so that row was corrected before committing.
+
+Full check on a fresh `HOUSE_MAKER=fake` server: 145 passed, 14 skipped (12
+known bugs, 2 that need an unreachable maker), from 137 and 18.
+
+**Correction:** none from Rithika. The agent's own: AL scored as missing
+when it wasn't, and a wrong reason in the evidence table's first draft.
+
+**Commits:** `df68a9c`, `36478fd`, `1a27d10`, the PROCESS.md prompt line,
+and this entry's commit.
