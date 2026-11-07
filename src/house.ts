@@ -282,8 +282,12 @@ export function stage(plant: Thing, now: number): 1 | 2 | 3 {
 export function thirsty(things: Thing[], now: number): boolean {
   const growing = [...plants(things).values()];
   if (growing.length === 0) return false;
-  const watered = latest(things, "water")?.createdAt ?? Math.min(...growing.map((p) => p.createdAt));
-  return now - watered > 2 * DAY;
+  // Planting waters a seedling in: a plant is thirsty two days after the
+  // later of its planting and the last watering, so one planted a moment
+  // ago never is, however long ago anyone watered (RICE N).
+  const lastWater = latest(things, "water")?.createdAt ?? 0;
+  const newest = Math.max(...growing.map((p) => p.createdAt));
+  return now - Math.max(lastWater, newest) > 2 * DAY;
 }
 
 // A face mask stays on for a couple of hours, long enough for a friend who
@@ -297,6 +301,11 @@ export const kettle = (things: Thing[], now: number): Thing | undefined => {
   const made = latest(things, "kettle");
   return made && now - made.createdAt < 12 * HOUR ? made : undefined;
 };
+
+// Every batch still out tonight, newest first, so a note left with the first
+// isn't lost when someone makes more (RICE L).
+export const kettleBatches = (things: Thing[], now: number): Thing[] =>
+  things.filter((t) => t.kind === "kettle" && now - t.createdAt < 12 * HOUR).sort((a, b) => b.createdAt - a.createdAt);
 
 // A suggestion's title is the first line of its body, and why is the rest.
 export type Movie = { thing: Thing; title: string; why: string; watched: string[] };

@@ -19,6 +19,7 @@ import {
   gifts,
   hugs,
   kettle,
+  kettleBatches,
   KETTLE_ROOM,
   latest,
   MASK_ROOM,
@@ -115,6 +116,10 @@ export type Visit = {
   // when it last read the house (0 for never), and whether this browser said
   // "not now" to Home's question.
   widget?: { made: boolean; seen: number; later?: boolean; answered?: boolean };
+  // Who's in the house right now (ADR 0011), so the Everyone tab doesn't
+  // offer to come in as her, as the door doesn't. Missing in hand-built
+  // visits: then nobody.
+  taken?: Set<string>;
 };
 
 // Which steps the widget's page opens first (src/server.ts reads it from the
@@ -327,7 +332,6 @@ export function shell(title: string, body: string, light: Phase, kind: string): 
 <script src="${own("live.js")}" defer></script>
 </head>
 <body class="light-${light} ${kind}" data-base="${esc(house().base)}">
-<div class="turn-phone" role="alert"><span class="turn-icon" aria-hidden="true">📱</span><p><b>Turn your phone sideways</b></p><p>The house is only all there in landscape: the whole house fills the screen, and you walk from its bottom corners.</p><p class="small">If it doesn't turn, check that rotation lock is off.</p></div>
 ${body}
 </body>
 </html>`;
@@ -343,8 +347,10 @@ const TAB_ICON: Record<Tab, string> = {
 };
 
 function tabs(current: Tab, v: Visit): string {
-  // A card played in UNO isn't news on its own.
-  const somethingNew = v.things.some((t) => isNew(t, v) && t.kind !== "unomove");
+  // The dot means there's a new line to read on Updates, so it asks what
+  // Updates lists: a sticker on someone else's note, or a card played in
+  // UNO, is a new row but nothing to read (RICE F).
+  const somethingNew = newSince(v).length > 0;
   const tab = (key: Tab, href: string, label: string): string =>
     `<a href="${href}"${key === current ? ` aria-current="page"` : ""}><svg viewBox="0 0 24 24" aria-hidden="true">${TAB_ICON[key]}</svg><span>${label}</span>${key === "updates" && somethingNew ? `<span class="dot" title="Something new since you were last here"></span>` : ""}</a>`;
   return `<nav class="tabs" aria-label="Around the house" data-live="tabs">${tab("home", "/", "Home")}${tab("updates", "/updates", "Updates")}${tab("movies", "/movies", "Movies")}${tab("everyone", "/everyone", "Everyone")}</nav>`;
@@ -924,8 +930,11 @@ function status(p: Person, v: Visit): string {
 function everyone(v: Visit, full: boolean): string {
   const rows = PEOPLE.map((p) => {
     const c = clock(p.tz, v.now);
+    // Someone's in the house as her: shut, like her window at the door
+    // (RICE K), rather than a button that answers 409.
+    const held = v.taken?.has(p.id) ?? false;
     const be = full && p.id !== v.me.id
-      ? `<form method="post" action="/me" class="be"><button class="soft" name="who" value="${esc(p.id)}">Come in as ${esc(p.name)}</button></form>`
+      ? `<form method="post" action="/me" class="be"><button class="soft" name="who" value="${esc(p.id)}"${held ? ` disabled title="${esc(p.name)} is in the house right now"` : ""}>${held ? `${esc(p.name)} is in` : `Come in as ${esc(p.name)}`}</button></form>`
       : "";
     return `<li style="--accent:${p.color}"><a href="/room/${esc(p.id)}">
       ${pane(p, phase(c), sleeping(p, v), v.now)}
@@ -1206,11 +1215,17 @@ function hiThere(me: Person): string {
   </aside>`;
 }
 
+// Held upright, a phone still gets the house (ADR 0035, superseding the
+// cover in 0032): this one line, shown only on an upright touch screen,
+// says the whole house is there sideways. Sideways it's gone.
+const turnHint = `<p class="turn-hint"><span aria-hidden="true">📱</span> Turn your phone sideways for the whole house.</p>`;
+
 export function housePage(v: Visit, hi = false): string {
   const light = phase(clock(v.me.tz, v.now));
   return shell(houseName(), `
 ${bar(v, "home")}
 ${hi ? hiThere(v.me) : ""}
+${turnHint}
 <main class="home">
   ${news(v)}
   ${widgetAsk(v)}
@@ -1378,6 +1393,7 @@ ${bar(v, "everyone")}
 function roomPage(v: Visit, place: string, title: string, side: string, d?: Done): string {
   return shell(`${title} · ${houseName()}`, `
 ${bar(v, "home")}
+${turnHint}
 <main class="room">
   <div class="room-grid">
     <section class="map zoom" aria-label="${esc(title)}">${houseSvg(scene(v, place, d?.key))}</section>
@@ -1516,7 +1532,7 @@ function kettleCard(owner: Person, v: Visit): string {
   const made = kettle(v.things, v.now);
   const mine = owner.id === v.me.id;
   const out = made
-    ? `<p class="kettle-out">${esc(`${cap(by(made, v))} made kettle Maggi ${ago(made.createdAt, v.now)}. There's some left on the mat.`)}</p>${made.body ? `<p class="body hand">${esc(made.body)}</p>` : ""}`
+    ? `<p class="kettle-out">${esc(`${cap(by(made, v))} made kettle Maggi ${ago(made.createdAt, v.now)}. There's some left on the mat.`)}</p>${kettleBatches(v.things, v.now).filter((t) => t.body).map((t) => `<p class="body hand">${esc(t.body)} <span class="small">(${esc(by(t, v))})</span></p>`).join("")}`
     : `<p class="empty">The kettle's cold. Nobody's made Maggi tonight.</p>`;
   return `<form method="post" action="/room/${esc(owner.id)}/kettle" class="card compose">
     <h2>Kettle Maggi</h2>

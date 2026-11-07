@@ -175,9 +175,18 @@
   }, 250);
 
   let source;
+  let opened = false;
   function listen() {
     // In a made house (ADR 0017) its own line, under /h/<code>.
     source = new EventSource(`${document.body.dataset.base ?? ""}/live`);
+    // A line that drops (patchy data, a laptop waking up, a redeploy) comes
+    // back by itself in 2 s, but whatever friends did meanwhile was said
+    // while nobody was listening, and the house still counts her as here,
+    // so it won't say it again. Every open after the first, catch up.
+    source.addEventListener("open", () => {
+      if (opened) soon();
+      opened = true;
+    });
     source.addEventListener("changed", soon);
     source.addEventListener("moved", (event) => {
       try {

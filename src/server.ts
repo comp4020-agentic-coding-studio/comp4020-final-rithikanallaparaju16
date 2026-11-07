@@ -238,6 +238,7 @@ function visit(me: Person, place = ""): Visit {
     // A friend's first visit is a welcome, not a recap.
     recap: seenUntil ? recapFor(things, monthClock(), now, store.recapRead(me.id)) : undefined,
     widget: { made: store.widgetKey(me.id) !== "", seen: store.widgetSeenAt(me.id) },
+    taken: taken(),
   };
 }
 

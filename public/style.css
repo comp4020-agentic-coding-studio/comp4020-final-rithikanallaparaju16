@@ -444,7 +444,7 @@ button.soft:focus-visible {
 
   /* on a phone the house fills the screen, and you pan it sideways */
   .page-home .map {
-    height: calc(100svh - var(--bar-h) - var(--news-h) - var(--to-widget-h, 0px) - var(--tabs-h) - env(safe-area-inset-bottom));
+    height: calc(100svh - var(--bar-h) - var(--news-h) - var(--to-widget-h, 0px) - var(--turn-hint-h, 0px) - var(--tabs-h) - env(safe-area-inset-bottom));
     min-height: 320px;
     overflow-x: auto;
     overflow-y: hidden;
@@ -1822,6 +1822,14 @@ main.plain {
 .be button {
   padding: 5px 14px;
   font-size: 0.82rem;
+}
+
+/* Someone's in the house as her (RICE K): shut, like her window at the door. */
+.be button:disabled {
+  border-style: dashed;
+  background: transparent;
+  opacity: 0.6;
+  cursor: default;
 }
 
 /* face masks and kettle Maggi */
@@ -4469,7 +4477,7 @@ g.light circle.left-on {
    walking corners, on the picture, out of sight. Held sideways, a phone
    gets the house filling the screen under a slim bar, and the walking
    corners on the screen's own bottom corners, wherever you are. Held
-   upright, the house's pages ask you to turn it (`.turn-phone`). */
+   upright, Home and rooms say it's all there sideways (`.turn-hint`, ADR 0035). */
 @media (pointer: coarse) and (orientation: landscape) and (max-height: 500px) {
   :root {
     --bar-h: 44px;
@@ -4705,57 +4713,36 @@ g.light circle.left-on {
   }
 }
 
-/* Held upright, a phone is asked to turn sideways on the house's pages: the
-   house is only really there in landscape. The door, the make form and
-   plain pages stay readable either way. */
-.turn-phone {
+/* Held upright, a phone gets the house as it always did, with one slim
+   line under the bar saying it's all there sideways (ADR 0035, superseding
+   0032's cover, which hid the house from every upright phone). Only on an
+   upright touch screen; sideways, on an iPad or a laptop it's gone. */
+.turn-hint {
   display: none;
 }
 
 @media (pointer: coarse) and (orientation: portrait) and (max-width: 600px) {
-  body.page-home .turn-phone,
-  body.page-room .turn-phone,
-  body.page-list:not(.page-home-screen) .turn-phone {
-    position: fixed;
-    inset: 0;
-    z-index: 100;
+  body.page-home,
+  body.page-room {
+    --turn-hint-h: 28px;
+  }
+
+  .turn-hint {
     display: flex;
-    flex-direction: column;
+    height: var(--turn-hint-h, 28px);
+    box-sizing: border-box;
+    white-space: nowrap;
+    overflow: hidden;
     align-items: center;
-    justify-content: center;
-    gap: 14px;
-    padding: 24px;
-    background: var(--bar-bg, #2f2740);
-    color: #fff8ec;
-    text-align: center;
-  }
-
-  .turn-phone .turn-icon {
-    font-size: 3rem;
-    animation: turn-phone 2.4s ease-in-out infinite;
-  }
-
-  .turn-phone p {
+    gap: 6px;
     margin: 0;
-    max-width: 22em;
-    font-size: 1.05rem;
-    line-height: 1.4;
-  }
-
-  .turn-phone .small {
-    color: #fff8ec;
+    padding: 0 16px;
+    background: var(--card, #fff8ec);
+    border-bottom: 1px solid rgba(60, 40, 20, 0.12);
+    color: var(--ink, #3b2a20);
     font-size: 0.85rem;
-    opacity: 0.75;
+    line-height: 1.3;
   }
-}
-
-@keyframes turn-phone {
-  0%, 30% { transform: rotate(0deg); }
-  60%, 100% { transform: rotate(-90deg); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .turn-phone .turn-icon { animation: none; }
 }
 
 /* On Windows: the widget lives on a phone (ADR 0032). */

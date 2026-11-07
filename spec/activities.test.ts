@@ -104,8 +104,10 @@ const MINUTE = 60 * 1000;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 
-// BUG: a garden whose only plant went in just now looks thirsty if the last watering was over two days ago
-it.skip("never shows a just-planted garden as thirsty", async () => {
+// Fixed 7 Nov (RICE N): planting waters a seedling in, so a garden whose
+// only plant went in just now is never thirsty, however long since anyone
+// watered.
+it("never shows a just-planted garden as thirsty", async () => {
   const { thirsty } = await fromSrc();
   const now = Date.now();
   const thing = (id: number, kind: "plant" | "water", author: string, ago: number, item = "") =>
@@ -164,8 +166,9 @@ it("brings back a note from this day in an earlier month or year, the longest ag
   expect(onThisDay(things, tz, now, (t) => t.id === 3)?.note.body, "the widget showed something its writer didn't share").toBe("a month ago");
 });
 
-// BUG: the Updates dot counts any new row, but a sticker on someone else's note lists nothing
-it.skip("only puts the dot on Updates when there's something new to read there", async () => {
+// Fixed 7 Nov (RICE F): the dot asks what Updates lists, so a sticker on
+// someone else's note, which lists nothing, doesn't light it.
+it("only puts the dot on Updates when there's something new to read there", async () => {
   const now = Date.now();
   // Rithanya stuck a sticker on Rithika's old note, which is Rithika's news.
   const note = { id: 1, author: "1", kind: "note" as const, place: "wall", body: "old news", item: "", createdAt: now - 120 * MINUTE };
@@ -276,8 +279,8 @@ describe.skipIf(!throwaway)("doing things around the house", () => {
     expect(text((await page("/updates", a.id)).querySelector(".away")), "the writer still hears about a peeled-off sticker").not.toContain(note);
   });
 
-  // BUG: a second batch of kettle Maggi replaces the first, and its note goes with it
-  it.skip("keeps a friend's kettle Maggi note in the room after someone else makes more", async () => {
+  // Fixed 7 Nov (RICE L): every batch still out keeps its note, with whose.
+  it("keeps a friend's kettle Maggi note in the room after someone else makes more", async () => {
     const five = await people();
     const amirdha = five.find((p) => p.name === "Amirdhavarshini")!;
     const [first, second] = five.filter((p) => p !== amirdha);

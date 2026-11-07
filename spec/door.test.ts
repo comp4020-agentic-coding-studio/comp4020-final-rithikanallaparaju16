@@ -186,20 +186,26 @@ it("hands the house out as an app: a page to share and install from, a QR code t
 // ADR 0032: "make the toggle visibile no matter where i am. The toggle
 // should be there on the bottom corners of my screen not the page". A phone
 // on its side gets the house filling the screen and the walking corners on
-// the screen's own corners; held upright, the house's pages ask to be
-// turned. The layout is CSS, so this checks what the page and stylesheet
+// the screen's own corners. ADR 0035: held upright, a phone still gets the
+// house, never a page-wide cover. That's the marking phone viewport
+// (390 x 844, touch), where 0032's cover left nothing but "Turn your phone
+// sideways". The layout is CSS, so this checks what the page and stylesheet
 // promise; the screenshots in the log show it.
-it("turns a phone sideways for the house, with its walking corners on the screen", async () => {
+it("gives a phone the house either way up, filling the screen on its side", async () => {
   const css = await (await get("/style.css")).text();
   const sideways = css.split("@media (pointer: coarse) and (orientation: landscape) and (max-height: 500px)")[1]?.split("\n}\n")[0] ?? "";
   expect(sideways, "there's no layout for a phone on its side").not.toBe("");
   expect(sideways, "on its side, the walking corners aren't on the screen").toMatch(/\.pad\.touch \.walk-corner \{[^}]*position: fixed/);
   expect(sideways, "on its side, the walking corners still step aside").toMatch(/\.pad\.touch\.away \.walk-corner \{[^}]*visibility: visible/);
-  expect(css, "an upright phone isn't asked to turn").toMatch(/@media \(pointer: coarse\) and \(orientation: portrait\)[^{]*\{[^@]*\.turn-phone/);
-  // The door and plain pages are read upright; the house's pages carry the ask.
+  // Upright: nothing in the stylesheet covers the whole screen.
+  for (const block of css.split("@media (pointer: coarse) and (orientation: portrait)").slice(1)) {
+    const body = block.split("\n}\n")[0];
+    expect(body, "an upright phone gets something laid over the whole page").not.toMatch(/position: fixed;[^}]*inset: 0/);
+  }
   const door = parse(await (await get("/")).text());
-  expect(door.body.classList.contains("page-door"), "the door would ask to be turned").toBe(true);
-  expect(door.querySelector(".turn-phone"), "the page has no turn-sideways notice to show").not.toBeNull();
+  expect(door.querySelector(".turn-phone"), "the page still carries a cover asking to be turned").toBeNull();
+  expect(door.querySelector("[role=alert]"), "the door opens with an alert").toBeNull();
+  expect(css, "an upright phone isn't told the house is all there sideways").toMatch(/@media \(pointer: coarse\) and \(orientation: portrait\)[^{]*\{[^@]*\.turn-hint \{[^}]*display: flex/);
 });
 
 it("can be added to a phone's home screen, Android or iPhone, with the house as its icon", async () => {
@@ -462,8 +468,9 @@ describe.skipIf(!throwaway)("the front door", () => {
     sessions.set(her.id, sessionOf(answers.find((r) => r.status === 303)!)!);
   });
 
-  // BUG: the Everyone tab offers "Come in as X" for a friend who's already in the house; pressing it is a 409 dead end, where the door disables her window.
-  it.skip("never offers to come in as a friend who's already home", async () => {
+  // Fixed 7 Nov (RICE K): the Everyone tab shuts "Come in as" for a friend
+  // who's in the house, as the door shuts her window, instead of a 409.
+  it("never offers to come in as a friend who's already home", async () => {
     const five = await people();
     const [a, b] = five;
     const mine = await cookieFor(a.id);

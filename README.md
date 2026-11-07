@@ -20,7 +20,7 @@ A good version of this house:
 
 The house is a cutaway seen from above, like a game, illustrated in Google Stitch. Amirdhavarshini's room is the big one in the corner, with the biggest bed and a round mat and cushions on the floor, because that's where everyone hangs out. The kitchen and the living room are in the middle, the garden is out the back, and Rithika's, Rithanya's, Aswathy's and Neha's rooms run along the front.
 
-On a phone, turn it sideways: the house only all fits in landscape, so held upright the house asks you to turn it, and sideways the whole house fills the screen. Each of us is a little sticker in the house, and nobody moves unless they're the one moving. You walk yourself around: with the arrow keys or WASD on a laptop, or on a phone by holding either bottom corner of the screen and sliding your thumb, like a game, in a room as much as in the whole house (on an iPad, the bottom corners of the house). The stick comes up wherever your thumb lands, so there's nothing to aim for, and the buttons stay out of those corners. A quick tap in a corner still taps whatever's under it. Walk into a room and a button offers to take you in (Enter does it on a keyboard), and the house zooms in on it. You can also just tap a room, and you walk there and go in. When you're done in a room, walk out of it and the house zooms back out, with you where you stepped out.
+On a phone, the house fills the screen either way up. Upright you see part of it and pan for the rest (a line under the bar says so); sideways the whole house fits. Each of us is a little sticker in the house, and nobody moves unless they're the one moving. You walk yourself around: with the arrow keys or WASD on a laptop, or on a phone by holding either bottom corner of the screen and sliding your thumb, like a game, in a room as much as in the whole house (on an iPad, the bottom corners of the house). The stick comes up wherever your thumb lands, so there's nothing to aim for, and the buttons stay out of those corners. A quick tap in a corner still taps whatever's under it. Walk into a room and a button offers to take you in (Enter does it on a keyboard), and the house zooms in on it. You can also just tap a room, and you walk there and go in. When you're done in a room, walk out of it and the house zooms back out, with you where you stepped out.
 
 Whatever you walk up to that you can use lights up gold: a bed, a desk, the cushions on Amirdhavarshini's mat, Rithanya's mirror, Aswathy's yoga mat, the sofas, the wall of notes, the stove, the garden patches, a birthday girl's balloons, Shinzo. Walk up to a friend who's here and you can hug her. Buttons for what you can do there appear above the Go in button. Sitting on Amirdhavarshini's mat with a friend, the button deals UNO. On a keyboard, Enter or E does the first one (ahead of going in), and the number keys do the rest.
 
@@ -79,11 +79,11 @@ When you come home, **While you were away** lists what's new since your last vis
 
 This house is for the five of us, but anyone can make one for their own friends at `/make` (there's a link at the door), for two to seven of you. Tell it each friend's name, where she lives and a few things about her, pick what's in her room from a set of pictures (a guitar, fairy lights, too many plants, a cat bed and more), and add the memories you'd pin on the living room wall. At the end it asks for something you all did together and the inside joke or quote from it, and frames that, word for word, at the house's door and on the memory wall in the living room, with a little frame on the living room wall in the picture. The name you give the house is on its door and at the top of every page. It builds a house of your own at its own private address: our picture for five, or a house drawn for your number, with a room each named for your friends, their things pictured in their rooms, your memories on the wall, and everyone's own clock. When Claude can be reached it writes each room's description from what you said; otherwise the house is built straight from your words. Everything else works the same in your house: walking, hugs, UNO (at the coffee table, if you aren't five), the wall, Shinzo. Our five's own things (the KitKats, the face masks, the kettle) stay in our house.
 
-It's a prototype: five friends only for now, because more friends means more rooms, and more rooms means new art.
+It's a prototype: two to seven friends, because each size needs its own picture, and more friends means more rooms and new art.
 
 ## What isn't here yet, on purpose
 
-Photos, drawings, notifications, and editing or deleting things you left. Each one has to show it makes five people feel closer first. Being in at the same time is a bonus, never a need: you see friends walk and what they do as it happens, but everything waits for whoever comes by later. UNO, with its twenty-second turns, is the one thing that needs you there.
+Drawings, notifications, and editing or deleting things you left. Each one has to show it makes five people feel closer first. Being in at the same time is a bonus, never a need: you see friends walk and what they do as it happens, but everything waits for whoever comes by later. UNO, with its twenty-second turns, is the one thing that needs you there.
 
 Only one person can be each of us at a time. A friend's window at the door stays shut while someone's in the house as her, and opens again two minutes after they leave, even for her own second device. Anyone with the link can still pick a window that's free. Coming in as anyone (a window at the door, or "Come in as" on Everyone), Home says "Hi Rithika 👋" with her picture for a few seconds, and "Not you? Change" takes you back to the door, so a wrong tap is caught straight away. There's no password on purpose for now, so the course's markers can walk in as any of us: a desk note is private from the other friends in the house, but not from someone who comes in as you. A shared front-door key is the likely next step before the real five move in.
 
@@ -168,10 +168,15 @@ Run it locally with `pnpm start` (it keeps its data in `./data`), then run `pnpm
 - each friend can write one line under a friend's photo, never a thread, and the photo's writer hears it
 - a message to send the group yourself says what you did and never what you wrote
 - a made house names its own dog, and its about page is about its own friends
-- a phone held sideways gets the house filling the screen, with its walking corners on the screen's own corners; held upright, the house's pages ask to be turned
+- a phone gets the house either way up: sideways it fills the screen, with its walking corners on the screen's own corners; upright, nothing covers it
 - every browser is asked about the widget until it answers, even if the widget already works on another phone
 - the house hands itself out as an app: a page anyone with the address can install it from, a code that reads back as its address, and a kind page offline, in made houses too
 - every common area stays lit whatever the time, and only bedrooms dim, by their owner's clock
+- a live page catches up by itself after its connection drops and comes back
+- every page holds to an accessibility floor: a language, a title, one main landmark, alt text on every picture, a name on every button, link and field, and no id used twice
+- the Everyone tab never offers to come in as a friend who's already in the house
+- a garden planted just now is never thirsty, and a friend's kettle Maggi note stays after someone makes more
+- the Updates dot only shows when Updates has something new to read
 - friends who are close can hug, one or a group, up to all five
 - a friend's birthday month brings bunting and a crown, and her friends' wishes reach her
 - friends sitting together on Amirdhavarshini's mat can deal UNO, seven cards each, up to all five

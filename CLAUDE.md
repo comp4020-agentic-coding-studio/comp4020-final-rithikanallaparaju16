@@ -148,7 +148,9 @@ accepted record.
   `data-quick` (UNO's hand) posts with `fetch` and swaps the answer's live
   parts in without leaving the page; a refusal posts again the ordinary way
   to show why. Focus on a button never holds back a live swap; only typing
-  does.
+  does. A line that drops comes back by itself (`retry: 2000`), and the page
+  fetches itself on every open after the first, since the house still
+  counted her as here and won't repeat what she missed (RICE AJ).
 - One of us at a time (ADR 0011). The cookie is `who=<id>.<token>`, and the
   token must match `visits.token`. A friend is held while a page with her
   token is open, or for 2 minutes after her last page load; the door shows
@@ -291,6 +293,13 @@ accepted record.
   can't reach it: the live maker fails with "couldn't be reached" after
   about 33 s. Live Claude needs a key that calls Anthropic directly.
 - One test per promise the product makes; no tests for test count.
+- What a page's script does is checked by running the served script in
+  jsdom with the browser's objects stood in (`spec/live-client.test.ts`,
+  like the widget's `node:vm` spec). Before trusting a new check, run it
+  against the old code and see it fail.
+- `spec/access.test.ts` is the accessibility floor (lang, title, one
+  `main`, alt text, a name on every control, unique ids) over every page.
+  A new page goes in its list.
 - Spec tests that write notes or record visits stay inside the `throwaway`
   gate in `spec/house.test.ts`. They must never write into the real house on
   Fly.
@@ -311,6 +320,14 @@ accepted record.
   the screen re-lays it out and shifted the phone house off-centre in
   session 6's screenshots, so measure positions in the page before blaming
   the code.
+- The marking viewports are fixed: 1920 × 1080 and Chrome's iPhone preset,
+  390 × 844 upright, which emulates touch (`SHOT_HEIGHT=844` with the
+  default touch at 390). Every page signed in, not just the door, must
+  work at both, whatever a feature does to other phones. On 5 November a
+  full-screen "Turn your phone sideways" (ADR 0032) hid every page inside
+  the house at 390 × 844, and nothing caught it for two days because every
+  screenshot that session was of a phone on its side. Nothing may cover a
+  whole page on an upright phone (ADR 0035; the spec checks).
 - The spec posts forms directly, so it can't tell if a button actually takes
   a tap. After touching CSS or the SVG layer, tap the door's windows and any
   changed button for real: `node scripts/shot.ts <url> <out.png> 390 none
