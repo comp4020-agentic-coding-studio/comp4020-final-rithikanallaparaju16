@@ -2,25 +2,27 @@
 
 Five made-up people who might use the house, each with a background, a reason
 to use it and a quote. Each one is walked through the app as it is on
-4 November 2026, to test who the house is for and whether it works for them.
+7 November 2026, to test who the house is for and whether it works for them.
 Where it falls short, the gap points at a row in [rice.md](rice.md).
 
 None of them is one of Rithika's five. Details about the real friends come
 only from Rithika, so all five personas live in houses made at `/make`.
 Kavya, Arjun and Meera share one house, so their visits overlap.
 
-They're the same five people as on 1 November, walked through again. Since
-then the house gained photos on the wall, a home-screen widget, a monthly
-wall with a recap, saved plates, writing back, a planner with a time strip,
-walking from a phone's corners and a house's name at its door, so most
-verdicts changed.
+They're the same five people as on 1 and 4 November, walked through again.
+Since 4 November the house gained sealed birthday cards, the light left on,
+on this day, a line under a photo, "tell them you were here", a made house's
+own dog and about page, the right clocks for made houses, a layout for a
+phone on its side, the house as an app, and "Hi Rithika 👋" as you come in.
+One of those, the sideways layout, also put a wall in front of every phone
+held upright (AI), and that's now the first gap for three of the five.
 
-| Persona | Where | Comes by | On | House | Works for them? | Biggest gap (RICE) | Was (1 Nov) |
+| Persona | Where | Comes by | On | House | Works for them? | Biggest gap (RICE) | Was (4 Nov) |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Kavya | Toronto | daily, 5 minutes | laptop, iPhone | five friends | yes | Updates stops at 40 (M) | nothing brings her back (C) |
-| Arjun | Thrissur, Kerala | weekly | Android phone | five friends | mostly | the widget costs him money (AF) | Home says nobody came by (A, fixed 5 Nov) |
+| Kavya | Toronto | daily, 5 minutes | laptop, iPhone | five friends | yes, on the laptop | her phone in bed shows "turn sideways" (AI) | Updates stops at 40 (M) |
+| Arjun | Thrissur, Kerala | weekly | Android phone | five friends | mostly | upright on the bus, the house won't show (AI) | the widget costs him money (AF) |
 | Meera | Bangalore | most evenings, live | laptop and phone | five friends | mostly | UNO deals to someone who left (H) | the same |
-| Priya | Melbourne | makes the house | laptop | six friends | mostly | Rithika's README at her door (E) | wrong clocks (D, fixed 5 Nov), no house name |
+| Priya | Melbourne | makes the house | laptop | six friends | yes | the maker waits 40 s on the live site (I) | Rithika's README at her door (E, fixed 5 Nov) |
 | Lea | Berlin | most days | iPhone | two | yes, but not private | anyone can read her notes and photos (G) | the same |
 
 ---
@@ -57,15 +59,19 @@ pinging her. Writing back and saved plates turn a note into a small exchange
 across a whole day, without anyone being awake together. The time strip makes
 the five clocks something she can touch.
 
-**What doesn't.** After a busy week away, Updates lists the first 40 things,
+**What doesn't.** At 7:20 am she's lying down, and when she taps the widget
+the house opens upright. Every page inside it is covered by "Turn your
+phone sideways" until she sits up and turns the phone (AI). The door works
+upright, so she gets as far as her window and then hits the wall. After a
+busy week away, Updates lists the first 40 things,
 and its "more" link leads back to the same page (M). The widget took her
 three apps' worth of steps (App Store, copy, Scriptable, Edit Widget) and
 she nearly gave up at the "pick the script" step; the page telling her "It's
 working" is what kept her going. She'd like to know Arjun found her note
 without it being a read receipt (AD).
 
-**Verdict.** She's who the house is for, and it now reaches her. Fix M for
-her busy weeks.
+**Verdict.** She's who the house is for, and it now reaches her. Let her
+phone show the house upright (AI), then fix M for her busy weeks.
 
 ---
 
@@ -98,6 +104,15 @@ The monthly recap means a month of exams doesn't leave him lost.
 
 **What doesn't.**
 
+- **Upright on the bus (AI).** One thumb on the bus means the phone stays
+  upright. Since 5 November every page inside the house says "Turn your
+  phone sideways", so he has to turn it, and then walk with both thumbs in
+  the corners. The upright house he used to walk with one thumb is still
+  there, under the notice.
+- **A dropped line (AJ).** On patchy data, the live line drops and comes
+  back without him noticing, but the page doesn't catch up: Meera's hug, or
+  the plate she just saved him, only shows after the next thing someone
+  does.
 - **Home's line on a phone (A, fixed 5 November).** The top of Home is all he
   sees of "While you were away" on a phone. It used to count only things
   left, so when Kavya came by and left nothing it said "Nobody's been by".
@@ -111,7 +126,9 @@ The monthly recap means a month of exams doesn't leave him lost.
   year by its fingerprint, which his data can take.
 
 **Verdict.** It works, and he's the person the wordless interactions serve
-best. A is fixed; find him a free way onto an Android home screen (AF).
+best. Give him the upright house back (AI) and a page that catches up after
+a dropped line (AJ); then find him a free way onto an Android home screen
+(AF).
 
 ---
 
@@ -148,11 +165,16 @@ sweep, and the movie planner now keeps up live (T, fixed 3 November).
   before ran out, is accepted and then silently dropped (U).
 - The Everyone tab offers "Come in as Arjun" while Arjun is home, and
   pressing it is a dead end (K).
-- She can't say anything about a friend's photo except a sticker; she'd
-  write a line under it if she could (AB).
+- A line under a friend's photo is there now (AB, built 5 November), one
+  each and never a thread, which is all she wanted.
+- Nothing checks what happens when she and Arjun both reach for the same
+  saved plate, or both play on the same UNO turn, at the same moment (AL).
+  The house should get it right, since one process writes one row at a
+  time, but it's her evenings that would show it if it didn't.
 
 **Verdict.** It mostly works, and photos made it hers. Fix H and U for her,
-and resist turning her overlap or her photos into a chat or a feed.
+check AL, and resist turning her overlap or her photos into a chat or a
+feed.
 
 ---
 
@@ -192,15 +214,18 @@ room each. The time strip is the thing she's wanted for every reunion.
   Dubai wasn't known. Now places match as whole words, the one written first
   wins, and Dubai is known, so all six rooms, the planner and the time strip
   keep the right time.
-- **"What is this place?"** at her door shows Rithika's README, with Rithika's
-  friends' names and birthdays (E).
-- **The dog** is Shinzo, Rithika's dog's name (O).
+- **"What is this place?"** (E, fixed 5 November) is now her house's own
+  about page, about her six, not Rithika's README.
+- **The dog** (O, fixed 5 November) is whatever she calls him on the form.
+- **The wait.** On the live site she still waits up to about 40 seconds
+  while the maker tries a Claude it can't reach (I).
 - **No fixing a city.** She can't change one after making the house; she has
   to make a new one at a new address and send it again (W).
 
-**Verdict.** She'll love the maker and the planner, and since D was fixed
-the clocks are right where she plans. Her friends can seal birthday cards
-for each other too (AA). What's left is E: Rithika's README at her door.
+**Verdict.** She'll love the maker and the planner. Since D, E and O were
+fixed, her first visit is about her own friends from the door on, and her
+ready page hands her a QR code and a Share button for the group. What's
+left is the wait (I), which is one command on Rithika's secret.
 
 ---
 
@@ -231,7 +256,9 @@ rooms keep the right time.
 in any house, and anyone with the address can go in as Sam and read them. A
 note is a courtesy, not a lock (G). Her widget's link is private, but the
 house's front door isn't. Hugs and UNO need both of them there at once, which
-twelve hours and shifts make rare.
+twelve hours and shifts make rare; the light left on (AC, built 5 November)
+is the hug that waits, and it's the thing she uses most. Coming off a shift
+she's on her phone, upright, and meets "Turn your phone sideways" first (AI).
 
 **Verdict.** It works as a quiet place for two, and the widget suits a couple
 best of all. But a couple won't trust it with private notes and photos until
@@ -253,13 +280,17 @@ there's a front door key (G), and photos raised the stakes.
 
 - The core loop works for the people it was built for: Kavya, who's never
   awake with the others, and Arjun, who comes rarely and says little.
-- The biggest risk changed. "Nothing brings anyone back" is mostly answered by
-  the widget, for iPhones. Now the risks are that the widget is fiddly to set
-  up, mostly unseen on real phones (AE; its first card worked on Rithika's
-  iPhone), and costs Android users money (AF).
-- Made houses work, and B and D are fixed (D on 5 November), but a maker's
-  first visit still has E and I.
+- The newest risk is the house's own: the sideways layout put a wall in
+  front of every upright phone (AI), and three of the five meet it first.
+  Every one of them arrives upright, from a link, the widget or the home
+  screen. It's also the viewport the final project is marked at.
+- "Nothing brings anyone back" is mostly answered by the widget, for iPhones.
+  What's left is that it's fiddly to set up, mostly unseen on real phones
+  (AE), and costs Android users money (AF).
+- Made houses work: B, D, E and O are fixed, and a maker's first visit is
+  about her own friends. Only the live maker's wait is left (I).
 - Privacy is fine for old friends and not enough for a couple (G); photos make
   it matter more.
 - Live play is the least polished part, and the bugs land on the most engaged
-  friend (H, U, K).
+  friend (H, U, K). Nothing checks two friends acting at the same moment
+  (AL), or a page catching up after a dropped line (AJ).

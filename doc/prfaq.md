@@ -1,15 +1,17 @@
 # Five Windows: PRFAQ
 
 A press release written as if the house were launching, then the questions
-people would ask about it. It describes the app as it is on 4 November 2026,
+people would ask about it. It describes the app as it is on 7 November 2026,
 gaps included. Who it's for is tested in [personas.md](personas.md), and what
 to build next is ranked in [rice.md](rice.md).
 
-The first version was written on 1 November. In the three days since, the
-house gained photos on the memory wall, a home-screen widget, a wall that
-starts fresh each month with a recap, saved plates, writing back, a planner
-for video calls, a time strip, walking from a phone's corners and house names
-at the door. This version is rewritten for all of that.
+The first version was written on 1 November and rewritten on 4 November for
+photos, the widget, the monthly wall, saved plates, writing back and the
+planner. This version adds what came on 5 November: sealed birthday cards,
+the light left on, on this day, a line under a photo, "tell them you were
+here", a made house's own dog and about page, the house as an app, a layout
+for a phone on its side, and "Hi Rithika 👋" as you come in. It also owns up
+to what that sideways layout did to a phone held upright.
 
 ---
 
@@ -44,6 +46,7 @@ where it belongs:
 - a photo on the memory wall of something that reminded you of them
 - a seedling in the garden, a tidy room, a birthday wish
 - a birthday card written whenever you think of it, sealed until her day
+- the light left on in a friend's window, glowing until she next comes home
 
 It stays there. When you come back, "While you were away" says who came by and
 what's new, starting with what was left for you. On the 1st of each month the
@@ -168,11 +171,24 @@ sending it, so it's usually a few hundred KB, and the house's 1 GB volume
 holds a few thousand.
 
 **Does it work on my phone?**
-Yes. On a phone the house fills the screen; hold either bottom corner and
-slide to walk, like a game's stick, and the view leads the way you're going.
-Home, Updates, Movies and Everyone are tabs at the bottom. Tapping a room walks
-you there and takes you in. Every action also works as a plain link or form
-without JavaScript.
+Sideways, yes: the whole house fills the screen, and you hold either bottom
+corner and slide to walk, like a game's stick. Upright, not yet. The door
+works, but every page inside the house asks you to turn the phone and
+shows nothing else until you do (rice.md, AI). The upright house is still
+there underneath, with tabs at the bottom and the same corners, and giving
+it back is the top row in the ranking. Every action also works as a plain
+link or form without JavaScript.
+
+**Can I install it?**
+Yes, from "Get the app" at the door or the foot of any page: an Install
+button where your browser offers one, a QR code to scan from a laptop, Share
+and Copy, and the steps for each kind of phone. Nothing comes from a store,
+it's always the newest, and offline it says so kindly instead of failing.
+
+**What if I tap the wrong window?**
+Home greets you by name for a few seconds ("Hi Rithika 👋"), with "Not you?
+Change" to go straight back to the door. Rithika kept coming in as a friend
+by mistake.
 
 **Can I delete or edit something I left?**
 Not yet, on purpose. Writing back exists; editing and deleting each have to
@@ -244,12 +260,20 @@ under today's page.
 
 **What's known to be broken?**
 On 21 October, a test sweep left tests that fail because of bugs. Each is
-skipped by its title until its bug is fixed, so CI can deploy. Four have been
+skipped by its title until its bug is fixed, so CI can deploy. Five have been
 fixed since (the house's name at its door, the movie planner keeping up,
-Home's top line on a phone, and made houses' clocks), and 15 are still
-skipped. They're scored alongside new ideas in [rice.md](rice.md). The one
-that matters most now: a made house's "What is this place?" shows Rithika's
-README (E).
+Home's top line on a phone, made houses' clocks, and a made house's own
+about page), and 16 are still skipped. They're scored alongside new ideas in
+[rice.md](rice.md). Two more were found on 7 November by looking, not by a
+test: an upright phone sees only "Turn your phone sideways" inside the house
+(AI), and a live page that loses its connection for a moment doesn't catch up
+(AJ). AI matters most: a phone held upright is how everyone arrives, and
+it's one of the two viewports the final project is marked at.
+
+**What does the house check that it hasn't yet?**
+Accessibility (the starter shipped no checks for it, so they're the
+project's to write) and two friends acting at the same moment: the same
+plate, the same UNO turn, the same window (rice.md, AM and AL).
 
 **What is it deliberately not?**
 A chat app, a feed, a forum or a dashboard. It has no likes, counts,
