@@ -4245,3 +4245,89 @@ when it wasn't, and a wrong reason in the evidence table's first draft.
 
 **Commits:** `df68a9c`, `36478fd`, `1a27d10`, the PROCESS.md prompt line,
 and this entry's commit.
+
+### 101. "use the green space on either side for these button only on phones" (8 Nov 2026)
+
+**Asked:** Rithika pointed at her screenshot `doc/screenshots/Five Windows
+2.png` (her iPhone on its side): "here you can see that the screen is
+blocked by the buttons like "leave sumn on rithanyas desk" leave light on
+for rithanya / maybe we can use the green space on either side for these
+button only on phones to make it better. do you have anymore ideas?"
+
+**Done:**
+
+- `public/house.js` measures the garden green beside the picture on a
+  sideways phone (`sides()`); where there's at least 120 px a side, the
+  buttons stack in the right-hand green above the walking corner, Go in at
+  the bottom, and any that would rise above the house move to a second
+  column on the left (`balance()`). ADR 0036.
+- Looked at 844 × 390 by Rithanya's desk (her room clear) and in the
+  kitchen (five buttons, split both sides; the first version ran off the
+  top there, which is what `balance()` fixed). A real tap on a side button
+  went to `/room/4`. Not active on an iPad (820, touch), on a room page,
+  upright at 390, or at 1920.
+- Ideas answered in the reply at the end of the session (entry 102).
+
+**Correction:** none.
+
+**Commits:** `5dd9db1`.
+
+### 102. Drawings and voice notes; "Skip chat for now" (8 Nov 2026)
+
+**Asked:** Rithika selected the "Not scored" line in `doc/rice.md`
+("Drawings, voice notes and real-time chat. Possibilities in `CLAUDE.md`,
+not candidates until someone shows they'd make five people feel closer")
+with "wait can we do this? do it if its possible". The agent asked about
+chat, since it's the one thing `CLAUDE.md` says the house isn't; she picked
+"Skip chat for now".
+
+**Done (ADR 0037):**
+
+- A drawing for a friend's desk: a sheet of paper in `public/live.js` with
+  seven pens, a rubber, Undo and Clear, finger, pen or mouse. It's sent as
+  the form's own file (a PNG), so without the script the field takes a
+  picked one. Only she and its writer see it; anyone else sees "A folded
+  drawing for Neha". A drawing can go on the wall too, like a photo (shown
+  whole, with stickers and a line under it).
+- A voice note for a friend's desk, recorded in the page (up to a minute),
+  listened back to and left; without a microphone the same field picks a
+  recording. Kept in a new `sounds` table. As private as a desk note.
+- `/drawing/:id` and `/voice/:id` answer only her and its writer (404 for
+  anyone else, 403 for nobody signed in). The house knows a file by its
+  first bytes: PNG for a drawing, WebM, Ogg or MP4 for a voice note.
+- Updates names them ("left a drawing on your desk", "pinned a drawing on
+  the wall", "stuck ❤️ on your drawing"); the widget names a drawing or a
+  voice note on her desk but never carries it. Writing back works on both.
+- Two spec tests. The privacy one was run against a server with the check
+  taken out and failed on "/drawing/4 for a third friend: expected 200 to
+  be 404", then passed with it back.
+- Looked at, at 390 × 844: the drawing card (a finger drag inked the paper;
+  a real hit-tested press of "Leave it on Neha's desk" sent it), the voice
+  card, Record with no microphone (the message, then the file field), Neha's
+  desk as Neha (the drawing and a player) and as Aswathy (folded). At 1920:
+  the card in a room's side column, and a drawing of a sun pinned on the
+  wall beside a photo.
+
+**What went wrong on the way:**
+
+- The first look showed Undo and Clear as cream on cream: `.compose button`
+  (the send button's colours) matched every button in the card, because
+  `compose` was on the `<details>`. Moved onto the form, and the pad's
+  buttons given their own.
+- Aswathy's browser got the drawing (200) in the first look. It was the
+  screenshot script's shared Chrome profile, which had kept the file from
+  Neha's run; curl and the spec, with no cache, got 404. The spec now holds
+  the line.
+- With no microphone, showing the file field made the phone page 393 px
+  wide. The field had only `max-width`; it got the photo field's `width:
+  100%; min-width: 0; overflow: hidden`, and the page is 390 again.
+- Two small fixes found while reading: the widget would have said "left you
+  a note" for a drawing, and a sticker on a drawing would have said "your
+  photo".
+
+Full check on a fresh `HOUSE_MAKER=fake` server: 147 passed, 14 skipped
+(the same 12 known bugs and 2 that need an unreachable maker), from 145.
+
+**Correction:** "Skip chat for now", in answer to the agent's question.
+
+**Commits:** `18e9bbc`, the PROCESS.md prompt lines, and this entry's commit.
