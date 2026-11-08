@@ -52,12 +52,12 @@ export type Spot = { key: string; color?: string; fresh: boolean };
 // A dish on the counter, and what eating it is called ("Eat Neha's dosa").
 // A plate saved for a friend (ADR 0022) is covered, with her colour on its
 // tag (`saved`), and only she is offered it (`label` empty for anyone else).
-export type Dish = Spot & { id: number; label: string; saved?: string };
+export type Dish = Spot & { id: number; label: string; short?: string; saved?: string };
 
 // Something you can do at a thing in the picture: post a form (with its
 // fields), or go to a page. public/house.js offers it when you walk up, with
 // its emoji on the button, and pops the emoji over the thing as you do it.
-export type Doing = { label: string; emoji: string; post?: string; fields?: Record<string, string>; href?: string };
+export type Doing = { label: string; short?: string; emoji: string; post?: string; fields?: Record<string, string>; href?: string };
 
 // Asleep in a bed ("nap", in `place`'s bed), or sitting on a seat (house.ts
 // SEATS).
@@ -310,8 +310,8 @@ function laddoo(s: Scene, standing: Map<string, Pt>): string {
   const d = dogState(s, standing);
   const [x, y] = d.at;
   const doings: Doing[] = [
-    { label: `Pet ${dogName()}`, emoji: EMOJI.play, post: "/garden/dog", fields: { at: s.dog.place } },
-    { label: `Give ${dogName()} a treat`, emoji: EMOJI.treat, post: "/garden/treat", fields: { at: s.dog.place } },
+    { label: `Pet ${dogName()}`, short: "Pet", emoji: EMOJI.play, post: "/garden/dog", fields: { at: s.dog.place } },
+    { label: `Give ${dogName()} a treat`, short: "Treat", emoji: EMOJI.treat, post: "/garden/treat", fields: { at: s.dog.place } },
   ];
   const cls = ["laddoo", d.pose === "nap" ? "napping" : "awake", d.pose === "walk" ? "walking" : ""].filter(Boolean).join(" ");
   const lying = `<g class="lying" transform="scale(${d.lying})"><ellipse class="halo" cy="16" rx="92" ry="48"/><image href="${art("laddoo.png")}" x="-80" y="-46" width="160" height="92"/><text class="zz" x="52" y="-30">z</text><text class="zz small" x="66" y="-46">z</text></g>`;
@@ -436,21 +436,21 @@ function hotspots(s: Scene): string {
     const room = layout().rooms[place];
     const mine = id === s.me.id;
     // Anyone can sleep in anyone's bed.
-    if (room.bedArea) spots.push({ place, area: room.bedArea, doings: [{ label: `Sleep in ${mine ? "your" : `${name}'s`} bed`, emoji: EMOJI.nap, post: `/room/${id}/nap` }] });
+    if (room.bedArea) spots.push({ place, area: room.bedArea, doings: [{ label: `Sleep in ${mine ? "your" : `${name}'s`} bed`, short: "Sleep", emoji: EMOJI.nap, post: `/room/${id}/nap` }] });
     if (room.deskArea) {
       const desk: Doing = mine
-        ? { label: "See what's on your desk", emoji: EMOJI.look, href: `/room/${id}#desk` }
-        : { label: `Leave something on ${name}'s desk`, emoji: EMOJI.desk, href: `/room/${id}#leave-something` };
+        ? { label: "See what's on your desk", short: "Desk", emoji: EMOJI.look, href: `/room/${id}#desk` }
+        : { label: `Leave something on ${name}'s desk`, short: "Leave", emoji: EMOJI.desk, href: `/room/${id}#leave-something` };
       // A friend's window: leave the light on for her (ADR 0031).
-      const light: Doing[] = mine ? [] : [{ label: `Leave the light on for ${name}`, emoji: EMOJI.lamp, post: `/room/${id}/lamp` }];
+      const light: Doing[] = mine ? [] : [{ label: `Leave the light on for ${name}`, short: "Light", emoji: EMOJI.lamp, post: `/room/${id}/lamp` }];
       spots.push({ place, area: room.deskArea, doings: [desk, ...light] });
     }
     for (const [x, y] of (room.mess ?? []).slice(0, b.mess)) {
-      spots.push({ place, area: oval(x, y, 26, 18), doings: [{ label: mine ? "Tidy your room" : `Tidy up ${name}'s room`, emoji: EMOJI.tidy, post: `/room/${id}/tidy` }] });
+      spots.push({ place, area: oval(x, y, 26, 18), doings: [{ label: mine ? "Tidy your room" : `Tidy up ${name}'s room`, short: "Tidy", emoji: EMOJI.tidy, post: `/room/${id}/tidy` }] });
     }
     // Her birthday month: walk up to the balloons to wish her a happy birthday.
     if (b.birthday && room.party) {
-      spots.push({ place, area: balloonArea(room.party.balloons), doings: [{ label: mine ? "Celebrate your birthday" : `Wish ${name} a happy birthday`, emoji: EMOJI.wish, post: `/room/${id}/wish` }] });
+      spots.push({ place, area: balloonArea(room.party.balloons), doings: [{ label: mine ? "Celebrate your birthday" : `Wish ${name} a happy birthday`, short: mine ? "Celebrate" : "Wish", emoji: EMOJI.wish, post: `/room/${id}/wish` }] });
     }
   }
   // Rithika's five share kettle Maggi, Rithanya's face masks and Aswathy's
@@ -460,20 +460,20 @@ function hotspots(s: Scene): string {
   const ours = !made();
   const l = layout();
   spots.push(
-    { place: l.mat.place, area: l.mat.area, doings: [{ label: matWords().sit, emoji: EMOJI.sit, post: "/sit", fields: { seat: "mat" } }, ...(ours ? [{ label: "Make kettle Maggi", emoji: EMOJI.kettle, post: `/room/${KETTLE_ROOM}/kettle` }] : []), ...(s.uno?.mat ?? [])] },
+    { place: l.mat.place, area: l.mat.area, doings: [{ label: matWords().sit, short: "Sit", emoji: EMOJI.sit, post: "/sit", fields: { seat: "mat" } }, ...(ours ? [{ label: "Make kettle Maggi", short: "Maggi", emoji: EMOJI.kettle, post: `/room/${KETTLE_ROOM}/kettle` }] : []), ...(s.uno?.mat ?? [])] },
     ...(ours ? [
-      { place: `room:${MASK_ROOM}`, area: MIRROR, doings: [{ label: "Do a face mask", emoji: EMOJI.mask, post: `/room/${MASK_ROOM}/mask` }] },
-      { place: `room:${YOGA_ROOM}`, area: YOGA, doings: [{ label: "Meditate on the yoga mat", emoji: EMOJI.yoga, post: "/sit", fields: { seat: "yoga" } }] },
+      { place: `room:${MASK_ROOM}`, area: MIRROR, doings: [{ label: "Do a face mask", short: "Mask", emoji: EMOJI.mask, post: `/room/${MASK_ROOM}/mask` }] },
+      { place: `room:${YOGA_ROOM}`, area: YOGA, doings: [{ label: "Meditate on the yoga mat", short: "Meditate", emoji: EMOJI.yoga, post: "/sit", fields: { seat: "yoga" } }] },
     ] : []),
-    { place: "living", area: l.wallBoard, doings: [{ label: "Write on the wall", emoji: EMOJI.write, href: "/living#write" }, { label: "Read the wall", emoji: EMOJI.read, href: "/living#wall" }] },
-    ...(house().spec?.joke ? [{ place: "living", area: oval(l.jokeFrame[0], l.jokeFrame[1], 30, 24), doings: [{ label: "Read the inside joke", emoji: EMOJI.joke, href: "/living#inside-joke" }] }] : []),
-    ...l.sofas.map((area) => ({ place: "living", area, doings: [{ label: "Sit on the sofa", emoji: EMOJI.sit, post: "/sit", fields: { seat: "sofa" } }, { label: "Plan a movie night", emoji: EMOJI.night, href: "/movies" }] })),
+    { place: "living", area: l.wallBoard, doings: [{ label: "Write on the wall", short: "Write", emoji: EMOJI.write, href: "/living#write" }, { label: "Read the wall", short: "Read", emoji: EMOJI.read, href: "/living#wall" }] },
+    ...(house().spec?.joke ? [{ place: "living", area: oval(l.jokeFrame[0], l.jokeFrame[1], 30, 24), doings: [{ label: "Read the inside joke", short: "Joke", emoji: EMOJI.joke, href: "/living#inside-joke" }] }] : []),
+    ...l.sofas.map((area) => ({ place: "living", area, doings: [{ label: "Sit on the sofa", short: "Sit", emoji: EMOJI.sit, post: "/sit", fields: { seat: "sofa" } }, { label: "Plan a movie night", short: "Movie", emoji: EMOJI.night, href: "/movies" }] })),
     // Whatever's out on the counter can be eaten, which takes it away.
     { place: "kitchen", area: l.stove, doings: [
-      { label: "Cook something", emoji: EMOJI.dish, href: "/kitchen#cook" },
-      ...s.dishes.slice(0, l.counter.length).filter((d) => d.label).map((d): Doing => ({ label: d.label, emoji: EMOJI.eat, post: "/kitchen/eat", fields: { dish: String(d.id) } })),
+      { label: "Cook something", short: "Cook", emoji: EMOJI.dish, href: "/kitchen#cook" },
+      ...s.dishes.slice(0, l.counter.length).filter((d) => d.label).map((d): Doing => ({ label: d.label, short: d.short ?? "Eat", emoji: EMOJI.eat, post: "/kitchen/eat", fields: { dish: String(d.id) } })),
     ] },
-    { place: "garden", area: l.patches, doings: [{ label: "Water the garden", emoji: EMOJI.water, post: "/garden/water" }, { label: "Plant something", emoji: EMOJI.plant, href: "/garden#plant" }] },
+    { place: "garden", area: l.patches, doings: [{ label: "Water the garden", short: "Water", emoji: EMOJI.water, post: "/garden/water" }, { label: "Plant something", short: "Plant", emoji: EMOJI.plant, href: "/garden#plant" }] },
   );
   // Sitting at the mat with friends, there's UNO. Only someone sitting down
   // is offered these (public/house.js); standing, the mat's own spot is there.
@@ -536,8 +536,10 @@ function links(s: Scene): string {
     const name = roomName(place, s);
     const label = owner?.id === s.me.id ? "Your room" : name;
     const go = place === "garden" ? "Go out to the garden" : `Go into ${owner ? (owner.id === s.me.id ? "your room" : name) : `the ${name.toLowerCase()}`}`;
+    // On a phone on its side, the Go in button is a door and one word.
+    const goShort = owner ? (owner.id === s.me.id ? "Yours" : `${owner.name.length > 9 ? `${owner.name.slice(0, 7)}…` : owner.name}'s`) : room.name.split(" ")[0];
     const current = place === s.focus ? ` aria-current="page"` : "";
-    return `<a class="room-link" href="${href}" data-place="${place}" data-walk="${room.walk[0].join(",")}" data-view="${room.view.join(" ")}" data-go="${esc(go)}" aria-label="${esc(label)}"${current}><polygon points="${pts(room.outline)}"/></a>`;
+    return `<a class="room-link" href="${href}" data-place="${place}" data-walk="${room.walk[0].join(",")}" data-view="${room.view.join(" ")}" data-go="${esc(go)}" data-go-short="${esc(goShort)}" aria-label="${esc(label)}"${current}><polygon points="${pts(room.outline)}"/></a>`;
   }).join("");
 }
 

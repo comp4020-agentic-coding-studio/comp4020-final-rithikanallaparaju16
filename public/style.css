@@ -4739,10 +4739,10 @@ g.light circle.left-on {
 
   .pad.touch.sides .go,
   .pad.touch.sides .do {
-    min-height: 36px;
-    padding: 5px 10px;
-    font-size: 0.74rem;
-    line-height: 1.2;
+    min-height: 40px;
+    padding: 5px 8px;
+    font-size: 0.82rem;
+    line-height: 1.15;
     text-align: center;
     white-space: normal;
     overflow-wrap: anywhere;
@@ -4754,6 +4754,56 @@ g.light circle.left-on {
 .moves.spill:empty,
 .pad:not(.sides) .moves.spill {
   display: none;
+}
+
+/* On a phone, either way up, each button is its emoji and one word ("🛏️
+   Sleep", "🪔 Light", "🚪 Neha's"), so they cover as little of the house
+   as they can. Rithika, 8 Nov: "maybe make the messages smaller on phone,
+   could be j an emoji or a single word". The whole sentence is still the
+   button's name (house.js puts it in `title` and the hidden label is read
+   out). An iPad or a laptop keeps the sentence. */
+.pad .short {
+  display: none;
+}
+
+@media (pointer: coarse) and (max-width: 600px), (pointer: coarse) and (max-height: 500px) {
+  .pad.touch .label,
+  .pad.touch .go-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .pad.touch .short {
+    display: inline;
+  }
+
+  .pad.touch .go,
+  .pad.touch .do {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 40px;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    text-align: center;
+  }
+
+  .pad.touch .go .emoji,
+  .pad.touch .do .emoji {
+    margin: 0;
+    font-size: 1.05rem;
+  }
+
+  /* not the side columns' stretch: in the middle, each as small as its word */
+  .pad.touch:not(.sides) .moves {
+    align-items: center;
+  }
 }
 
 /* Held upright, a phone gets the house as it always did, with one slim

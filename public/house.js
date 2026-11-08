@@ -60,6 +60,7 @@
     link,
     place: link.dataset.place,
     go: link.dataset.go,
+    goShort: link.dataset.goShort || link.dataset.go,
     view: link.dataset.view.split(" ").map(Number),
     outline: points(link),
   }));
@@ -141,7 +142,7 @@
   // On a touch screen both bottom corners are for walking and nothing else:
   // put a thumb down anywhere in one and the stick comes up under it (no
   // reaching for a circle). The buttons sit between and above them.
-  pad.innerHTML = `<div class="walk-corner left" aria-hidden="true"></div><div class="walk-corner right" aria-hidden="true"></div><div class="stick" aria-hidden="true"><span class="knob"></span></div><p class="keys-hint"><span class="by-keys">Walk with the arrow keys or WASD</span><span class="by-thumb">Hold a corner to walk</span></p><div class="moves"><button type="button" class="go" hidden><span class="go-label"></span> <kbd>Enter</kbd></button></div><div class="moves spill"></div>`;
+  pad.innerHTML = `<div class="walk-corner left" aria-hidden="true"></div><div class="walk-corner right" aria-hidden="true"></div><div class="stick" aria-hidden="true"><span class="knob"></span></div><p class="keys-hint"><span class="by-keys">Walk with the arrow keys or WASD</span><span class="by-thumb">Hold a corner to walk</span></p><div class="moves"><button type="button" class="go" hidden><span class="emoji" aria-hidden="true">🚪</span> <span class="go-label"></span><span class="short go-short" aria-hidden="true"></span> <kbd>Enter</kbd></button></div><div class="moves spill"></div>`;
   map.append(pad);
   const corners = [...pad.querySelectorAll(".walk-corner")];
   const stickEl = pad.querySelector(".stick");
@@ -150,6 +151,7 @@
   const spill = pad.querySelector(".moves.spill");
   const goButton = pad.querySelector(".go");
   const goLabel = pad.querySelector(".go-label");
+  const goShort = pad.querySelector(".go-short");
   const goKey = goButton.querySelector("kbd");
 
   const touchy = () => pad.classList.add("touch");
@@ -171,9 +173,12 @@
       const shown = Math.min(box.width, box.height * (W / H));
       room = (Math.min(box.width, innerWidth) - shown) / 2;
     }
-    const fits = room >= 120;
+    // A short button (an emoji and a word) needs about 70 px; Rithika's
+    // iPhone in Chrome leaves about 115 a side, which the first version's
+    // 120 missed, so the buttons stayed over the house.
+    const fits = room >= 72;
     pad.classList.toggle("sides", fits);
-    pad.style.setProperty("--side-w", fits ? `${Math.floor(room - 12)}px` : "");
+    pad.style.setProperty("--side-w", fits ? `${Math.floor(Math.min(room - 8, 132))}px` : "");
     balance();
   }
 
@@ -214,7 +219,11 @@
   function showGo() {
     const r = target();
     goButton.hidden = !r;
-    if (r) goLabel.textContent = r.go;
+    if (r) {
+      goLabel.textContent = r.go;
+      goShort.textContent = r.goShort;
+      goButton.title = r.go;
+    }
     balance();
   }
 
@@ -589,9 +598,9 @@
   }
 
   function hugDoings(friends) {
-    const out = [{ label: `Hug ${friends[0].name}`, emoji: "🤗", post: "/hug", fields: { with: friends[0].id } }];
+    const out = [{ label: `Hug ${friends[0].name}`, short: "Hug", emoji: "🤗", post: "/hug", fields: { with: friends[0].id } }];
     if (friends.length > 1) {
-      out.push({ label: `Group hug with ${list.format(friends.map((f) => f.name))}`, emoji: "🤗", post: "/hug", fields: { with: friends.map((f) => f.id).join(",") } });
+      out.push({ label: `Group hug with ${list.format(friends.map((f) => f.name))}`, short: "Group", emoji: "🤗", post: "/hug", fields: { with: friends.map((f) => f.id).join(",") } });
     }
     return out;
   }
@@ -644,9 +653,13 @@
       const b = document.createElement("button");
       b.type = "button";
       b.className = "do";
-      b.innerHTML = `<span class="emoji" aria-hidden="true"></span> <span class="label"></span> <kbd>${i ? i + 1 : "Enter"}</kbd>`;
+      b.innerHTML = `<span class="emoji" aria-hidden="true"></span> <span class="label"></span><span class="short" aria-hidden="true"></span> <kbd>${i ? i + 1 : "Enter"}</kbd>`;
       b.querySelector(".emoji").textContent = d.emoji;
       b.querySelector(".label").textContent = d.label;
+      // On a phone on its side, the emoji and one word (style.css); the
+      // whole sentence stays its name, and shows on a long press.
+      b.querySelector(".short").textContent = d.short || d.label;
+      b.title = d.label;
       b.addEventListener("click", () => act(thing, d));
       moves.insertBefore(b, goButton);
     });

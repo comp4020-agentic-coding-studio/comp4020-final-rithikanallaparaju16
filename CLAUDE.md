@@ -34,7 +34,9 @@ page already has. Anyone can sleep in any bed (`nap`) or sit on a seat in
 `SEATS` (`sit`). Every action has an emoji (`EMOJI` in `src/art.ts`) on its
 button. After a form posts, the `?did=` it redirects with pops `POP`'s emoji
 up where it happened (`pops()` in `src/scene.ts`, `g.pops`); the script
-pops the button's emoji as you press it. A new action gets both. Since
+pops the button's emoji as you press it. A new action gets both, and a
+one-word `short`: on a phone a button is its emoji and that word, the
+sentence kept as its name (ADR 0038). Since
 session 8, friends who are here (`.walker.here`) within `HUG_REACH` are
 hotspots too, built by `public/house.js`: "Hug Neha" or a group hug, up to
 all five (`hug`, the others' ids in `item`). Someone sitting is offered only
@@ -49,7 +51,11 @@ the home screen (Yes / Not now); Yes goes to `/home-screen`, and the widget
 shows a different card each time the phone draws it (ADR 0027), what's
 new for her first. The wall reaches widgets only when its writer ticks
 "Show it on friends' home-screen widgets" (`onwidget`, ADR 0029); a desk
-note only ever shows on its owner's widget.
+note only ever shows on its owner's widget. A widget is one friend's for
+good (its link), whoever is signed in to the browser, so its cards name her
+("Amirdhavarshini's room"), never "your": Rithika's iPhone once showed
+"Your room" over Amirdhavarshini's, from a widget made while she was in as
+Amirdhavarshini.
 
 Since session 4, two rooms have an activity of their own: face masks in
 Rithanya's (`MASK_ROOM`) and kettle Maggi in Amirdhavarshini's (`KETTLE_ROOM`),

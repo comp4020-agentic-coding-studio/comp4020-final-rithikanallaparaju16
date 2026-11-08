@@ -443,6 +443,11 @@ describe.skipIf(!throwaway)("living in the house", () => {
     expect(card("desk"), "the widget doesn't show the note b left").toMatchObject({ by: b.name, text: `“${note}”`, emoji: "🍫" });
     expect(card("plate"), "the widget doesn't show the plate b saved").toMatchObject({ by: b.name, title: `${b.name} saved you some biryani`, text: `“${plateNote}”` });
     expect(card("wall").photos[0], "the widget's wall doesn't show b's photo").toMatchObject({ by: b.name, caption });
+    // A widget is one friend's for good, whoever's in the browser, so her
+    // room says whose it is: Rithika's iPhone showed "Your room" over
+    // Amirdhavarshini's, from a widget made while she was in as her.
+    expect(card("room").title, "the widget's room doesn't say whose it is").toBe(`${a.name}'s room`);
+    expect(card("room").open).toMatch(new RegExp(`/room/${a.id}$`));
 
     // The photo and faces come through the same link, so the widget never signs in.
     const photo = await fetch(new URL(w.latest.photo, new URL(path, baseUrl)));

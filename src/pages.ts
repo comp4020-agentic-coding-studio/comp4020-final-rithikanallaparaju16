@@ -486,6 +486,9 @@ function scene(v: Visit, focus?: string, did?: string): Scene {
         saved: forWhom ? personById(forWhom)?.color ?? "#c4553c" : undefined,
         // A saved plate is only hers to eat.
         label: forWhom && !mine ? "" : mine ? `Eat the ${dishName(t)} ${nameOf(t.author)} saved you` : `Eat ${t.author === v.me.id ? "your" : `${nameOf(t.author)}'s`} ${dishName(t)}`,
+        // On a phone, the dish itself ("Biryani"), so three plates out
+        // aren't three buttons that all say "Eat".
+        short: cap(dishName(t).split(" ").slice(-1)[0]),
       };
     }),
     kettle: kettle(v.things, v.now) !== undefined,
@@ -502,8 +505,8 @@ function scene(v: Visit, focus?: string, did?: string): Scene {
 function unoDoings(v: Visit, rests: Map<string, Thing>): { seated: Doing[]; mat: Doing[] } {
   const mine = gameOf(v.things, v.me.id);
   const playing = mine !== undefined && stillIn(replay(mine, v.things, v.now), v.me.id);
-  const yours: Doing = { label: "Your UNO game", emoji: EMOJI.uno, href: "/uno" };
-  const deal: Doing[] = dealFor(v.me.id, rests) ? [{ label: playing ? "Deal a new UNO game" : "Play UNO", emoji: EMOJI.uno, post: "/uno" }] : [];
+  const yours: Doing = { label: "Your UNO game", short: "UNO", emoji: EMOJI.uno, href: "/uno" };
+  const deal: Doing[] = dealFor(v.me.id, rests) ? [{ label: playing ? "Deal a new UNO game" : "Play UNO", short: playing ? "Deal" : "UNO", emoji: EMOJI.uno, post: "/uno" }] : [];
   const sitting = onTheMat(rests).includes(v.me.id);
   return { seated: sitting ? [...(playing ? [yours] : []), ...deal] : [], mat: playing ? [yours] : [] };
 }
@@ -1173,7 +1176,11 @@ function widgetCards(v: Visit): WidgetCard[] {
   if (room) {
     cards.push({
       kind: "room",
-      title: "Your room",
+      // Her name, not "Your room": a widget is one friend's for good (its
+      // link), whoever's signed in to the browser. Rithika's iPhone showed
+      // "Your room" over Amirdhavarshini's room, since that widget was
+      // made while she was in as Amirdhavarshini (8 Nov 2026).
+      title: `${v.me.name}'s room`,
       picture: art(layout().picture),
       view: room.view,
       sticker: { src: faceOf(v.me), at: room.walk[0] },
