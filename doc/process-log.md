@@ -4331,3 +4331,53 @@ Full check on a fresh `HOUSE_MAKER=fake` server: 147 passed, 14 skipped
 **Correction:** "Skip chat for now", in answer to the agent's question.
 
 **Commits:** `18e9bbc`, the PROCESS.md prompt lines, and this entry's commit.
+
+### 103. "the buttons are still covering the entire screen", and the widget's room (8 Nov 2026)
+
+**Asked:** with `doc/screenshots/defect_buttons.png` (her iPhone in Chrome,
+on its side, standing on Amirdhavarshini's mat, three wide buttons over the
+house): "the buttons are still covering the entire screen.use the green
+spcaes on either side, maybe make the messages smaller on hpone, could me j
+an emoji or a single word,emiji or single word, do whats best". While that
+was being built: "the widget in my phone has some defect, im logged in as
+rithika. because when i tap on the widget and go tot the web browser, im
+rithika / but the widget says "your room" and shows amirdhas room, fix that".
+
+**Why 0036 missed it:** Chrome keeps its address bar on a sideways iPhone,
+so the page is about 844 × 346, not the 844 × 390 the agent had checked,
+and the green is about 115 px a side. ADR 0036's threshold was 120, so the
+side columns never came on. The agent had only looked at Safari's shape.
+
+**Done (ADR 0038):**
+
+- Every action has a one-word `short` ("Sleep", "Light", "Leave", "Maggi",
+  "Water"); a dish is its own name ("Biryani"), since three plates out read
+  as three "Eat"s in the first look; Go in is "🚪 Neha's", "🚪 Kitchen",
+  "🚪 Yours". On a touch phone, either way up, that's what a button shows;
+  the sentence is hidden from sight but kept as its name and `title`. An iPad
+  and a laptop keep the sentence.
+- The columns in the green need 72 px now, at most 132.
+- Looked at 844 × 346 sideways on the mat (her screenshot's spot: "Sit" on
+  the left, "Maggi" and "🚪 Amirdha…'s" on the right, the house clear) and
+  at the stove (five buttons, both sides); at 390 × 844 upright (a narrow
+  column at the side); a real tap on a short button (hit its word, went to
+  the kitchen); full sentences at 1920 and on an iPad at 820.
+- **The widget:** the house's room 1 and room 3 are right, and the widget
+  draws whichever friend owns its link. A widget is one friend's for good;
+  the one on her phone was made while she was in as Amirdhavarshini (as in
+  entry 97), and signing in to the browser as Rithika doesn't change it. Its
+  room card now says "Amirdhavarshini's room" instead of "Your room", so a
+  widget always says whose it is. The fix for her phone is to paste her own
+  script again from Home's Yes as Rithika. A spec line holds it, seen to fail
+  on "Your room" first.
+- The agent tried to read the live database to see whose widget had checked
+  in; the permission was refused, and the agent went on from the code.
+
+Full check on a fresh `HOUSE_MAKER=fake` server: 147 passed, 14 skipped.
+(An earlier run on a reused data folder failed two widget tests that expect
+a fresh house; the fresh run passed.)
+
+**Correction:** Rithika's: the buttons still covered the house. The
+agent's own: 0036's threshold was set from one browser's shape.
+
+**Commits:** `2f29ce6`, the PROCESS.md prompt lines, and this entry's commit.
