@@ -4381,3 +4381,19 @@ a fresh house; the fresh run passed.)
 agent's own: 0036's threshold was set from one browser's shape.
 
 **Commits:** `2f29ce6`, the PROCESS.md prompt lines, and this entry's commit.
+
+### 104. "call her amirdha on the buttons" (8 Nov 2026)
+
+**Asked:** after entry 103 named "Amirdha…'s" as a call she could redirect:
+"call her amirdha on the buttons".
+
+**Done:** a friend can have a `nick` in `src/people.ts`; Amirdhavarshini's is
+"Amirdha", and a phone's one-word Go in button uses it ("🚪 Amirdha's"). Her
+name stays Amirdhavarshini everywhere else, including the button's full
+sentence ("Go into Amirdhavarshini's room") read out and shown on a long
+press. Looked at on the mat at 844 × 346 sideways.
+
+**Correction:** Rithika's: the nickname, in place of the agent's cut-off
+"Amirdha…'s".
+
+**Commits:** `4c8364c`, the PROCESS.md prompt line, and this entry's commit.
