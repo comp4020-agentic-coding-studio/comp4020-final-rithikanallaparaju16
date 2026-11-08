@@ -537,7 +537,7 @@ function links(s: Scene): string {
     const label = owner?.id === s.me.id ? "Your room" : name;
     const go = place === "garden" ? "Go out to the garden" : `Go into ${owner ? (owner.id === s.me.id ? "your room" : name) : `the ${name.toLowerCase()}`}`;
     // On a phone on its side, the Go in button is a door and one word.
-    const goShort = owner ? (owner.id === s.me.id ? "Yours" : `${owner.name.length > 9 ? `${owner.name.slice(0, 7)}…` : owner.name}'s`) : room.name.split(" ")[0];
+    const goShort = owner ? (owner.id === s.me.id ? "Yours" : `${owner.nick ?? (owner.name.length > 9 ? `${owner.name.slice(0, 7)}…` : owner.name)}'s`) : room.name.split(" ")[0];
     const current = place === s.focus ? ` aria-current="page"` : "";
     return `<a class="room-link" href="${href}" data-place="${place}" data-walk="${room.walk[0].join(",")}" data-view="${room.view.join(" ")}" data-go="${esc(go)}" data-go-short="${esc(goShort)}" aria-label="${esc(label)}"${current}><polygon points="${pts(room.outline)}"/></a>`;
   }).join("");

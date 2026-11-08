@@ -3,6 +3,8 @@ export type Person = {
   name: string;
   // Where a long name may wrap on a narrow screen.
   breakAfter?: number;
+  // What a phone's one-word button calls her, if not her name (ADR 0038).
+  nick?: string;
   city: string;
   tz: string;
   // Local hours this person's character sleeps, e.g. [23.5, 9.5].
@@ -59,6 +61,8 @@ export const FIVE: Person[] = [
     id: "3",
     name: "Amirdhavarshini",
     breakAfter: 7,
+    // Rithika, 8 Nov 2026: "call her amirdha on the buttons".
+    nick: "Amirdha",
     city: "Tamil Nadu",
     tz: "Asia/Kolkata",
     sleep: [23, 7],
