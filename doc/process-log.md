@@ -4397,3 +4397,46 @@ press. Looked at on the mat at 844 × 346 sideways.
 "Amirdha…'s".
 
 **Commits:** `4c8364c`, the PROCESS.md prompt line, and this entry's commit.
+
+### 105. "okay now check everything and tell mw what more i need to do to get an HD" (9 Nov 2026, 1 am)
+
+**Asked:** check everything against the final project, and say what's left
+for an HD. Due noon the same day.
+
+**Checked, against the brief and the assessment page read fresh from the
+course site:**
+
+- Two separate Chrome profiles at the two marking viewports (Neha at
+  1920 × 1080, Rithika at 390 × 844 touch), as the marker tests real-time:
+  Rithika wrote on the wall through the page's own form, and Neha's page
+  showed it 163 ms later without reloading. The phone page stayed 390 wide.
+- The top artefact band ("the keyboard, a resize mid-interaction, a slow
+  connection"): walking with the arrow keys works; Tab reaches the bar, then
+  each room in the house, with an orange outline on the room's shape, and
+  Enter goes in. The agent's first probe reported "no focus ring" on the
+  rooms because it only read the link's own outline, which is off on
+  purpose; a screenshot showed the ring. A resize from 1920 to a phone
+  mid-walk left no errors and a 390-wide page. With scripts off, writing on
+  the wall still posts and shows. A first visit fetches about 640 KB (the
+  picture is 367 KB); the page's HTML, which carries every form, is 43 to
+  47 KB.
+- Odd addresses on the live site: `//` answered 500 (RICE X, one of the
+  sweep's skipped bugs). Fixed: leading slashes fold into one. Its test is
+  on again, seen to fail on the old server first.
+- Words: README.md 5,559 (the brief: 400 to 600); PROCESS.md 6,786, of which
+  the prompts list is 4,999 and the rest 1,787 (900 to 1,100);
+  reflections 59 to 112 each (150 to 300). README.md cites no sources and
+  doesn't say which claims are checked and which judged, both asked for in
+  the brief. PROCESS.md has unfinished notes in "step by step", one of them
+  now untrue ("need to make the app persistent").
+- `pnpm check` 148 passed, 13 skipped; `pnpm check:evidence` passes.
+
+**Not done:** README.md, PROCESS.md and the reflections are Rithika's to
+write (the brief advises she drafts them herself, and `CLAUDE.md` says the
+same), so the agent listed what each needs in its reply instead.
+
+**Correction:** none from Rithika. The agent's own: the focus-ring probe, and
+a wrong RICE row named in a code comment (AH for X), fixed before
+committing.
+
+**Commits:** `442893a`, the PROCESS.md prompt line, and this entry's commit.
