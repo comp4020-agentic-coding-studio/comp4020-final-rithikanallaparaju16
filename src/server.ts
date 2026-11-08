@@ -920,7 +920,11 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
 // handled exactly as in Rithika's house at `/`, inside that house. /make is
 // where a house gets made (src/maker.ts), in no house at all.
 function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  const path = (req.url ?? "/").split("?")[0];
+  // "//" is a protocol-relative address to `new URL`, which threw on it and
+  // answered 500 (the 21 October sweep, RICE X): extra slashes at the front
+  // are one slash, so "//" is the door.
+  req.url = (req.url ?? "/").replace(/^\/{2,}/, "/");
+  const path = req.url.split("?")[0];
   if (path === "/make" || path.startsWith("/make/")) return make(req, res);
   const m = (req.url ?? "/").match(/^\/h\/([^/?]+)(\/[^?]*)?(\?.*)?$/);
   if (!m) return inHouse(ORIGINAL, () => (watchRefusals(req, res), handle(req, res)));

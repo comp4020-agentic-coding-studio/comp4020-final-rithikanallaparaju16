@@ -256,7 +256,7 @@ it("answers a wrong turn with a page of its own and a way back", async () => {
 });
 
 // BUG: an address with a doubled slash (`//`, `///`, `//?x`) crashes the handler (new URL in src/server.ts) and answers 500.
-it.skip("never stumbles over an extra slash in the address", async () => {
+it("never stumbles over an extra slash in the address", async () => {
   const root = baseUrl.replace(/\/+$/, "");
   for (const path of ["//", "///", "//?x"]) {
     const res = await fetch(root + path, { redirect: "manual" });

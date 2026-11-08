@@ -139,7 +139,7 @@ skipped test is mostly done once that test passes.
 | U | An UNO card played in the first half second of a turn is silently dropped | bug | 3 | 1 | 80% | 0.5 | **4.8** |
 | V | An open door doesn't light a window back up when her two minutes run out | bug | 5 | 0.5 | 80% | 0.5 | **4** |
 | W | Change a made house after making it | idea | 10 | 0.5 | 80% | 2 | **2** |
-| X | `//` addresses answer 500, and `HEAD /live` never answers | bug | 1 | 0.25 | 100% | 0.25 | **1** |
+| X | `//` addresses answer 500 (fixed 9 Nov), and `HEAD /live` never answers | bug | 1 | 0.25 | 100% | 0.25 | **1** |
 | Y | Invisible names and notes (zero-width spaces) and 31 February are accepted | bug | 1 | 0.25 | 100% | 0.25 | **1** |
 | Z | Houses asked for at the same moment all get past the cap | bug | 1 | 0.25 | 100% | 0.5 | **0.5** |
 
