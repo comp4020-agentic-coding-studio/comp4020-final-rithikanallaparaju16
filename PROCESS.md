@@ -86,3 +86,5 @@ A tour of the house, with screenshots at laptop, phone and iPad widths, is in [d
 ## Prompts
 
 Every prompt I gave the agent from 8 October, with the commit it led to, is in [doc/prompts.md](doc/prompts.md).
+
+The toggle on the phone was the hardest thing to get right, so in the end I replaced it. The joystick in the corners followed my thumb across the screen and covered the house, so now on a phone you tap where you want to go or drag your own character, and the corners are gone. A real-browser check (`scripts/walk-check.ts`) now tests tapping, dragging and swiping on every push I make to it ([`a6531cb`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rithikanallaparaju16/commit/a6531cb)).
