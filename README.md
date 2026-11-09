@@ -1,39 +1,41 @@
 # Five Windows
 
-Four close friends and I live in Canberra, New Jersey, Tamil Nadu and Bangalore, and we're almost never online at the same time. I didn't want another chat app. Five Windows is a little house we share instead. The main idea is to feel loved no matter where you are: you don't need to wait for anybody to come online. You come back to the house, read the notes your besties left you, write back, leave a voice note, pin something that reminded you of them on the memory wall, and go.
+A little house shared by five friends who live far apart: Rithika in Canberra, Neha in New Jersey, Amirdhavarshini in Tamil Nadu, and Rithanya and Aswathy in Bangalore. Everyone has a room, and everyone shares the living room, the kitchen, the garden and Shinzo the dog.
+
+The main idea of this house is to feel loved no matter where you are. You dont need to wait for anybody to come online. You can go back to the house, read the notes your besties left for you, write them back, leave voice notes, and see your memory wall. This app never disturbs you: it quietly sits as a widget on your wallpaper, so you can just click and go to your virtual house whenever you feel like it.
 
 ## How to get in
 
-Open the house and pick a window: each one is one of us. Only one person can be each friend at a time, so to try it as two people, open an incognito window and pick a different friend. There's no password for now, so markers can log in on two devices as two people. Walk with the arrow keys on a laptop, or tap where to go on a phone.
+Pick a window at the door: each one is one of us. To try it as two people, open an incognito window and pick a different friend. There's no password for now, so markers can log in on two devices as two people.
 
 ## What "good" means here
 
-The one principle: connection must not require being online at the same time. Someone comes by for thirty seconds, leaves something and goes, and someone else finds it days later. A good version of this house:
+The main "good" is that the website makes you and your besties feel close even when you are miles away: sumn you come back to when you miss them, or when you wanna show them some love when they're going through something tough.
 
-1. **Works asynchronously.** One person alone gets something out of a visit.
-2. **Remembers people.** What you leave survives a refresh, a restart and a redeploy.
-3. **Makes coming back worth it.** Coming back quietly shows what your friends did while you were away.
-4. **Feels like a place, not a feed.** Rooms, a wall and a kitchen table, never a timeline.
-5. **Is built for exactly five.** It's very personal, and assumes we already know each other.
-6. **Has few interactions,** each one making us feel closer.
-7. **Gets more alive when friends overlap,** without ever requiring it.
+1. **Works asynchronously.** Come by, leave something and go, without waiting for anyone.
+2. **Remembers people.** What you leave survives a refresh, a restart or a redeploy.
+3. **Makes coming back worth it.** The house tells you who has been by and what's new.
+4. **Feels like a place, not a feed.** No likes, counts, notifications or infinite scroll.
+5. **Is built for exactly five.** It assumes you already know each other.
+6. **Keeps interactions few and meaningful.**
+7. **Gets more alive when friends overlap,** but never requires it.
 
-The house never punishes absence: plants get thirsty but never die, and Shinzo the dog naps but is never sad.
+The house never punishes absence: plants get thirsty but never die.
 
-## It's ours
+## Each room is someone's own
 
-Rithanya always had face masks in her room, and loves KitKats. Neha loves board games, has her checked blue blanket, and is the furthest from me in time. In our hostel we weren't allowed to cook, so we snuck a kettle into Amirdha's room for Maggi; her room is the biggest, with a mat where we sit, make Maggi and play UNO like we used to. Aswathy got me into meditation, so her room has the yoga mat. All through a friend's birthday month, her room is decorated.
+Rithanya's has the face masks we used to share and her KitKats. Neha's has her board games and checked blue blanket. Amirdhavarshini's is the biggest, with the mat where we make kettle Maggi and play UNO like we did in our hostel. Aswathy's has the yoga mat where she got me into meditating. Every room keeps its owner's time, and is decorated all through her birthday month.
 
-## What I chose not to build
+## What you can do
 
-No notifications to disturb anybody: instead the house quietly sits as a widget on your home screen and shows small updates. No likes, counts, feeds or streaks. No chat, which is the one thing the house is meant not to be. Anyone can also make a house for up to seven of their own friends at `/make`.
+Leave a note, a drawing or a voice note on a friend's desk, which only she can read. Pin a photo on the memory wall, cook or save a friend a plate, pet Shinzo, hug whoever's home, and plan a time that works across our time zones. Anyone can make a house for up to seven friends at `/make`.
 
 ## What's checked, and what's judged
 
-Enforced by the checks in `spec/`, run on every push before it deploys: a note on a desk is private to its owner and writer, everything left survives a restart, coming back lists what's new, a change appears on a friend's open page without a reload, two friends acting at once don't break it, and every page meets an accessibility floor. Walking, taps and zooming are checked in a real browser by `scripts/walk-check.ts`.
+The checks in `spec/` run on every push before it deploys: desk notes stay private, everything survives a restart, coming back lists what's new, changes show on a friend's open page without a reload, and every page meets an accessibility floor.
 
-Judged by my friends using it: whether it feels like a place and makes us feel closer. UNO's turns went from ten seconds to twenty because they asked.
+Whether it makes us feel closer is judged by my friends using it: UNO's turns went from ten seconds to twenty because they asked.
 
 ## How it's built
 
-Node with no build step, one SQLite file on the Fly volume, server-rendered forms, and server-sent events for live updates. Everything anyone leaves is a row in an append-only table, and the state of the house is worked out from timestamps, so nothing counts down while you're away. Decisions are in `doc/adr/`; how I got here is in `PROCESS.md`.
+One Node process, one SQLite file on the Fly volume, pages drawn on the server, and server-sent events for live updates. Decisions are in `doc/adr/`; how I built it is in `PROCESS.md`.
