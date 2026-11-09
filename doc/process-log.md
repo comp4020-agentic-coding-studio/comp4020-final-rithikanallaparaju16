@@ -4514,3 +4514,36 @@ the seven-friend zoom all passed.
 **Correction:** Rithika's three reports. The agent's own are above.
 
 **Commits:** `a6531cb`, the PROCESS.md prompt lines, and this entry's commit.
+
+### 107. Deliverables to their word limits, a research note, reflections (9 Nov 2026, before noon)
+
+Asked, in turn: make everything render and add images to her rewritten
+PROCESS.md; rewrite the README from her PROCESS.md points within the limit
+("thhe readme has AI slop"); keep every deliverable inside its word count;
+add a line on how the toggle became tap and drag; write the COMP8020
+research note with parallel agents, one watching CI; add how PRFAQs,
+personas and RICE made the app more human; fit her edited reflections to
+the limit from her own words; and rewrite the note around what she stressed
+("the current one looks like ai slop").
+
+The agent did:
+
+- README to 570 words from her lines (`7ac4317`).
+- PROCESS.md to 1,043, moving her tour and prompts word for word into
+  `doc/website-tour.md` and `doc/prompts.md` (`54453ca`), plus the toggle
+  paragraph (`cd90727`).
+- The research note (`effd75a`), then the frameworks paragraph (`b22100c`).
+  The agent's first draft of that paragraph said the personas were her
+  friends; they are made-up people in made houses (`63f3629`), and it was
+  rewritten before committing.
+- Reflections topped up to 150–300 words with her own lines matched to each
+  crit, kept as she wrote them (`a72d5fc`).
+- The note rewritten in plainer words around her points: the principle, the
+  box of cats, the toggle, named decisions, ADRs, RICE's widget and Amirdha,
+  and each room's details; same five sources, 798 words (`249d672`).
+
+**Correction:** Rithika twice called the agent's writing "AI slop" (README,
+research note) and had it rebuilt from her own words.
+
+**Commits:** `7ac4317`, `54453ca`, `cd90727`, `effd75a`, `b22100c`,
+`a72d5fc`, `249d672`, and this entry's commit.
