@@ -242,37 +242,47 @@ async function zoomOut() {
     else fail(`couldn't make a house for ${n} (HTTP ${r.status})`);
   }
   const MEASURE = `(() => { const s = document.querySelector(".house-svg"); const f = s.getBoundingClientRect(); const p = s.querySelector("image").getBoundingClientRect(); return { frame: [Math.round(f.width), Math.round(f.height)], bands: [p.x - f.x, f.right - p.right, p.y - f.y, f.bottom - p.bottom].map(Math.round), vb: s.getAttribute("viewBox") }; })()`;
-  const b = await browser();
-  try {
-    for (const [label, base] of houses) {
-      const session = await signIn(base, "1");
+  // Settled in the room: the page is the room asked for, not zoomed out,
+  // and nothing's animating (the view holds still for a moment).
+  const READY = (path: string) => `(async () => { for (let i = 0; i < 40; i++) { const s = document.querySelector(".house-svg"); const v1 = s?.getAttribute("viewBox"); await new Promise((r) => setTimeout(r, 120)); if (s && location.pathname === ${JSON.stringify(path)} && !document.querySelector(".map.wide") && s.getAttribute("viewBox") === v1) return true; } return false; })()`;
+  for (const [label, base] of houses) {
+    // a fresh browser for each house, so nothing of the last one carries over
+    const b = await browser();
+    const before0 = failures.length;
+    const session = await signIn(base, "1");
+    try {
       await b.signedIn(base, session);
       const door = await (await fetch(`${BASE}${base}/`, { headers: { cookie: `who=${session}` } })).text();
       const rooms = [...new Set([...door.matchAll(/class="room-link" href="([^"]+)"/g)].map((m) => m[1]))];
       for (const [w, h, touch] of [[1920, 1080, false], [1000, 645, false], [820, 1180, true]] as const) {
         await b.screen(w, h, touch);
         for (const room of rooms) {
-          await b.go(base && room.startsWith(base) ? room : base + room);
+          const path = base && room.startsWith(base) ? room : base + room;
+          await b.go(path);
+          if (!(await b.js(READY(path)))) {
+            fail(`${label} ${w}x${h} ${room}: never settled in the room (at ${await b.js("location.pathname")})`);
+            continue;
+          }
           const before = await b.js(MEASURE);
           await b.key("Escape", "Escape", 27);
-          await wait(1000);
+          await wait(1100);
           const out = await b.js(MEASURE);
           await b.key("Escape", "Escape", 27);
-          await wait(1000);
+          await wait(1100);
           const back = await b.js(MEASURE);
           if (typeof before !== "object" || typeof out !== "object" || typeof back !== "object") {
-            fail(`${label} ${w}x${h} ${room}: no house to measure at ${await b.js("location.pathname")} (${String(typeof out === "object" ? back : out).slice(0, 80)})`);
+            fail(`${label} ${w}x${h} ${room}: no house to measure at ${await b.js("location.pathname")}`);
             continue;
           }
           if (out.bands.some((x: number) => Math.abs(x) > 2)) fail(`${label} ${w}x${h} ${room}: zoomed out, the house has bands ${out.bands} in a ${out.frame} frame`);
           if (back.vb !== before.vb || back.frame.join() !== before.frame.join()) fail(`${label} ${w}x${h} ${room}: back in, the room isn't as it was (${before.vb} ${before.frame} -> ${back.vb} ${back.frame})`);
         }
       }
+      if (failures.length === before0) console.log(`ok   zoom out: ${label}, ${rooms.length} rooms at 3 windows`);
+    } finally {
       await leave(base, session);
-      console.log(`ok   zoom out: ${label}, ${rooms.length} rooms at 3 windows`);
+      b.close();
     }
-  } finally {
-    b.close();
   }
 }
 
