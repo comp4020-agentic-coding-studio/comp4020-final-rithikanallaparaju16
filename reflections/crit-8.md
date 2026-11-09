@@ -4,3 +4,5 @@ but it shouldnt be notifying or disturbing anybody
 everybody should feel like they are together and feel loved whenver they open the website and shouldnt be disturbed otherwise.
 2. What did this work change about who I want to be as a software developer?
 few websites are supposed to feel personal for users to emjoy it. so i think i understood the word "personalised experience" a lot better
+This made me understand personalised touches and how that makes the app a lot lot better.PRFAQS,RICE helped me make the app a lot more human and helped me reach the main goal of this app
+This website is very personalised and was very difficult to tell claude. The funniest one would be when i asked claude to personalise my friends room by placing a kitkat box, instead claude added cats, A BOX OF CATS.
