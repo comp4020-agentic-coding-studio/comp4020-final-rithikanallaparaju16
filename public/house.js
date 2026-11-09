@@ -142,7 +142,7 @@
   // On a touch screen both bottom corners are for walking and nothing else:
   // put a thumb down anywhere in one and the stick comes up under it (no
   // reaching for a circle). The buttons sit between and above them.
-  pad.innerHTML = `<div class="walk-corner left" aria-hidden="true"></div><div class="walk-corner right" aria-hidden="true"></div><div class="stick" aria-hidden="true"><span class="knob"></span></div><p class="keys-hint"><span class="by-keys">Walk with the arrow keys or WASD</span><span class="by-thumb">Hold a corner to walk</span></p><div class="moves"><button type="button" class="go" hidden><span class="emoji" aria-hidden="true">🚪</span> <span class="go-label"></span><span class="short go-short" aria-hidden="true"></span> <kbd>Enter</kbd></button></div><div class="moves spill"></div>`;
+  pad.innerHTML = `<div class="walk-corner left" aria-hidden="true"></div><div class="walk-corner right" aria-hidden="true"></div><div class="stick" aria-hidden="true"><span class="knob"></span></div><p class="keys-hint"><span class="by-keys">Walk with the arrow keys or WASD</span><span class="by-thumb">Tap where to go, or drag yourself</span></p><div class="moves"><button type="button" class="go" hidden><span class="emoji" aria-hidden="true">🚪</span> <span class="go-label"></span><span class="short go-short" aria-hidden="true"></span> <kbd>Enter</kbd></button></div><div class="moves spill"></div>`;
   map.append(pad);
   const corners = [...pad.querySelectorAll(".walk-corner")];
   const stickEl = pad.querySelector(".stick");
@@ -313,13 +313,57 @@
       }
       busy = false;
     };
+    // Zoomed out on a laptop or iPad, the frame takes the whole house's own
+    // shape, as wide as the column (and no taller than the screen), so the
+    // house fills it. It used to keep the room's frame, and a house taller
+    // than the room was fitted inside it small, with green either side
+    // (Rithika, 9 Nov: "make sure to zoom out to the right window
+    // everytime"). A phone's house is wider than its screen and pans, so it
+    // keeps its frame.
+    const reshape = () => {
+      if (!wide || map.scrollWidth > map.clientWidth + 1) return;
+      const box = svg.getBoundingClientRect();
+      const tall = Math.max(0, innerHeight - map.getBoundingClientRect().top - 16);
+      const w = Math.min(box.width, map.clientWidth, tall ? (tall * W) / H : box.width);
+      Object.assign(svg.style, { width: `${w}px`, height: `${(w * H) / W}px`, maxWidth: "none", maxHeight: "none", aspectRatio: "auto", margin: "0 auto" });
+    };
     if (still) {
-      if (wide) svg.setAttribute("viewBox", fit([0, 0, W, H]).map((n) => n.toFixed(2)).join(" "));
+      if (wide) {
+        reshape();
+        svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+      }
       return done();
     }
     busy = true;
     keys.clear();
-    zoom(wide ? [0, 0, W, H] : current.view, done);
+    if (wide) {
+      // the frame first, holding the room's view, then the view out to the
+      // whole house, which now fits it exactly
+      fit(current.view);
+      reshape();
+      const end = [0, 0, W, H];
+      const box = svg.getBoundingClientRect();
+      // keep the room where it was on the page while the frame changes
+      const k = Math.min(box.width / current.view[2], box.height / current.view[3]);
+      const start = [current.view[0] + current.view[2] / 2 - box.width / 2 / k, current.view[1] + current.view[3] / 2 - box.height / 2 / k, box.width / k, box.height / k];
+      svg.setAttribute("viewBox", start.map((n) => n.toFixed(2)).join(" "));
+      const begun = performance.now();
+      const frame = (now) => {
+        const t = Math.min(1, (now - begun) / 550);
+        svg.setAttribute("viewBox", start.map((a, i) => (a + (end[i] - a) * ease(t)).toFixed(2)).join(" "));
+        if (t < 1) requestAnimationFrame(frame);
+        else done();
+      };
+      requestAnimationFrame(frame);
+      return;
+    }
+    // Back in: the room's own frame again first (the stylesheet's), holding
+    // the whole house in it, then the view down to the room.
+    if (svg.style.width) {
+      svg.removeAttribute("style");
+      svg.setAttribute("viewBox", fit([0, 0, W, H]).map((n) => n.toFixed(2)).join(" "));
+    }
+    zoom(current.view, done);
   }
 
   if (lookButton) {
@@ -775,6 +819,9 @@
   let lead = 0; // the same, eased, so the view swings round gently
   function follow() {
     if (!map || map.scrollWidth <= map.clientWidth) return;
+    // A finger dragging you: the house holds still under it, or each step
+    // would pan the floor out from under the finger and you'd chase it.
+    if (dragging !== undefined) return;
     const scale = svg.getBoundingClientRect().width / view.width;
     const w = map.clientWidth;
     const at = (x - view.x) * scale - map.scrollLeft; // you, on the screen
@@ -790,11 +837,29 @@
 
   const keys = new Set();
   let stick = [0, 0];
+  // Where a tap (or a finger dragging you) asked you to go, in the
+  // picture's pixels, until you're there (Rithika, 9 Nov: "can i j touch my
+  // character and move them around?").
+  let goal;
+  let dragging; // the pointer dragging you, while it's down (walking by touch)
   let last = 0;
   // About a fifth of the view a second, so a room page feels the same pace.
   const speed = view.width * 0.22;
 
   function heading() {
+    if (goal) {
+      const gx = goal[0] - x;
+      const gy = goal[1] - y;
+      const d = Math.hypot(gx, gy);
+      // there, or close enough that the next step would pass it
+      if (d < 3) {
+        goal = undefined;
+        return [0, 0];
+      }
+      // ease in over the last few steps, so you stop where the finger is
+      const k = Math.min(1, d / 40);
+      return [(gx / d) * Math.max(k, 0.35), (gy / d) * Math.max(k, 0.35)];
+    }
     let dx = stick[0];
     let dy = stick[1];
     if (keys.has("left")) dx -= 1;
@@ -820,9 +885,13 @@
     const ny = y + dy * speed * seconds;
     // Somewhere you can't stand, like a spot you arrived at by tapping,
     // never traps you.
+    const [ox, oy] = [x, y];
     if (!walkable([x, y]) || walkable([nx, ny])) [x, y] = [nx, ny];
     else if (walkable([nx, y])) x = nx;
     else if (walkable([x, ny])) y = ny;
+    // Walking to a tapped spot you can't get any closer to (the edge of the
+    // house): stop there rather than push at it.
+    if (goal && x === ox && y === oy) goal = undefined;
     draw();
     keepWalking(now);
     requestAnimationFrame(step);
@@ -1051,14 +1120,106 @@
     // on a double tap or holding up a magnifier: in a corner, it's walking.
     for (const type of ["touchstart", "touchmove"]) corner.addEventListener(type, (event) => event.preventDefault(), { passive: false });
   }
+  /* ---------- walking by touch ---------- */
+
+  // On a touch screen you walk by touching the house: tap a spot and you
+  // walk there, or put your finger on yourself and drag, and you follow it.
+  // Rithika, 9 Nov: "i dont like how the toggle is moving everywhere if i
+  // drag it across the screen ... can i j touch my character and move them
+  // around?", and picked "tap where to go" over keeping a fixed stick. The
+  // corner sticks are gone on a touch screen (style.css). A swipe still
+  // scrolls the page or pans a phone's house; only a tap or a drag that
+  // starts on you walks. Tapping a different room still walks you in.
+  const toPicture = (cx, cy) => {
+    const m = svg.getScreenCTM();
+    if (!m) return undefined;
+    const p = new DOMPoint(cx, cy).matrixTransform(m.inverse());
+    return [p.x, p.y];
+  };
+  // A finger or a pen, by the event itself: a mouse on a laptop (or a
+  // trackpad on an iPad) clicks as it always did.
+  const byFinger = (event) => event.pointerType === "touch" || event.pointerType === "pen";
+  let downPt; // where a touch on the house went down, to tell a tap from a swipe
+  // The tap below already walked you; the room link's own click mustn't
+  // also send you into the room you're standing in.
+  let tappedFloor = -1;
+  const goTo = (p) => {
+    if (!p || busy) return;
+    goal = [Math.max(31, Math.min(W - 31, p[0])), Math.max(93, Math.min(H - 9, p[1]))];
+    walk();
+  };
+  svg.addEventListener("pointerdown", (event) => {
+    if (!byFinger(event) || busy || event.button > 0) return;
+    downPt = [event.clientX, event.clientY, event.timeStamp];
+    // On yourself: drag to walk, and the page doesn't scroll under the finger.
+    if (event.target.closest?.("g.people .me")) {
+      dragging = event.pointerId;
+      svg.setPointerCapture?.(event.pointerId);
+      event.preventDefault();
+    }
+  });
+  svg.addEventListener("pointermove", (event) => {
+    if (event.pointerId !== dragging) return;
+    event.preventDefault();
+    goTo(toPicture(event.clientX, event.clientY));
+  });
+  const dropDrag = (event) => {
+    if (event.pointerId === dragging) dragging = undefined;
+  };
+  svg.addEventListener("pointercancel", dropDrag);
+  svg.addEventListener("lostpointercapture", dropDrag);
+  svg.addEventListener("pointerup", (event) => {
+    const was = dragging === event.pointerId;
+    dropDrag(event);
+    if (was || !byFinger(event) || !downPt) return;
+    const [sx, sy, t0] = downPt;
+    downPt = undefined;
+    // A tap: short and still. A swipe pans or scrolls, as it always did.
+    if (event.timeStamp - t0 > 450 || Math.hypot(event.clientX - sx, event.clientY - sy) > 12) return;
+    const p = toPicture(event.clientX, event.clientY);
+    if (!p) return;
+    const there = roomAt(p);
+    // Another room than the one you're looking at: the link's own tap walks
+    // you in (below). A tap on something in the house (a desk, the sofa,
+    // Shinzo) walks you up to it, which lights it up.
+    if (current ? there !== current : there && there !== roomAt([x, y])) return;
+    event.preventDefault();
+    tappedFloor = performance.now();
+    goTo(p);
+  });
+  // On yourself, a drag never scrolls the page (iOS needs this as well as
+  // touch-action).
+  svg.addEventListener("touchmove", (event) => {
+    if (dragging !== undefined) event.preventDefault();
+  }, { passive: false });
+
   // Scrolled down a room's page, away from the house, the corners step
   // aside for the page: there's nobody to walk that you can see.
+  // Typing in one of the page's own forms, they step aside too: walking
+  // waits while you type, and on a phone the corners and their hint sat
+  // over the very box she was writing in (Rithika, 9 Nov).
+  let offHouse = false;
+  const writing = () => {
+    const el = document.activeElement;
+    return el instanceof Element && !pad.contains(el) && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName));
+  };
+  const stepAside = () => {
+    const typingNow = writing();
+    const away = offHouse || typingNow;
+    pad.classList.toggle("away", away);
+    pad.classList.toggle("writing", typingNow);
+    if (away) letGo();
+  };
+  // The hint ("Tap where to go") is pinned to the screen's bottom; once the
+  // page has scrolled at all, what's under it is the page's own, so it goes.
+  addEventListener("scroll", () => pad.classList.toggle("scrolled", scrollY > 24), { passive: true });
+  addEventListener("focusin", stepAside);
+  addEventListener("focusout", () => setTimeout(stepAside, 0));
   if ("IntersectionObserver" in window) {
     new IntersectionObserver(
       ([seen]) => {
-        const away = seen.intersectionRatio < 0.4;
-        pad.classList.toggle("away", away);
-        if (away) letGo();
+        offHouse = seen.intersectionRatio < 0.4;
+        stepAside();
       },
       { threshold: [0, 0.2, 0.4, 0.6, 0.8, 1] },
     ).observe(map);
@@ -1069,6 +1230,11 @@
   svg.addEventListener("click", (event) => {
     const link = event.target.closest("a.room-link");
     if (!link || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    // A tap on the floor of the room you're in walks you there (above).
+    if (performance.now() - tappedFloor < 600) {
+      event.preventDefault();
+      return;
+    }
     const r = rooms.find((room) => room.link === link);
     if (still || r === current) return;
     event.preventDefault();

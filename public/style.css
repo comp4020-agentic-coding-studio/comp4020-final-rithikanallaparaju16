@@ -1035,7 +1035,7 @@ main.list {
 }
 
 .card,
-.away,
+section.away,
 .clocks {
   padding: 16px 18px;
   background: var(--card);
@@ -1044,13 +1044,16 @@ main.list {
 }
 
 .card h2,
-.away h2,
+section.away h2,
 .clocks h2 {
   margin: 0 0 8px;
   font-size: 1.15rem;
 }
 
-.away p {
+/* `section.away`, not `.away`: the walking pad is `.pad.away` once the
+   house is scrolled off, and took this card's cream background with it, an
+   empty box over the kitchen's form on a phone on its side (9 Nov). */
+section.away p {
   margin: 0;
 }
 
@@ -2108,6 +2111,28 @@ main.plain {
   margin-bottom: calc(var(--corner-h, 128px) - 8px);
 }
 
+/* Scrolled down past the house (house.js sets `.away`), what you can do
+   with something in the house steps aside, both columns. Rithika, 9 Nov:
+   "after i clicked on cook and the window for what i wanna cook opened
+   also, the button for "cook" didnt disappear". The page is fixed to the
+   screen on a phone, so the buttons followed her down onto the form they
+   had opened. The keys already stop once the house is out of view. */
+.pad.away .moves,
+.pad.away .keys-hint,
+.pad.scrolled .keys-hint,
+.pad.touch.writing .walk-corner,
+.pad.touch.writing .stick,
+.page-room .pad.touch.writing .walk-corner,
+.page-home .pad.touch.writing .walk-corner {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pad .moves {
+  transition: opacity 0.15s ease, visibility 0.15s;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pad.touch .walk-corner,
   .pad.touch .keys-hint {
@@ -2290,9 +2315,11 @@ button .emoji,
     z-index: 26;
   }
 
+  /* An upright room's picture is short, and its cards start under it, so
+     the hint at the screen's bottom sat over them ("Write on the wall",
+     "Pet Shinzo"; 9 Nov). Home teaches walking; a room doesn't repeat it. */
   .page-room .pad.touch .keys-hint {
-    position: fixed;
-    bottom: calc(var(--tabs-h) + env(safe-area-inset-bottom) + 14px);
+    display: none;
   }
 
   /* in a room the buttons stay in the picture's corner, as on a laptop:
@@ -5299,4 +5326,27 @@ html.as-app .house-svg {
 
 .note.photo.sketched .snap img {
   object-fit: contain;
+}
+
+/* ---------- walking by touch (ADR 0039) ---------- */
+
+/* On a touch screen you walk by tapping where to go, or dragging yourself
+   (public/house.js), so the corner sticks are gone: Rithika didn't like the
+   stick following her thumb across the screen, and picked "tap where to go"
+   (9 Nov 2026). The buttons no longer need to clear the corners. */
+.pad.touch .walk-corner,
+.pad.touch .stick {
+  display: none !important;
+}
+
+.pad.touch .moves,
+.page-room .pad.touch .moves {
+  margin-bottom: 0;
+}
+
+/* your own sticker takes a finger: dragging it walks you, never scrolls */
+.map:has(.pad.touch) g.people .me {
+  pointer-events: auto;
+  touch-action: none;
+  cursor: grab;
 }

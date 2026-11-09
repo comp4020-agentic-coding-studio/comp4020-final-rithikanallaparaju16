@@ -195,8 +195,13 @@ it("gives a phone the house either way up, filling the screen on its side", asyn
   const css = await (await get("/style.css")).text();
   const sideways = css.split("@media (pointer: coarse) and (orientation: landscape) and (max-height: 500px)")[1]?.split("\n}\n")[0] ?? "";
   expect(sideways, "there's no layout for a phone on its side").not.toBe("");
-  expect(sideways, "on its side, the walking corners aren't on the screen").toMatch(/\.pad\.touch \.walk-corner \{[^}]*position: fixed/);
-  expect(sideways, "on its side, the walking corners still step aside").toMatch(/\.pad\.touch\.away \.walk-corner \{[^}]*visibility: visible/);
+  // ADR 0039 (9 Nov): on a touch screen you walk by tapping where to go or
+  // dragging yourself; the corner sticks, which followed a thumb across the
+  // screen, are gone ("i dont like how the toggle is moving everywhere").
+  expect(css, "a touch screen still shows the corner sticks").toMatch(/\.pad\.touch \.walk-corner,\s*\.pad\.touch \.stick \{[^}]*display: none !important/);
+  const house = await (await get("/house.js")).text();
+  expect(house, "the house can't be walked by a tap").toMatch(/Tap where to go/);
+  expect(house, "a tap on the floor doesn't set where to walk").toMatch(/goal = \[/);
   // Upright: nothing in the stylesheet covers the whole screen.
   for (const block of css.split("@media (pointer: coarse) and (orientation: portrait)").slice(1)) {
     const body = block.split("\n}\n")[0];

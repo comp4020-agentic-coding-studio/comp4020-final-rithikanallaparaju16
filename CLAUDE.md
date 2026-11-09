@@ -190,14 +190,14 @@ accepted record.
   keys, so name the keys to remake one. Look at each new picture before
   committing; about one in ten needs its prompt made more specific.
 - Client JavaScript is enhancement only: `public/house.js` builds the walking
-  controls (arrow keys/WASD, the thumb stick, the Go in button; on a touch
-  screen both bottom corners, `.walk-corner`, are only for walking, the
-  stick coming up wherever a thumb lands, so keep buttons out of them; on
-  a phone they're fixed to the screen's corners above the tabs, rooms
-  included, a quick tap passes through to what's under them, and they hide
-  once the house is scrolled away), walks you to
-  a tapped room, keeps a phone's view on you, zooms in going into a room and
-  out leaving one, walks Shinzo along his day (`data-path`) and after
+  controls (arrow keys/WASD on a laptop, and the Go in button; on a touch
+  screen you tap where to go or drag your own sticker, by the event's
+  `pointerType`, so a mouse never walks by clicking, ADR 0039; the old
+  corner sticks are hidden on touch), walks you to
+  a tapped room, keeps a phone's view on you (but not while a finger drags
+  you), zooms in going into a room and out leaving one (looking out with
+  Esc, the frame takes the whole house's own shape on a laptop or iPad, so
+  it fills the window), walks Shinzo along his day (`data-path`) and after
   whoever petted or fed him, lights up the hotspot you're next to, offers
   hugs, and moves friends as they walk. Where you stepped out of a room, and where
   Shinzo was when you petted or fed him (so he gets up and comes over on the
@@ -343,6 +343,22 @@ accepted record.
   `element.click()` for this; it skips hit-testing. In session 3 a
   `pointer-events: none` meant for the SVG's `g.people` also matched the
   door's `ul.people`, and the deployed door stopped letting anyone in.
+- After touching `public/house.js`, the pad's CSS or the room views, run
+  `node scripts/walk-check.ts http://localhost:<port>` against a throwaway
+  house (it writes; it refuses Fly). It walks by real touches upright and
+  sideways, checks a laptop's click and keys, scrolls every page with the
+  house at four screens to see that no button or hint stands over the
+  page's own controls, and zooms out of every room of three house sizes at
+  three windows. It uses a fresh Chrome profile each time: a reused one
+  kept yesterday's `house.js` and made a fixed bug look unfixed (9 Nov).
+  These came from three things Rithika found on her phone and laptop on
+  9 Nov that no check had seen: "Cook" still standing over the cook form it
+  had opened, the house zoomed out small with green either side, and the
+  stick chasing her thumb.
+- `.away` is the pad's state once the house is scrolled off. It was also
+  Updates' "While you were away" card, styled as a cream card, and the pad
+  took that background: an empty box over the kitchen's form. That card is
+  `section.away` now. Grep for a class before giving an element a state.
 - Class names are shared between the SVG layer and the HTML around it. Scope
   SVG-only rules to the element (`g.people`, not `.people`). They're shared
   with the walking controls too: `.stick` is the thumb stick, hidden off
