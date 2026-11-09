@@ -4440,3 +4440,77 @@ a wrong RICE row named in a code comment (AH for X), fixed before
 committing.
 
 **Commits:** `442893a`, the PROCESS.md prompt line, and this entry's commit.
+
+### 106. "the button for cook didnt disappear", zooming out, and walking by touch (9 Nov 2026)
+
+**Asked**, in three messages while the agent worked:
+
+- With a screenshot of her phone on its side over the kitchen's cook form:
+  "after i clicked on cook and the window for what i wanna cook opened also,
+  the button for "cook"didnt disappear. i need you check all these
+  scenarios and fix it".
+- "also, i dont like how the toggle is moving everywhere if i drag it
+  across the screen, also is it possible to move my character by touch?
+  will that make the display better? / like i can j touch my character and
+  move them around?" The agent asked how; she picked "Tap where to go".
+- With a screenshot of a seven-friend house on her laptop: "this is
+  happening after zoomin in laptop, make sure to zoom out to the right
+  window everytime".
+
+**What was wrong, found by looking, not guessing:**
+
+- On a phone the pad is fixed to the screen, so its buttons followed her
+  down the page. A sweep of six pages at four screens, standing by
+  something on each and scrolling to the bottom, found 13 of 24 cases with
+  a button still on screen and taking taps.
+- The empty cream box behind "Cook" in her screenshot was a class clash:
+  house.js marks the pad `.away` when the house is scrolled off, and
+  `.away` was also Updates' "While you were away" card, a cream card with a
+  shadow. The pad took its background.
+- Upright, the corners and "Hold a corner to walk" sat over the cards just
+  under a room's short picture ("Write on the wall", "Pet Shinzo").
+- Looking out of a room kept the room's frame and fitted the house inside
+  it: in a seven-friend living room at her laptop's size, the house was 411
+  px wide in a 522 px frame, 55 px of green each side.
+- The stick: sliding past its edge brought it along, by design, so dragged
+  across the screen it chased the thumb.
+
+**Done (ADR 0039 for walking):**
+
+- The buttons and hint step aside when the house is scrolled off or a field
+  has focus; the hint also once the page has scrolled at all. The card is
+  `section.away`. Upright rooms don't repeat the hint.
+- Looking out, the frame takes the house's own shape (as wide as the
+  column, no taller than the screen), and the room's frame comes back on the
+  way in. Before and after are screenshots 37 and 38.
+- Walking by touch: a tap on the floor walks you there, a finger on your
+  sticker drags you, a swipe still pans or scrolls, a tap on another room
+  walks you in. By the event's `pointerType`, so a mouse never walks by
+  clicking. The corner sticks are gone on touch. While a finger drags you,
+  an upright phone's house holds still under it: the first try overshot
+  (877 for a wanted 585) because the camera panned the floor out from under
+  the finger.
+- `scripts/walk-check.ts` keeps all three checked in headless Chrome with
+  real touches and keys, and refuses to run against Fly since it writes.
+
+**What went wrong on the way:**
+
+- The agent's first overlap sweep reported the keyboard hint over the wall
+  form; it was the sweep forcing `.touch` after load. Its check also ran
+  after scrolling back to the top, not at the bottom. Both fixed in the
+  script.
+- A reused headless profile kept an old house.js, so a fixed bug looked
+  unfixed; the script now uses a fresh profile each time, and `CLAUDE.md`
+  says so.
+- On a laptop that had seen a touch first, a mouse click walked her: the
+  first version asked the pad's sticky `.touch` class; it now asks the
+  event.
+- The zoom sweep doubled a made house's address at first and measured
+  nothing for those houses; fixed before trusting its "0 bad".
+
+`pnpm check`: 148 passed, 13 skipped. walk-check: touch, nothing-over and
+the seven-friend zoom all passed.
+
+**Correction:** Rithika's three reports. The agent's own are above.
+
+**Commits:** `a6531cb`, the PROCESS.md prompt lines, and this entry's commit.
